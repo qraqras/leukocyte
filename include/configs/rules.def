@@ -1,0 +1,3 @@
+// X-macro list of rules: RULE(NAME, TYPED_TYPE, DEFAULT_SYMBOL)
+// Add new rules here.
+RULE(IndentationConsistency, indentation_consistency_t, indentation_consistency_default)

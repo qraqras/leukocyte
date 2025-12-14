@@ -8,6 +8,8 @@
 #include "prism.h"
 
 #include "rules/rule_manager.h"
+#include "cli.h"
+#include "configs/config.h"
 
 bool parse_ruby_file(const char *filepath, pm_node_t **out_node, pm_parser_t *out_parser)
 {
@@ -37,6 +39,7 @@ bool parse_ruby_file(const char *filepath, pm_node_t **out_node, pm_parser_t *ou
     }
 
     size_t read_size = fread(source, 1, file_size, file);
+    fprintf(stderr, "DEBUG: file_size=%ld read_size=%zu\n", file_size, read_size);
     fclose(file);
 
     if (read_size != (size_t)file_size)
@@ -50,6 +53,8 @@ bool parse_ruby_file(const char *filepath, pm_node_t **out_node, pm_parser_t *ou
 
     // Parse
     *out_node = pm_parse(out_parser);
+
+    fprintf(stderr, "DEBUG: file_size=%ld read_size=%zu error_list_size=%zu\n", file_size, read_size, out_parser->error_list.size);
 
     // Check for errors
     if (out_parser->error_list.size > 0)
@@ -83,16 +88,38 @@ bool parse_ruby_file(const char *filepath, pm_node_t **out_node, pm_parser_t *ou
 
 int main(int argc, char *argv[])
 {
-    fprintf(stderr, "Leukocyte: RuboCop Layout and Lint reimplementation in C\n");
+    fprintf(stderr, "Leuko: RuboCop Layout and Lint reimplementation in C\n");
 
-    // Placeholder for argument parsing and processing
-    if (argc < 2)
+    // CLI argument parsing
+    cli_options_t opts;
+    int cp = cli_parse(argc, argv, &opts);
+    if (cp == 1)
     {
-        fprintf(stderr, "Usage: %s <ruby_file>\n", argv[0]);
+        // help or version printed
+        cli_options_free(&opts);
+        return EXIT_SUCCESS;
+    }
+    if (cp != 0)
+    {
+        fprintf(stderr, "Failed to parse command line arguments\n");
         return EXIT_FAILURE;
     }
 
-    const char *filepath = argv[1];
+    const char *filepath = NULL;
+    if (opts.paths_count > 0)
+        filepath = opts.paths[0];
+    if (!filepath)
+    {
+        fprintf(stderr, "Usage: %s [options] <ruby_file>\n", argv[0]);
+        cli_options_free(&opts);
+        return EXIT_FAILURE;
+    }
+
+    config_t *cfg = NULL;
+    if (opts.config_path)
+    {
+        cfg = config_load_from_file(opts.config_path);
+    }
     pm_parser_t *parser = (pm_parser_t *)malloc(sizeof(pm_parser_t));
     if (!parser)
     {
@@ -102,8 +129,11 @@ int main(int argc, char *argv[])
     pm_node_t *node;
     if (!parse_ruby_file(filepath, &node, parser))
     {
-        pm_parser_free(parser);
+        // parse_ruby_file already frees parser's internal state via pm_parser_free()
         free(parser);
+        if (cfg)
+            config_free(cfg);
+        cli_options_free(&opts);
         fprintf(stderr, "Failed to parse Ruby file: %s\n", filepath);
         return EXIT_FAILURE;
     }
@@ -115,7 +145,7 @@ int main(int argc, char *argv[])
 
     // Visit AST for rule checking
     pm_list_t diagnostics = {0};
-    visit_node(node, parser, &diagnostics);
+    visit_node(node, parser, &diagnostics, cfg);
 
     // Output diagnostics
     if (diagnostics.size > 0)
@@ -150,7 +180,11 @@ int main(int argc, char *argv[])
         }
         diag = (pm_diagnostic_t *)diag->node.next;
     }
+
     pm_list_free(&diagnostics);
+    if (cfg)
+        config_free(cfg);
+    cli_options_free(&opts);
 
     return EXIT_SUCCESS;
 }

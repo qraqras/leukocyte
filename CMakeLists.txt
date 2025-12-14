@@ -36,27 +36,39 @@ add_subdirectory(vendor/libyaml)
 # Source files
 set(SOURCES
     src/main.c
+    src/cli/cli.c
+    src/configs/config.c
+    src/configs/config_file.c
+    src/configs/config_defaults.c
+    src/configs/yaml_reader.c
+    src/configs/layout/indentation_consistency.c
     src/rules/rule_manager.c
-    src/rules/layout/indentation.c
+    src/rules/layout/indentation_consistency.c
     # Add more sources here
 )
 
+# Library target for core sources so tests can link against it
+add_library(leuko_lib STATIC ${SOURCES})
+
 # Executable
-add_executable(leukocyte ${SOURCES})
+add_executable(leuko src/main.c)
+target_link_libraries(leuko leuko_lib)
 
 if (ENABLE_ASAN)
-    target_compile_options(leukocyte PRIVATE -fsanitize=address -fno-omit-frame-pointer)
-    target_link_options(leukocyte PRIVATE -fsanitize=address)
+    target_compile_options(leuko PRIVATE -fsanitize=address -fno-omit-frame-pointer)
+    target_link_options(leuko PRIVATE -fsanitize=address)
 endif()
 
 # Link libraries
 # Use the imported prism_static target which depends on the ExternalProject build
-target_link_libraries(leukocyte prism_static yaml)
+target_link_libraries(leuko prism_static yaml)
+target_link_libraries(leuko_lib prism_static yaml)
 
 # Ensure the external Prism build is run before building leukocyte
-add_dependencies(leukocyte prism_project)
+add_dependencies(leuko prism_project)
 
 # Tests
 enable_testing()
 add_executable(test_leukocyte tests/test_main.c)
+target_link_libraries(test_leukocyte leuko_lib yaml)
 add_test(NAME test_leukocyte COMMAND test_leukocyte)

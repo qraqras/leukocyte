@@ -1,0 +1,9 @@
+typedef enum
+{
+    SEVERITY_INFO,
+    SEVERITY_REFACTOR,
+    SEVERITY_CONVENTION,
+    SEVERITY_WARNING,
+    SEVERITY_ERROR,
+    SEVERITY_FATAL,
+} severity_level_t;

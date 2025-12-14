@@ -11,6 +11,7 @@ typedef struct
 {
     pm_parser_t *parser;
     pm_list_t *diagnostics;
+    config_t *cfg;
 } visit_data_t;
 
 // Visitor function for each node
@@ -25,10 +26,10 @@ bool node_visitor(const pm_node_t *node, void *data)
         for (size_t i = 0; i < rules_count_by_type[type]; i++)
         {
             rule_t *rule = rules_by_type[type][i];
-            if (rule->enabled && rule->handlers[type])
-            {
-                rule->handlers[type]((pm_node_t *)node, visit_data->parser, visit_data->diagnostics);
-            }
+                if (rule->enabled && rule->handlers[type])
+                {
+                    rule->handlers[type]((pm_node_t *)node, visit_data->parser, visit_data->diagnostics, visit_data->cfg);
+                }
         }
     }
 
@@ -36,9 +37,9 @@ bool node_visitor(const pm_node_t *node, void *data)
 }
 
 // Visitor function for AST traversal
-bool visit_node(pm_node_t *node, pm_parser_t *parser, pm_list_t *diagnostics)
+bool visit_node(pm_node_t *node, pm_parser_t *parser, pm_list_t *diagnostics, config_t *cfg)
 {
-    visit_data_t data = {parser, diagnostics};
+    visit_data_t data = {parser, diagnostics, cfg};
     pm_visit_node(node, node_visitor, &data);
     return true;
 }
@@ -52,6 +53,6 @@ void init_rules()
 
     // Add Layout/Indentation rule
     rules_by_type[PM_DEF_NODE] = malloc(sizeof(rule_t *));
-    rules_by_type[PM_DEF_NODE][0] = &layout_indentation_rule;
+    rules_by_type[PM_DEF_NODE][0] = &layout_indentation_consistency_rule;
     rules_count_by_type[PM_DEF_NODE] = 1;
 }

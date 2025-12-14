@@ -1,0 +1,7 @@
+/* Shared literals for Layout/IndentationConsistency */
+#ifndef RULES_LAYOUT_INDENTATION_CONSISTENCY_H
+#define RULES_LAYOUT_INDENTATION_CONSISTENCY_H
+
+#define RULE_NAME_LAYOUT_INDENTATION_CONSISTENCY "Layout/IndentationConsistency"
+
+#endif // RULES_LAYOUT_INDENTATION_CONSISTENCY_H

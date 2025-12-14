@@ -56,3 +56,4 @@ dkms.conf
 
 # Build directory
 build/
+build_asan/
