@@ -1,3 +1,4 @@
+/// @brief Severity levels for diagnostics.
 typedef enum
 {
     SEVERITY_INFO,

@@ -26,7 +26,9 @@ int main(int argc, char *argv[])
         return EXIT_SUCCESS;
     }
 
-    // **** COLLECT RUBY FILE PATHS ****
+    // **** CONFIGURATION LOADING ****
+
+    // **** RUBY FILE COLLECTION ****
     char **ruby_files = NULL;
     size_t ruby_files_count = 0;
     char *scan_err = NULL;

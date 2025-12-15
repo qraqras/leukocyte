@@ -1,6 +1,5 @@
 #include <dirent.h>
 #include <errno.h>
-#include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,6 +8,7 @@
 #include <unistd.h>
 #include <glob.h>
 #include <stdbool.h>
+#include <sys/param.h>
 
 #include "io/scan.h"
 
@@ -101,6 +101,7 @@ static bool scan_dir_recursive(const char *dirpath, char ***out, size_t *out_cou
         struct stat st;
         if (lstat(path, &st) != 0)
         {
+            fprintf(stderr, "lstat('%s') returned %d errno=%d (%s)\n", path, -1, errno, strerror(errno));
             set_err(err, "stat('%s'): %s", path, strerror(errno));
             closedir(d);
             return false;
@@ -118,7 +119,7 @@ static bool scan_dir_recursive(const char *dirpath, char ***out, size_t *out_cou
         {
             if (is_ruby(ent->d_name))
             {
-                if (append_path(out, out_count, path) != 0)
+                if (!append_path(out, out_count, path))
                 {
                     set_err(err, "out of memory");
                     closedir(d);
@@ -171,7 +172,7 @@ bool collect_ruby_files(char **paths, size_t paths_count, char ***out_paths, siz
         // '-' is treated as a literal filename token (stdin).
         if (strcmp(p, "-") == 0)
         {
-            if (append_path(out_paths, out_count, p) != 0)
+            if (!append_path(out_paths, out_count, p))
             {
                 set_err(err, "out of memory");
                 return false;
@@ -226,8 +227,9 @@ bool collect_ruby_files(char **paths, size_t paths_count, char ***out_paths, siz
                         /* Only include regular files that look like Ruby sources (.rb) */
                         if (is_ruby(mp))
                         {
-                            if (append_path(out_paths, out_count, mp) != 0)
+                            if (!append_path(out_paths, out_count, mp))
                             {
+                                fprintf(stderr, "append_path failed for '%s'\n", mp);
                                 set_err(err, "out of memory");
                                 globfree(&g);
                                 return false;
@@ -245,6 +247,7 @@ bool collect_ruby_files(char **paths, size_t paths_count, char ***out_paths, siz
         // Symbolic links: follow to determine type
         if (lstat(p, &st) != 0)
         {
+            fprintf(stderr, "lstat('%s') failed errno=%d (%s)\n", p, errno, strerror(errno));
             set_err(err, "stat('%s'): %s", p, strerror(errno));
             return false;
         }
@@ -257,7 +260,7 @@ bool collect_ruby_files(char **paths, size_t paths_count, char ***out_paths, siz
         // Regular file: include if explicit (regardless of extension)
         else if (S_ISREG(st.st_mode))
         {
-            if (append_path(out_paths, out_count, p) != 0)
+            if (!append_path(out_paths, out_count, p))
             {
                 set_err(err, "out of memory");
                 return false;
