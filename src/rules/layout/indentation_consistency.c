@@ -15,7 +15,7 @@ bool check_def_indentation(pm_node_t *node, pm_parser_t *parser, pm_list_t *diag
 
 rule_t layout_indentation_consistency_rule = {
     .name = RULE_NAME_LAYOUT_INDENTATION_CONSISTENCY,
-    .category = CATEGORY_LAYOUT,
+    .category = RULE_CATEGORY_LAYOUT,
     .enabled = true,
     .handlers = {[PM_DEF_NODE] = check_def_indentation}};
 

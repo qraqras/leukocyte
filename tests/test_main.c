@@ -1,81 +1,69 @@
-#include <assert.h>
-#include <stdio.h>
-
-#include "leukocyte.h"
+// Simple tests for read_file_to_buffer
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "configs/config_defaults.h"
-#include "configs/config_file.h"
-#include "configs/severity.h"
+#include <unistd.h>
+#include <fcntl.h>
+#include "io/file.h"
+#include <stdint.h>
 
-static void test_yaml_apply()
+static int test_read_regular_file(void)
 {
-    const char *yaml = "Layout/IndentationConsistency:\n"
-                       "  Enabled: false\n"
-                       "  Severity: warning\n"
-                       "  EnforcedStyle: indented_internal_methods\n"
-                       "  Include:\n"
-                       "    - lib/**\n"
-                       "  Exclude:\n"
-                       "    - test/**\n";
-
-    char tmpfile[] = "/tmp/leuko_test_yaml_XXXXXX";
-    int fd = mkstemp(tmpfile);
+    char tmpl[] = "/tmp/leuko_test_XXXXXX";
+    int fd = mkstemp(tmpl);
     if (fd < 0)
-        abort();
-    FILE *f = fdopen(fd, "w");
-    if (!f)
-        abort();
-    fprintf(f, "%s", yaml);
-    fclose(f);
+        return 1;
+    const char *data = "hello world\n";
+    write(fd, data, strlen(data));
+    close(fd);
 
-    file_t *cfg = file_clone(&config_defaults);
-    if (!cfg)
-        abort();
-
+    uint8_t *buf = NULL;
+    size_t sz = 0;
     char *err = NULL;
-    bool ok = config_file_apply_yaml(cfg, tmpfile, &err);
+    int ok = read_file_to_buffer(tmpl, &buf, &sz, &err);
+    unlink(tmpl);
     if (!ok)
     {
-        fprintf(stderr, "YAML apply failed: %s\n", err ? err : "(no msg)");
+        fprintf(stderr, "test_read_regular_file failed: %s\n", err ? err : "unknown");
         free(err);
-        unlink(tmpfile);
-        file_free(cfg);
-        abort();
+        return 1;
     }
-
-    // Check results
-    if (cfg->IndentationConsistency_common.enabled != false)
-        abort();
-    if (cfg->IndentationConsistency_common.severity != SEVERITY_WARNING)
-        abort();
-    if (!cfg->IndentationConsistency)
-        abort();
-    if (cfg->IndentationConsistency->enforced_style != INDENTATION_CONSISTENCY_ENFORCED_STYLE_INDENTED_INTERNAL_METHODS)
-        abort();
-    if (cfg->IndentationConsistency_common.include_count != 1)
-        abort();
-    if (strcmp(cfg->IndentationConsistency_common.include[0], "lib/**") != 0)
-        abort();
-    if (cfg->IndentationConsistency_common.exclude_count != 1)
-        abort();
-    if (strcmp(cfg->IndentationConsistency_common.exclude[0], "test/**") != 0)
-        abort();
-
-    // cleanup
-    unlink(tmpfile);
-    file_free(cfg);
+    int rv = 0;
+    if (sz != strlen(data) || memcmp(buf, data, sz) != 0)
+        rv = 1;
+    free(buf);
+    return rv;
 }
 
-int main()
+static int test_missing_file(void)
 {
-    printf("Running tests for Leukocyte...\n");
+    uint8_t *buf = NULL;
+    size_t sz = 0;
+    char *err = NULL;
+    int ok = read_file_to_buffer("/no/such/file/hopefully", &buf, &sz, &err);
+    if (ok)
+    {
+        free(buf);
+        return 1;
+    }
+    if (err)
+    {
+        free(err);
+        return 0;
+    }
+    return 0;
+}
 
-    test_yaml_apply();
-
-    // Placeholder for additional tests
-
-    printf("All tests passed!\n");
+int main(void)
+{
+    int failures = 0;
+    failures += test_read_regular_file();
+    failures += test_missing_file();
+    if (failures)
+    {
+        fprintf(stderr, "%d tests failed\n", failures);
+        return 1;
+    }
+    printf("All tests passed\n");
     return 0;
 }

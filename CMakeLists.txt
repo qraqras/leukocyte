@@ -37,15 +37,23 @@ add_subdirectory(vendor/libyaml)
 set(SOURCES
     src/main.c
     src/cli/cli.c
+    src/cli/formatter.c
     src/configs/config.c
-    src/configs/config_file.c
-    src/configs/config_defaults.c
-    src/configs/yaml_reader.c
+    src/configs/config_registry.c
     src/configs/layout/indentation_consistency.c
     src/rules/rule_manager.c
+    src/rules/rule.c
     src/rules/layout/indentation_consistency.c
+    src/io/file.c
+    src/io/scan.c
+    src/parse.c
     # Add more sources here
 )
+
+# IO tests
+add_executable(test_io_scan tests/test_io_scan.c)
+target_link_libraries(test_io_scan leuko_lib yaml)
+add_test(NAME test_io_scan COMMAND test_io_scan)
 
 # Library target for core sources so tests can link against it
 add_library(leuko_lib STATIC ${SOURCES})
@@ -72,3 +80,8 @@ enable_testing()
 add_executable(test_leukocyte tests/test_main.c)
 target_link_libraries(test_leukocyte leuko_lib yaml)
 add_test(NAME test_leukocyte COMMAND test_leukocyte)
+
+# CLI tests for comma-splitting and parsing
+add_executable(test_cli tests/test_cli.c)
+target_link_libraries(test_cli leuko_lib yaml)
+add_test(NAME test_cli COMMAND test_cli)

@@ -12,18 +12,21 @@ typedef struct config_s config_t;
 // Rule Category enum
 typedef enum
 {
-    CATEGORY_LAYOUT,
-    CATEGORY_LINT,
+    RULE_CATEGORY_LAYOUT,
+    RULE_CATEGORY_LINT,
 } rule_category_t;
 
 // Rule struct
 typedef struct
 {
-    const char *name;                                                                                   // Rule name (e.g., "Layout/Indentation")
-    rule_category_t category;                                                                           // Category
-    bool enabled;                                                                                       // Enabled flag
+    const char *name;                                                                                                  // Rule name (e.g., "Layout/Indentation")
+    rule_category_t category;                                                                                          // Category
+    bool enabled;                                                                                                      // Enabled flag
     bool (*handlers[PM_NODE_TYPE_COUNT])(pm_node_t *node, pm_parser_t *parser, pm_list_t *diagnostics, config_t *cfg); // Handlers per node type
 } rule_t;
+
+bool rule_category_from_string(const char *str, rule_category_t *out);
+bool rule_category_to_string(rule_category_t category, const char **out);
 
 // External rule declarations
 extern rule_t layout_indentation_consistency_rule;

@@ -10,7 +10,7 @@
 // Rule definition
 rule_t lint_debugger_rule = {
     .name = "Lint/Debugger",
-    .category = CATEGORY_LINT,
+    .category = RULE_CATEGORY_LINT,
     .enabled = true,
     .handlers = {[PM_CALL_NODE] = check_call}};
 
