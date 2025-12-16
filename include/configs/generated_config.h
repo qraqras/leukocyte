@@ -12,7 +12,7 @@ typedef struct config_s
 #undef X
 } config_t;
 
-void config_init_defaults(config_t *cfg);
+void config_initialize(config_t *cfg);
 void config_free(config_t *cfg);
 
 #endif /* LEUKOCYTE_CONFIGS_GENERATED_CONFIG_H */

@@ -1,6 +1,8 @@
 #ifndef INCLUDE_CLI_FORMATTER_H
 #define INCLUDE_CLI_FORMATTER_H
 
+#include <stdbool.h>
+
 /// @brief CLI output formatter enum.
 typedef enum
 {
@@ -23,7 +25,6 @@ typedef enum
     CLI_FORMATTER_GITHUB_ACTIONS,
 } cli_formatter_t;
 
-/// @brief Convert string to `cli_formatter_t` enum value.
 bool cli_formatter_from_string(const char *str, cli_formatter_t *out);
 
 #endif /* INCLUDE_CLI_FORMATTER_H */

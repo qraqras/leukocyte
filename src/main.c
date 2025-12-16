@@ -6,6 +6,7 @@
 #include "cli/cli.h"
 #include "parse.h"
 #include "leukocyte.h"
+#include "configs/generated_config.h"
 #include "rules/rule_manager.h"
 #include "io/scan.h"
 
@@ -27,6 +28,8 @@ int main(int argc, char *argv[])
     }
 
     // **** CONFIGURATION LOADING ****
+    config_t cfg = {0};
+    config_initialize(&cfg);
 
     // **** RUBY FILE COLLECTION ****
     char **ruby_files = NULL;

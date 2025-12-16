@@ -7,7 +7,7 @@
 int main(void)
 {
     config_t cfg;
-    config_init_defaults(&cfg);
+    config_initialize(&cfg);
 
     // At least the indentation rule should be initialized
 #define X(field, cat, name, rule_ptr, ops_ptr) assert(cfg.field != NULL);

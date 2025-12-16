@@ -2,12 +2,10 @@
 #ifndef LEUKOCYTE_CLI_H
 #define LEUKOCYTE_CLI_H
 
-#include <stddef.h>
-#include <stdbool.h>
+#include "cli/formatter.h"
 
-#include "formatter.h"
-
-typedef enum
+/// @brief Quick fix mode enum.
+typedef enum quick_fix_mode_e
 {
     QUICK_FIX_MODE_OFF,
     QUICK_FIX_MODE_SAFE,
@@ -15,7 +13,7 @@ typedef enum
 } quick_fix_mode_t;
 
 /// @brief CLI options structure.
-typedef struct
+typedef struct cli_options_s
 {
     char **paths;
     size_t paths_count;

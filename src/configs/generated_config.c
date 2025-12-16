@@ -8,7 +8,7 @@ static void free_rule_config(rule_config_t *cfg);
 
 /// @brief Initialize a config_t structure with default values.
 /// @param cfg Pointer to the config_t structure to initialize
-void config_init_defaults(config_t *cfg)
+void config_initialize(config_t *cfg)
 {
     if (!cfg)
         return;
