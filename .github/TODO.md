@@ -1,41 +1,48 @@
 
-# 現在の設計と残タスク
-
-このファイルは現在の設計要点と、今後着手すべきタスクを簡潔にまとめた TODO です。
+# TODO: RULES_LIST マクロ拡張 (カテゴリ / 短縮名 の導入) ✅
 
 ## 概要
-- ルール一覧は X-macro(`RULES_LIST`, `include/rules_list.h`) で一元管理。
-- 各ルールは `rule_t`（`rules/rule.h`）で定義され、`rule_registry` は X-macro から生成される。
-- ルールごとの設定（`rule_config_t`）は `config_ops`（`initialize` と `apply_yaml`）で生成/適用される。
-- `config_t`（集約設定構造体）は RULES_LIST の第1引数（フィールド識別子）から自動生成され、`config_init_defaults()` / `config_free()` を通じて初期化・解放される。
+- 現状の `fullname` を実行時に '/' で分割する実装をやめ、**ルール登録時点で** `category` / `rule_name` (短名) / `full_name` を保持する。
+- 目的: 安全性向上、パフォーマンス改善、可読性・テスト性の向上。
 
-## 設計の重要点
-- X-macro を単一の真実源にして、ルール・設定・レジストリを自動生成している。
-- `config_ops` の責務は ①デフォルト初期化（initialize） ②YAML 適用（apply_yaml） の二つに限定。
-- YAML 適用は Document モード（`yaml_document_t` / `yaml_node_t`）方式を採用予定。理由: 実装容易性、テスト性、RuboCop 構成の複雑さへの対応。
-- 中央（loader）で**共通キー（enabled/severity/include/exclude）をマージして適用**し、ルール固有の複雑なマージのみルールに委譲する方針。
+## 高レベル設計
+1. RULES_LIST の X-macro を拡張して、各エントリに `category` と `rule_name` (短名) を含める（例: X(field, category, rule_name, full_name, rule_ptr, ops_ptr)）。
+2. `rule_registry_entry_t` に `const char *category_name` と `const char *short_name` を追加する。
+3. レジストリ生成コードで静的文字列として埋める（malloc不要）。
+4. `loader.c` 等の callsite では `entry->category_name` / `entry->short_name` を参照して探索する（`strchr` / `strndup` を削除）。
 
-## 実装済み（主な変更）
-- `include/configs/config_ops.h`: `initialize` / `apply` シグネチャ設計
-- `include/configs/rules_list.h` / `src/rule_registry.c`：RULES_LIST による rule_registry 生成
-- `include/configs/generated_config.h`, `src/configs/generated_config.c`: `config_t` の自動生成、`config_init_defaults`/`config_free` 実装
-- `src/configs/config_registry.c`: レジストリ経由でデフォルト config を生成する実装
-- ルール `layout/indentation_consistency` の config ops 実装とテスト
+## 移行手順（段階的）
+1. マクロ定義の拡張（設計完了） ✅
+2. `rule_registry.c` の生成ロジックを更新して新フィールドを埋める
+3. `include/rules` / `rules` の RULES_LIST を順次更新
+4. `loader.c` の分割ロジックを削除して新フィールド参照に置換
+5. ユニットテスト（レジストリ検証・loader 統合テスト）を追加
+6. フルテストスイートを実行し回帰を修正
+7. ドキュメントと CHANGELOG を更新
+8. 互換ラッパーが必要なら追加して段階的に削除
 
-## 優先残タスク（推奨順）
-1. YAML ローダ実装 (`config_load_file` / `config_apply_document`) — Document モードで実装
-2. 中央での共通キーのマージ機能実装とユーティリティ（`yaml_get_merged_*`）追加
-3. `config_ops.apply_yaml` シグネチャを確定し、ルール側の `apply_yaml` を実装（例: `layout_indentation_consistency_apply_yaml`）
-4. YAML 関連の単体テスト追加（AllCops / Category / Rule パターン、エラーケース）
-5. `rule_registry` と `config_registry` の振る舞いを検証するユニットテスト（ops が正しく登録され動作することを検証）
-6. ドキュメント整備（README に設定の書き方・apply_yaml の実装ガイドを追加）
+## テストケース（必須）
+- レジストリの各エントリが `category` / `short_name` / `fullname` を持つことを確認する単体テスト
+- Loader の統合テスト（カテゴリノード内の rule ノードを見つけられること、トップレベル fullname による指定が動作すること）
+- 既存の edge-case テストの再実行（回帰がないこと）
 
-## 仕様 Decisions / 方針まとめ
-- YAML は当面 Document モード（`yaml_document_t` / `yaml_node_t`）を用いる。
-- 優先順位: Rule > Category > AllCops（下位が上書き）
-- 中央で共通キーを適用し、ルールは固有キーの解釈のみ行う。
-- エラー: 構文エラーは loader が失敗、ルール固有のパースエラーは Diagnostic を追加して部分反映を許容。
+## 注意点
+- RuboCop の互換は「1階層のみ」を前提とする（`Category/Rule`）。
+- マクロ変更は一斉にビルドエラーを引き起こすため、段階的かつ注意深く適用する。
 
 ---
 
-もし上記で優先すべき項目や追記したい内容があれば指示ください。実装を開始する場合は該当タスクを着手します。
+作業を進めてよければ、次に `RULES_LIST` の具体的なマクロ行形式と `rule_registry_entry_t` の差分を用意します。
+
+## 実装状況（更新）
+- 実装済み ✅
+  - `RULES_LIST` の拡張（カテゴリ文字列と短縮名を含めるように変更）
+  - `rule_registry_entry_t` に `category_name` / `short_name` を追加
+  - `rule_registry` の静的生成を更新（`rule_name` は `FULLNAME(category, short)` で構築）
+  - `loader.c` の runtime split ロジックを削除し `entry->category_name` / `entry->short_name` を参照するように変更
+  - ユニットテスト: レジストリ検証 `tests/test_rule_registry.c` を追加
+  - 統合テスト: `tests/test_config_loader.c` / `tests/test_loader_fullname.c` によりカテゴリ指定と fullname 指定の双方を確認
+
+- 残タスク（次）
+  - ドキュメントと CHANGELOG を更新する
+  - 互換ラッパーを検討（必要に応じて追加）

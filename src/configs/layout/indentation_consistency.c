@@ -44,8 +44,10 @@ bool layout_indentation_consistency_apply(rule_config_t *config, const yaml_docu
         return false;
 
     layout_indentation_consistency_config_t *sc = (layout_indentation_consistency_config_t *)config->specific_config;
-    char *val = yaml_get_merged_string(doc, rule_node, category_node, allcops_node, "EnforcedStyle");
-    if (!val)
+
+    char val[256];
+    bool merged = yaml_get_merged_string(doc, rule_node, category_node, allcops_node, "EnforcedStyle", val);
+    if (!merged)
         return true; /* nothing to do, but considered handled */
 
     if (strcmp(val, "indented_internal_methods") == 0)
@@ -53,7 +55,6 @@ bool layout_indentation_consistency_apply(rule_config_t *config, const yaml_docu
     else
         sc->enforced_style = INDENTATION_CONSISTENCY_ENFORCED_STYLE_NORMAL;
 
-    free(val);
     return true;
 }
 

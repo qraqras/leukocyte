@@ -6,6 +6,16 @@
 
 #include "severity.h"
 
+/* Configs */
+/* clang-format off */
+#define ALL_COPS            "AllCops"
+#define INHERIT_FROM        "inherit_from"
+#define CONFIG_KEY_ENABLED  "Enabled"
+#define CONFIG_KEY_SEVERITY "Severity"
+#define CONFIG_KEY_INCLUDE  "Include"
+#define CONFIG_KEY_EXCLUDE  "Exclude"
+/* clang-format on */
+
 typedef struct rule_config_s
 {
     bool enabled;

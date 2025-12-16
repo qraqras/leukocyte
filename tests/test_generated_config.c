@@ -7,14 +7,14 @@
 int main(void)
 {
     config_t cfg;
-    config_initialize(&cfg);
+    initialize_config(&cfg);
 
     // At least the indentation rule should be initialized
-#define X(field, cat, name, rule_ptr, ops_ptr) assert(cfg.field != NULL);
+#define X(field, cat_name, sname, rule_ptr, ops_ptr) assert(cfg.field != NULL);
     RULES_LIST
 #undef X
 
-    config_free(&cfg);
+    free_config(&cfg);
 
     return 0;
 }

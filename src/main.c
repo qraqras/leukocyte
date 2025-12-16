@@ -7,6 +7,8 @@
 #include "parse.h"
 #include "leukocyte.h"
 #include "configs/generated_config.h"
+#include "configs/loader.h"
+#include "configs/diagnostics.h"
 #include "rules/rule_manager.h"
 #include "io/scan.h"
 
@@ -29,7 +31,20 @@ int main(int argc, char *argv[])
 
     // **** CONFIGURATION LOADING ****
     config_t cfg = {0};
-    config_initialize(&cfg);
+    initialize_config(&cfg);
+    if (cli_opts.config_path)
+    {
+        pm_list_t cfg_diags = {0};
+        if (!load_config_file_into(&cfg, cli_opts.config_path, &cfg_diags))
+        {
+            fprintf(stderr, "Failed to load config file: %s\n", cli_opts.config_path);
+        }
+        else if (!pm_list_empty_p(&cfg_diags))
+        {
+            config_diagnostics_print_all(stderr, &cfg_diags);
+        }
+        config_diagnostics_free(&cfg_diags);
+    }
 
     // **** RUBY FILE COLLECTION ****
     char **ruby_files = NULL;
@@ -76,6 +91,7 @@ int main(int argc, char *argv[])
     // TODO: Apply rules and perform analysis on root_node
 
     cli_options_free(&cli_opts);
+    free_config(&cfg);
 
     return EXIT_SUCCESS;
 }

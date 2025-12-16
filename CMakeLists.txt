@@ -42,8 +42,10 @@ set(SOURCES
     src/configs/layout/indentation_consistency.c
     src/configs/generated_config.c
     src/configs/yaml_helpers.c
+    src/configs/diagnostics.c
     src/configs/loader.c
     src/category.c
+    src/severity.c
     src/rules/rule_manager.c
     src/rules/rule.c
     src/rule_registry.c
@@ -69,10 +71,31 @@ add_executable(test_yaml_helpers tests/test_yaml_helpers.c)
 target_link_libraries(test_yaml_helpers leuko_lib yaml)
 add_test(NAME test_yaml_helpers COMMAND test_yaml_helpers)
 
+# Rule registry test
+add_executable(test_rule_registry tests/test_rule_registry.c)
+target_link_libraries(test_rule_registry leuko_lib yaml)
+add_test(NAME test_rule_registry COMMAND test_rule_registry)
+
+# YAML case sensitivity tests
+add_executable(test_yaml_case_sensitive tests/test_yaml_case_sensitive.c)
+target_link_libraries(test_yaml_case_sensitive leuko_lib yaml)
+add_test(NAME test_yaml_case_sensitive COMMAND test_yaml_case_sensitive)
+
 # Config loader tests
 add_executable(test_config_loader tests/test_config_loader.c)
 target_link_libraries(test_config_loader leuko_lib yaml)
 add_test(NAME test_config_loader COMMAND test_config_loader)
+
+# Loader fullname tests
+add_executable(test_loader_fullname tests/test_loader_fullname.c)
+target_link_libraries(test_loader_fullname leuko_lib yaml)
+add_test(NAME test_loader_fullname COMMAND test_loader_fullname)
+
+# Edge-case config loader tests
+add_executable(test_config_loader_edgecases tests/test_config_loader_edgecases.c)
+target_link_libraries(test_config_loader_edgecases leuko_lib yaml)
+add_test(NAME test_config_loader_edgecases COMMAND test_config_loader_edgecases)
+
 # Library target for core sources so tests can link against it
 add_library(leuko_lib STATIC ${SOURCES})
 
