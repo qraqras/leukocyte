@@ -5,8 +5,8 @@
 /// @brief Map of strings to category_t enum values.
 static const struct
 {
-    const char *str;
-    category_t rule_category;
+    const char *s;
+    category_t category;
 } rule_category_map[] = {
     {"layout", CATEGORY_LAYOUT},
     {"Layout", CATEGORY_LAYOUT},
@@ -15,18 +15,18 @@ static const struct
 };
 
 /// @brief Convert string to rule_category_t enum value.
-/// @param str Input string
+/// @param s Input string
 /// @param out Output parameter to store the corresponding rule_category_t value
 /// @return true if conversion was successful, false otherwise
-bool rule_category_from_string(const char *str, category_t *out)
+bool rule_category_from_string(const char *s, category_t *out)
 {
-    if (!str)
+    if (!s)
         return false;
     for (size_t i = 0; i < sizeof(rule_category_map) / sizeof(rule_category_map[0]); ++i)
     {
-        if (strcmp(str, rule_category_map[i].str) == 0)
+        if (strcmp(s, rule_category_map[i].s) == 0)
         {
-            *out = rule_category_map[i].rule_category;
+            *out = rule_category_map[i].category;
             return true;
         }
     }
@@ -41,9 +41,9 @@ bool rule_category_to_string(category_t category, const char **out)
 {
     for (size_t i = 0; i < sizeof(rule_category_map) / sizeof(rule_category_map[0]); ++i)
     {
-        if (category == rule_category_map[i].rule_category)
+        if (category == rule_category_map[i].category)
         {
-            *out = rule_category_map[i].str;
+            *out = rule_category_map[i].s;
             return true;
         }
     }

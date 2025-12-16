@@ -39,7 +39,6 @@ set(SOURCES
     src/cli/cli.c
     src/cli/formatter.c
     src/configs/config.c
-    src/configs/config_registry.c
     src/configs/layout/indentation_consistency.c
     src/configs/generated_config.c
     src/category.c
