@@ -9,10 +9,10 @@ static yaml_node_t *lookup_in_node(const yaml_document_t *doc, yaml_node_t *mapp
 
     for (yaml_node_pair_t *pair = mapping_node->data.mapping.pairs.start; pair < mapping_node->data.mapping.pairs.top; pair++)
     {
-        yaml_node_t *k = yaml_document_get_node(doc, pair->key);
-        if (k && k->type == YAML_SCALAR_NODE && strcmp((char *)k->data.scalar.value, key) == 0)
+        yaml_node_t *k = yaml_document_get_node((yaml_document_t *)doc, pair->key);
+        if (k && k->type == YAML_SCALAR_NODE && strcasecmp((char *)k->data.scalar.value, key) == 0)
         {
-            return yaml_document_get_node(doc, pair->value);
+            return yaml_document_get_node((yaml_document_t *)doc, pair->value);
         }
     }
     return NULL;

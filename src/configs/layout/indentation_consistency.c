@@ -2,6 +2,8 @@
 
 #include "rule_registry.h"
 #include "configs/layout/indentation_consistency.h"
+#include "configs/yaml_helpers.h"
+#include <string.h>
 
 /// @brief Initialize the layout_indentation_consistency rule configuration.
 /// @return Pointer to the initialized rule_config_t structure
@@ -38,14 +40,21 @@ rule_config_t *layout_indentation_consistency_initialize(void)
 /// @return true if the event was handled, false otherwise
 bool layout_indentation_consistency_apply(rule_config_t *config, const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, pm_list_t *diagnostics)
 {
-    /* Not implemented yet — return false to indicate event not handled */
-    (void)config;
-    (void)doc;
-    (void)rule_node;
-    (void)category_node;
-    (void)allcops_node;
-    (void)diagnostics;
-    return false;
+    if (!config || !config->specific_config)
+        return false;
+
+    layout_indentation_consistency_config_t *sc = (layout_indentation_consistency_config_t *)config->specific_config;
+    char *val = yaml_get_merged_string(doc, rule_node, category_node, allcops_node, "EnforcedStyle");
+    if (!val)
+        return true; /* nothing to do, but considered handled */
+
+    if (strcmp(val, "indented_internal_methods") == 0)
+        sc->enforced_style = INDENTATION_CONSISTENCY_ENFORCED_STYLE_INDENTED_INTERNAL_METHODS;
+    else
+        sc->enforced_style = INDENTATION_CONSISTENCY_ENFORCED_STYLE_NORMAL;
+
+    free(val);
+    return true;
 }
 
 /// @brief Free the memory allocated for a layout_indentation_consistency_config_t structure.
