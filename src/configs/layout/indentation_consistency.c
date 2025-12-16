@@ -36,12 +36,15 @@ rule_config_t *layout_indentation_consistency_initialize(void)
 /// @param event Pointer to the yaml_event_t structure
 /// @param parser Pointer to the pm_parser_t structure
 /// @return true if the event was handled, false otherwise
-bool layout_indentation_consistency_apply(rule_config_t *config, const yaml_event_t *event, pm_parser_t *parser)
+bool layout_indentation_consistency_apply(rule_config_t *config, const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, pm_list_t *diagnostics)
 {
     /* Not implemented yet — return false to indicate event not handled */
     (void)config;
-    (void)event;
-    (void)parser;
+    (void)doc;
+    (void)rule_node;
+    (void)category_node;
+    (void)allcops_node;
+    (void)diagnostics;
     return false;
 }
 
@@ -54,8 +57,8 @@ void layout_indentation_consistency_config_free(void *config)
     free(config);
 }
 
-/// @brief Bundled config ops instance (grouped initialize + apply).
+/// @brief Configuration operations for Layout/IndentationConsistency rule.
 const struct config_ops layout_indentation_consistency_config_ops = {
     .initialize = layout_indentation_consistency_initialize,
-    .apply = layout_indentation_consistency_apply,
+    .apply_yaml = layout_indentation_consistency_apply,
 };

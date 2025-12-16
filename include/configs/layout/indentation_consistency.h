@@ -7,7 +7,7 @@
 extern const struct config_ops layout_indentation_consistency_config_ops;
 
 rule_config_t *layout_indentation_consistency_initialize(void);
-bool layout_indentation_consistency_apply(rule_config_t *config, const yaml_event_t *event, pm_parser_t *parser);
+bool layout_indentation_consistency_apply(rule_config_t *config, const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, pm_list_t *diagnostics);
 void layout_indentation_consistency_config_free(void *config);
 
 /// @brief Indentation consistency enforced styles.

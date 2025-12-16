@@ -21,6 +21,12 @@ typedef struct rule_registry_entry_s
 const rule_registry_entry_t *get_rule_registry(void);
 size_t get_rule_registry_count(void);
 
+/* Category Rules */
+/* clang-format off */
+#define LAYOUT "Layout"
+#define LINT   "Lint"
+/* clang-format on */
+
 /* Layout Rules */
 /* clang-format off */
 #define LAYOUT_ACCESS_MODIFIER_INDENTATION                    "Layout/AccessModifierIndentation"
