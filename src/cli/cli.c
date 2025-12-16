@@ -3,6 +3,7 @@
 #include <getopt.h>
 #include <stdio.h>
 
+#include "category.h"
 #include "cli/cli.h"
 #include "cli/formatter.h"
 #include "version.h"
@@ -57,7 +58,7 @@ int parse_command_line(int argc, char *argv[], cli_options_t *opts)
             // Treat `-x` as equivalent to `--only layout`.
             {
                 const char *s = NULL;
-                if (!rule_category_to_string(RULE_CATEGORY_LAYOUT, &s) || !s)
+                if (!rule_category_to_string(CATEGORY_LAYOUT, &s) || !s)
                     return -1;
                 char *tok = strdup(s);
                 if (!tok)

@@ -12,4 +12,4 @@
  */
 bool read_file_to_buffer(const char *path, uint8_t **out_buf, size_t *out_size, char **err);
 
-#endif // LEUKOCYTE_IO_FILE_H
+#endif /* LEUKOCYTE_IO_FILE_H */

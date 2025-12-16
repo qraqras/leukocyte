@@ -12,12 +12,14 @@
 #include <errno.h>
 #include <sys/stat.h>
 
+#include "rule_registry.h"
+
 // Rule config structure.
 struct rule_config_s
 {
     char *rule_name;
     bool enabled;
-    int severity;
+    severity_level_t severity;
     struct pattern_list_s *include;
     struct pattern_list_s *exclude;
     void *typed;

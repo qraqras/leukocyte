@@ -2,6 +2,6 @@
 #define LEUKOCYTE_VERSION_H
 
 /* Project semantic version (fixed for now). */
-#define LEUKO_VERSION "0.1.0"
+#define LEUKO_VERSION "0.0.1"
 
-#endif // LEUKOCYTE_VERSION_H
+#endif /* LEUKOCYTE_VERSION_H */

@@ -26,4 +26,4 @@ typedef enum
 /// @brief Convert string to `cli_formatter_t` enum value.
 bool cli_formatter_from_string(const char *str, cli_formatter_t *out);
 
-#endif // INCLUDE_CLI_FORMATTER_H
+#endif /* INCLUDE_CLI_FORMATTER_H */

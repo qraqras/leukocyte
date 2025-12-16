@@ -16,4 +16,4 @@
  */
 bool collect_ruby_files(char **paths, size_t paths_count, char ***out_paths, size_t *out_count, char **err);
 
-#endif // LEUKOCYTE_IO_SCAN_H
+#endif /* LEUKOCYTE_IO_SCAN_H */

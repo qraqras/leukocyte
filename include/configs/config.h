@@ -3,16 +3,11 @@
 
 #include <stdbool.h>
 #include <stddef.h>
-#include "configs/severity.h"
+
+#include "severity.h"
 
 typedef struct
 {
-
-} config_entry_s;
-
-typedef struct
-{
-    char *rule_name;
     bool enabled;
     severity_level_t severity_level;
     char **include;
@@ -23,4 +18,4 @@ typedef struct
     void (*specific_config_free)(void *);
 } rule_config_t;
 
-#endif // LEUKOCYTE_CONFIGS_CONFIG_H
+#endif /* LEUKOCYTE_CONFIGS_CONFIG_H */

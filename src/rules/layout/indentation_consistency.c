@@ -10,40 +10,8 @@
 // Forward declaration of handler
 bool check_def_indentation(pm_node_t *node, pm_parser_t *parser, pm_list_t *diagnostics, config_t *cfg);
 
-// Layout/IndentationConsistency rule definition.
-#include "rules/layout/indentation_consistency.h"
-#include "configs/config.h"
-#include <yaml.h>
-
 rule_t layout_indentation_consistency_rule = {
-    .name = RULE_NAME_LAYOUT_INDENTATION_CONSISTENCY,
-    .category = RULE_CATEGORY_LAYOUT,
-    .enabled = true,
     .handlers = {[PM_DEF_NODE] = check_def_indentation}};
-
-rule_config_t *layout_indentation_consistency_create_default(void)
-{
-    rule_config_t *cfg = calloc(1, sizeof(*cfg));
-    if (!cfg)
-        return NULL;
-    cfg->rule_name = strdup(RULE_NAME_LAYOUT_INDENTATION_CONSISTENCY);
-    cfg->enabled = true;
-    cfg->severity_level = SEVERITY_WARNING;
-    cfg->include = NULL;
-    cfg->include_count = 0;
-    cfg->exclude = NULL;
-    cfg->exclude_count = 0;
-    cfg->specific_config = NULL;
-    cfg->specific_config_free = NULL;
-    return cfg;
-}
-
-bool layout_indentation_consistency_apply_yaml(rule_config_t *config, const yaml_event_t *event, pm_parser_t *parser)
-{
-    /* Not implemented yet — return false to indicate event not handled */
-    (void)config; (void)event; (void)parser;
-    return false;
-}
 
 // Helper to get line and column from position
 void get_line_column(const pm_parser_t *parser, const uint8_t *pos, size_t *line, size_t *column)

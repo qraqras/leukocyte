@@ -1,5 +1,8 @@
+#ifndef LEUKOCYTE_CONFIGS_SEVERITY_H
+#define LEUKOCYTE_CONFIGS_SEVERITY_H
+
 /// @brief Severity levels for diagnostics.
-typedef enum
+typedef enum severity_level_e
 {
     SEVERITY_INFO,
     SEVERITY_REFACTOR,
@@ -8,3 +11,5 @@ typedef enum
     SEVERITY_ERROR,
     SEVERITY_FATAL,
 } severity_level_t;
+
+#endif /* LEUKOCYTE_CONFIGS_SEVERITY_H */

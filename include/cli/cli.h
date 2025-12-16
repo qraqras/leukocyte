@@ -31,4 +31,4 @@ typedef struct
 int parse_command_line(int argc, char *argv[], cli_options_t *opts);
 void cli_options_free(cli_options_t *opts);
 
-#endif // LEUKOCYTE_CLI_H
+#endif /* LEUKOCYTE_CLI_H */

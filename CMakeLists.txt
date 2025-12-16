@@ -41,6 +41,8 @@ set(SOURCES
     src/configs/config.c
     src/configs/config_registry.c
     src/configs/layout/indentation_consistency.c
+    src/configs/generated_config.c
+    src/category.c
     src/rules/rule_manager.c
     src/rules/rule.c
     src/rules/layout/indentation_consistency.c
@@ -55,6 +57,10 @@ add_executable(test_io_scan tests/test_io_scan.c)
 target_link_libraries(test_io_scan leuko_lib yaml)
 add_test(NAME test_io_scan COMMAND test_io_scan)
 
+# Generated config tests
+add_executable(test_generated_config tests/test_generated_config.c)
+target_link_libraries(test_generated_config leuko_lib yaml)
+add_test(NAME test_generated_config COMMAND test_generated_config)
 # Library target for core sources so tests can link against it
 add_library(leuko_lib STATIC ${SOURCES})
 
