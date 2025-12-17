@@ -73,7 +73,10 @@ void free(void *ptr) {
     if (!ptr) return;
     size_t header = sizeof(size_t);
     void *real_ptr = (void *)((char *)ptr - header);
-    size_t size = *((size_t *) real_ptr);
+    size_t size = 0;
+
+    /* try to read size safely (may point into non-heap header for arena) */
+    memcpy(&size, real_ptr, sizeof(size_t));
 
     pthread_mutex_lock(&mtx);
     total_free_calls++;
@@ -103,6 +106,9 @@ void free(void *ptr) {
                 for (int i = 0; i < bt_n; i++) fprintf(stderr, "  %s\n", bt_syms[i]);
                 free(bt_syms);
             }
+
+            /* do not call real free on arena pointer */
+            return;
         }
     }
 
@@ -121,8 +127,31 @@ void *realloc(void *ptr, size_t size) {
         record_alloc(size);
         return (void *)((char *)p + header);
     }
+
+    /* detect arena pointer (mp_hdr with ARENA_MAGIC) */
+    size_t hdr_total = sizeof(uint64_t) + sizeof(size_t);
+    void *hdr_ptr = (void *)((char *)ptr - hdr_total);
+    uint64_t magic = 0ULL;
+    memcpy(&magic, hdr_ptr, sizeof(uint64_t));
+    if (magic == 0x4152454E414D4741ULL) {
+        /* ptr points into arena; allocate new heap block and copy old size */
+        mp_hdr_t oh;
+        memcpy(&oh, hdr_ptr, sizeof(mp_hdr_t));
+        size_t old_size = oh.size;
+
+        pthread_mutex_lock(&mtx); total_realloc_calls++; pthread_mutex_unlock(&mtx);
+        void *p = real_malloc_fn(size + header);
+        if (!p) return NULL;
+        *((size_t *) p) = size;
+        size_t to_copy = (old_size && old_size < size) ? old_size : size;
+        memcpy((char *)p + header, ptr, to_copy);
+        record_alloc(size);
+        return (void *)((char *)p + header);
+    }
+
     void *real_ptr = (void *)((char *)ptr - header);
-    size_t old_size = *((size_t *) real_ptr);
+    size_t old_size = 0;
+    memcpy(&old_size, real_ptr, sizeof(size_t));
 
     void *p = real_realloc_fn(real_ptr, size + header);
     if (!p) return NULL;
