@@ -4,11 +4,11 @@
 #include "rules/rule.h"
 #include "rule_registry.h"
 
-// Array of rules by node type
+/* Array of rules by node type */
 rule_t **rules_by_type[PM_NODE_TYPE_COUNT];
 size_t rules_count_by_type[PM_NODE_TYPE_COUNT];
 
-// Struct to pass data to visitor
+/* Data passed to visitor */
 typedef struct
 {
     pm_parser_t *parser;
@@ -16,13 +16,17 @@ typedef struct
     config_t *cfg;
 } visit_data_t;
 
-// Visitor function for each node
+/**
+ * @brief Visitor function called for each node during AST traversal.
+ * @param node Pointer to the current AST node
+ * @param data Pointer to visit_data_t structure
+ * @return true to continue visiting, false to stop
+ */
 bool node_visitor(const pm_node_t *node, void *data)
 {
     visit_data_t *visit_data = (visit_data_t *)data;
     pm_node_type_t type = node->type;
 
-    // Call handlers for this node type
     if (rules_count_by_type[type] > 0)
     {
         for (size_t i = 0; i < rules_count_by_type[type]; i++)
@@ -32,10 +36,17 @@ bool node_visitor(const pm_node_t *node, void *data)
         }
     }
 
-    return true; // Continue visiting
+    return true;
 }
 
-// Visitor function for AST traversal
+/**
+ * @brief Visit a node and apply relevant rules.
+ * @param node Pointer to the AST node
+ * @param parser Pointer to the parser
+ * @param diagnostics Pointer to the diagnostics list
+ * @param cfg Pointer to the configuration
+ * @return true on success, false on failure
+ */
 bool visit_node(pm_node_t *node, pm_parser_t *parser, pm_list_t *diagnostics, config_t *cfg)
 {
     visit_data_t data = {parser, diagnostics, cfg};
@@ -43,11 +54,12 @@ bool visit_node(pm_node_t *node, pm_parser_t *parser, pm_list_t *diagnostics, co
     return true;
 }
 
-// Initialize rules (collect enabled rules by node type)
-
-void init_rules()
+/**
+ * @brief Initialize the rule manager by populating rules by node type.
+ * @param void
+ */
+void init_rules(void)
 {
-    // Initialize empty
     memset(rules_by_type, 0, sizeof(rules_by_type));
     memset(rules_count_by_type, 0, sizeof(rules_count_by_type));
 
@@ -68,7 +80,7 @@ void init_rules()
             rule_t **newarr = realloc(rules_by_type[node], (cur + 1) * sizeof(rule_t *));
             if (!newarr)
             {
-                continue; // OOM: skip
+                continue;
             }
             newarr[cur] = r;
             rules_by_type[node] = newarr;

@@ -3,8 +3,10 @@
 #include "configs/generated_config.h"
 #include "rule_registry.h"
 
-/// @brief Initialize a config_t structure.
-/// @param cfg Pointer to the config_t structure to initialize
+/**
+ * @brief Initialize a config_t structure.
+ * @param cfg Pointer to the config_t structure to initialize
+ */
 void initialize_config(config_t *cfg)
 {
     if (!cfg)
@@ -29,10 +31,12 @@ void initialize_config(config_t *cfg)
 #undef X
 }
 
-/// @brief Get a pointer to a rule_config_t field by its index.
-/// @param cfg Pointer to the config_t structure
-/// @param idx Index of the rule_config_t field
-/// @return Pointer to the rule_config_t field, or NULL if not found
+/**
+ * @brief Get a pointer to a rule_config_t field by its index.
+ * @param cfg Pointer to the config_t structure
+ * @param idx Index of the rule_config_t field
+ * @return Pointer to the rule_config_t field, or NULL if not found
+ */
 rule_config_t *get_rule_config_by_index(config_t *cfg, size_t idx)
 {
     if (!cfg)
@@ -56,15 +60,19 @@ rule_config_t *get_rule_config_by_index(config_t *cfg, size_t idx)
     return NULL;
 }
 
-/// @brief Get the total number of rule_config_t fields in config_t.
-/// @return Total number of rule_config_t fields
+/**
+ * @brief Get the total number of rule_config_t fields in config_t.
+ * @return Total number of rule_config_t fields
+ */
 size_t config_count(void)
 {
     return get_rule_registry_count();
 }
 
-/// @brief Free a rule_config_t structure.
-/// @param cfg Pointer to the rule_config_t structure to free
+/**
+ * @brief Free a rule_config_t structure.
+ * @param cfg Pointer to the rule_config_t structure to free
+ */
 static void free_rule_config(rule_config_t *cfg)
 {
     if (!cfg)
@@ -94,8 +102,10 @@ static void free_rule_config(rule_config_t *cfg)
     free(cfg);
 }
 
-/// @brief Free a config_t structure.
-/// @param cfg Pointer to the config_t structure to free
+/**
+ * @brief Free a config_t structure.
+ * @param cfg Pointer to the config_t structure to free
+ */
 void free_config(config_t *cfg)
 {
     if (!cfg)

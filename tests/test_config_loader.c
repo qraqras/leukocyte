@@ -41,7 +41,7 @@ int main(void)
 
     // specific_config enforced_style is checked
     layout_indentation_consistency_config_t *sc = (layout_indentation_consistency_config_t *)r->specific_config;
-    assert(sc->enforced_style == INDENTATION_CONSISTENCY_ENFORCED_STYLE_INDENTED_INTERNAL_METHODS);
+    assert(sc->enforced_style == LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_INDENTED_INTERNAL_METHODS);
 
     yaml_document_delete(doc);
     free(doc);

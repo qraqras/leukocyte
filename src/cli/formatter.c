@@ -4,7 +4,9 @@
 
 #include "cli/formatter.h"
 
-/// @brief Convert string to cli_formatter_t enum value.
+/**
+ * @brief Map of string representations to cli_formatter_t enum values.
+ */
 static const struct
 {
     const char *str;
@@ -29,10 +31,12 @@ static const struct
     {"github", CLI_FORMATTER_GITHUB_ACTIONS},
 };
 
-/// @brief Convert string to cli_formatter_t enum value.
-/// @param str Input string
-/// @param out Output parameter to store the corresponding cli_formatter_t value
-/// @return true if conversion was successful, false otherwise
+/**
+ * @brief Convert string to cli_formatter_t enum value.
+ * @param str Input string
+ * @param out Output parameter to store the corresponding cli_formatter_t value
+ * @return true if conversion was successful, false otherwise
+ */
 bool cli_formatter_from_string(const char *str, cli_formatter_t *out)
 {
     *out = CLI_FORMATTER_PROGRESS;

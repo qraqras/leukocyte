@@ -15,11 +15,13 @@ static char **split_comma_list(const char *str, size_t *out_count);
 static void print_help(void);
 static void print_version(void);
 
-/// @brief Parse command line arguments into cli_options_t.
-/// @param argc Number of command line arguments
-/// @param argv Array of command line argument strings
-/// @param opts Pointer to cli_options_t struct to populate
-/// @return 0 on success, 1 if help/version printed, -1 on error
+/**
+ * @brief Parse command line arguments into cli_options_t.
+ * @param argc Number of command line arguments
+ * @param argv Array of command line argument strings
+ * @param opts Pointer to cli_options_t struct to populate
+ * @return 0 on success, 1 if help/version printed, -1 on error
+ */
 int parse_command_line(int argc, char *argv[], cli_options_t *opts)
 {
     if (!opts)
@@ -136,12 +138,14 @@ int parse_command_line(int argc, char *argv[], cli_options_t *opts)
     return 0;
 }
 
-/// @brief Merge two lists of strings, avoiding duplicates.
-/// @param destp Destination list pointer
-/// @param dest_countp Pointer to destination list count
-/// @param src Source list
-/// @param src_count Source list count
-/// @return 0 on success, -1 on failure
+/**
+ * @brief Merge two lists of strings, avoiding duplicates.
+ * @param destp Destination list pointer
+ * @param dest_countp Pointer to destination list count
+ * @param src Source list
+ * @param src_count Source list count
+ * @return 0 on success, -1 on failure
+ */
 static int merge_string_lists(char ***destp, size_t *dest_countp, char **src, size_t src_count)
 {
     if (!src || src_count == 0)
@@ -191,10 +195,12 @@ static int merge_string_lists(char ***destp, size_t *dest_countp, char **src, si
     return 0;
 }
 
-/// @brief Split a comma-separated list into an array of strings.
-/// @param str The comma-separated string.
-/// @param out_count Output parameter to store the number of elements.
-/// @return An array of strings. The caller is responsible for freeing the memory.
+/**
+ * @brief Split a comma-separated list into an array of strings.
+ * @param str The comma-separated string.
+ * @param out_count Output parameter to store the number of elements.
+ * @return An array of strings. The caller is responsible for freeing the memory.
+ */
 static char **split_comma_list(const char *str, size_t *out_count)
 {
     if (!str || *str == '\0')
@@ -252,8 +258,10 @@ static char **split_comma_list(const char *str, size_t *out_count)
     return arr;
 }
 
-/// @brief Print help message to stdout.
-static void print_help()
+/**
+ * @brief  Print help message to stdout.
+ */
+static void print_help(void)
 {
     printf("Usage: leuko [options] [file1, file2, ...]\n");
     printf("Options:\n");
@@ -268,14 +276,18 @@ static void print_help()
     printf("      --only <rule1,rule2>    Only include specific rules\n");
 }
 
-/// @brief  Print version information to stdout.
-static void print_version()
+/**
+ * @brief  Print version information to stdout.
+ */
+static void print_version(void)
 {
     printf(LEUKO_VERSION);
 }
 
-/// @brief Free memory allocated in cli_options_t.
-/// @param opts Pointer to cli_options_t struct to free
+/**
+ * @brief Free memory allocated in cli_options_t.
+ * @param opts Pointer to cli_options_t struct to free
+ */
 void cli_options_free(cli_options_t *opts)
 {
     if (!opts)

@@ -12,6 +12,12 @@
 
 #include "io/scan.h"
 
+/**
+ * @brief Set an error message.
+ * @param err Pointer to the error message string
+ * @param fmt Format string
+ * @param ... Format arguments
+ */
 static void set_err(char **err, const char *fmt, ...)
 {
     if (!err)
@@ -26,11 +32,13 @@ static void set_err(char **err, const char *fmt, ...)
     *err = strdup(buf);
 }
 
-/// @brief Append a path to a dynamic array of strings.
-/// @param arrp Pointer to the array of strings
-/// @param countp Pointer to the count of strings in the array
-/// @param path The path string to append
-/// @return true on success, false on failure
+/**
+ * @brief Append a path to a dynamic array of strings.
+ * @param arrp Pointer to the array of strings
+ * @param countp Pointer to the count of strings in the array
+ * @param path The path string to append
+ * @return true on success, false on failure
+ */
 static bool append_path(char ***arrp, size_t *countp, const char *path)
 {
     char *copy = strdup(path);
@@ -49,7 +57,11 @@ static bool append_path(char ***arrp, size_t *countp, const char *path)
     return true;
 }
 
-/// @brief Return pointer to the extension (including dot) of basename, or NULL.
+/**
+ * @brief Return pointer to the extension (including dot) of basename, or NULL.
+ * @param path The file path
+ * @return Pointer to the extension including dot, or NULL if none
+ */
 static const char *get_extension(const char *path)
 {
     if (!path)
@@ -69,9 +81,11 @@ static const char *get_extension(const char *path)
     return dot; /* may be NULL */
 }
 
-/// @brief Check if filename looks like a Ruby source file (.rb).
-/// @param name The filename to check
-/// @return true if it has .rb extension, false otherwise
+/**
+ * @brief Check if filename looks like a Ruby source file (.rb).
+ * @param name The filename to check
+ * @return true if it has .rb extension, false otherwise
+ */
 static bool is_ruby(const char *name)
 {
     const char *ext = get_extension(name);
@@ -82,12 +96,14 @@ static bool is_ruby(const char *name)
     return strcmp(ext, ".rb") == 0;
 }
 
-/// @brief Recursively scan a directory for Ruby files.
-/// @param dirpath The directory path to scan
-/// @param out Output array of file paths
-/// @param out_count Output count of file paths
-/// @param err Output error message on failure
-/// @return true on success, false on failure
+/**
+ * @brief Recursively scan a directory for Ruby files.
+ * @param dirpath The directory path to scan
+ * @param out Output array of file paths
+ * @param out_count Output count of file paths
+ * @param err Output error message on failure
+ * @return true on success, false on failure
+ */
 static bool scan_dir_recursive(const char *dirpath, char ***out, size_t *out_count, char **err)
 {
     DIR *d = opendir(dirpath);
@@ -146,9 +162,11 @@ static bool scan_dir_recursive(const char *dirpath, char ***out, size_t *out_cou
     return true;
 }
 
-/// @brief Check if a pattern contains glob metacharacters.
-/// @param pattern The pattern string to check
-/// @return true if the pattern contains glob metacharacters, false otherwise
+/**
+ * @brief Check if a pattern contains glob metacharacters.
+ * @param pattern The pattern string to check
+ * @return true if the pattern contains glob metacharacters, false otherwise
+ */
 bool has_glob_metachar(const char *pattern)
 {
     for (const char *p = pattern; *p; ++p)
@@ -161,13 +179,15 @@ bool has_glob_metachar(const char *pattern)
     return false;
 }
 
-/// @brief Collect Ruby files from given paths (files, directories, globs).
-/// @param paths Input paths array
-/// @param paths_count Input paths count
-/// @param out_paths Outtut collected paths
-/// @param out_count Output collected paths count
-/// @param err Output error message on failure
-/// @return true on success, false on failure
+/**
+ * @brief Collect Ruby files from given paths (files, directories, globs).
+ * @param paths Input paths array
+ * @param paths_count Input paths count
+ * @param out_paths Outtut collected paths
+ * @param out_count Output collected paths count
+ * @param err Output error message on failure
+ * @return true on success, false on failure
+ */
 bool collect_ruby_files(char **paths, size_t paths_count, char ***out_paths, size_t *out_count, char **err)
 {
     if (!out_paths || !out_count)

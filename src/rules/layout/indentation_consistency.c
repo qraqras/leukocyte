@@ -1,13 +1,9 @@
-/*
- * Layout/IndentationConsistency
- * https://docs.rubocop.org/rubocop/cops_layout.html#layoutindentationconsistency
- */
-
-#include "rules/rule.h"
 #include <string.h>
 #include <stdlib.h>
 
-// Forward declaration of handler
+#include "rules/rule.h"
+
+/* Forward declaration of handler */
 bool check_def_indentation(pm_node_t *node, pm_parser_t *parser, pm_list_t *diagnostics, config_t *cfg);
 
 rule_t layout_indentation_consistency_rule = {

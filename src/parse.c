@@ -2,12 +2,14 @@
 #include "parse.h"
 #include "prism.h"
 
-/// @brief Parse Ruby file at `filepath` into a Prism AST node.
-/// @param filepath Ruby file path
-/// @param out_node AST node output
-/// @param out_parser Parser output
-/// @param out_source Source buffer output
-/// @return true on success, false on failure
+/**
+ * @brief Parse Ruby file at `filepath` into a Prism AST node.
+ * @param filepath Ruby file path
+ * @param out_node AST node output
+ * @param out_parser Parser output
+ * @param out_source Source buffer output
+ * @return true on success, false on failure
+ */
 bool parse_ruby_file(const char *filepath, pm_node_t **out_node, pm_parser_t *out_parser, uint8_t **out_source)
 {
     if (!filepath || !out_node || !out_parser)
@@ -15,7 +17,7 @@ bool parse_ruby_file(const char *filepath, pm_node_t **out_node, pm_parser_t *ou
         return false;
     }
 
-    // Read file into buffer.
+    /* Read file into buffer */
     uint8_t *source = NULL;
     size_t file_size = 0;
     char *read_err = NULL;
@@ -29,12 +31,14 @@ bool parse_ruby_file(const char *filepath, pm_node_t **out_node, pm_parser_t *ou
         return false;
     }
 
-    // Initialize parser. The parser references the buffer but does not free it;
-    // caller is responsible for freeing the buffer after pm_parser_free.
+    /**
+     * Initialize parser. The parser references the buffer but does not free it;
+     * caller is responsible for freeing the buffer after pm_parser_free.
+     */
     pm_parser_init(out_parser, source, file_size, NULL);
     *out_node = pm_parse(out_parser);
 
-    // Check for parse errors.
+    /* Check for parse errors */
     if (out_parser->error_list.size > 0)
     {
         pm_node_destroy(out_parser, *out_node);

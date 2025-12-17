@@ -8,10 +8,15 @@
 #include "leukocyte.h"
 #include "configs/generated_config.h"
 #include "configs/loader.h"
-#include "configs/diagnostics.h"
 #include "rules/rule_manager.h"
 #include "io/scan.h"
 
+/**
+ * @brief Main entry point for Leuko application.
+ * @param argc Argument count
+ * @param argv Argument vector
+ * @return Exit status code
+ */
 int main(int argc, char *argv[])
 {
     fprintf(stderr, "Leuko: RuboCop Layout and Lint reimplementation in C\n");
@@ -34,16 +39,12 @@ int main(int argc, char *argv[])
     initialize_config(&cfg);
     if (cli_opts.config_path)
     {
-        pm_list_t cfg_diags = {0};
-        if (!load_config_file_into(&cfg, cli_opts.config_path, &cfg_diags))
+        char *cfg_err = NULL;
+        if (!load_config_file_into(&cfg, cli_opts.config_path, &cfg_err))
         {
-            fprintf(stderr, "Failed to load config file: %s\n", cli_opts.config_path);
+            fprintf(stderr, "Failed to load config file: %s\n", cfg_err ? cfg_err : cli_opts.config_path);
         }
-        else if (!pm_list_empty_p(&cfg_diags))
-        {
-            config_diagnostics_print_all(stderr, &cfg_diags);
-        }
-        config_diagnostics_free(&cfg_diags);
+        free(cfg_err);
     }
 
     // **** RUBY FILE COLLECTION ****

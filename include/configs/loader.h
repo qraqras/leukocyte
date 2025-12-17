@@ -7,7 +7,7 @@
 #include "configs/generated_config.h"
 #include "prism.h"
 
-bool load_config_file_into(config_t *cfg, const char *path, pm_list_t *diagnostics);
-bool apply_config(yaml_document_t *doc, config_t *cfg, pm_list_t *diagnostics);
+bool load_config_file_into(config_t *cfg, const char *path, char **err);
+bool apply_config(yaml_document_t *doc, config_t *cfg, char **err);
 
 #endif // LEUKOCYTE_CONFIGS_LOADER_H

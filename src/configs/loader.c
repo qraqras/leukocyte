@@ -5,19 +5,20 @@
 #include <stdbool.h>
 
 #include "configs/config.h"
-#include "configs/diagnostics.h"
 #include "configs/generated_config.h"
 #include "configs/loader.h"
 #include "configs/yaml_helpers.h"
 #include "io/file.h"
 #include "rule_registry.h"
 
-/// @brief Apply a YAML document to a config_t structure.
-/// @param doc Pointer to the yaml_document_t structure
-/// @param cfg Pointer to the config_t structure
-/// @param diagnostics Pointer to a pm_list_t for diagnostics
-/// @return true if successful, false otherwise
-bool apply_config(yaml_document_t *doc, config_t *cfg, pm_list_t *diagnostics)
+/**
+ * @brief Apply a YAML document to a config_t structure.
+ * @param doc Pointer to the yaml_document_t structure
+ * @param cfg Pointer to the config_t structure
+ * @param err Pointer to a char buffer for error messages
+ * @return true if successful, false otherwise
+ */
+bool apply_config(yaml_document_t *doc, config_t *cfg, char **err)
 {
     if (!doc || !cfg)
     {
@@ -30,11 +31,10 @@ bool apply_config(yaml_document_t *doc, config_t *cfg, pm_list_t *diagnostics)
         return false;
     }
 
-    /* `inherit_from` */
-    yaml_node_t *inherit_from = yaml_find_mapping_value(doc, root, INHERIT_FROM);
+    /* TODO: INHERIT_FROM */
+    yaml_node_t *inherit_from = yaml_get_mapping_node(doc, root, INHERIT_FROM);
 
-    /* `AllCops` */
-    yaml_node_t *allcops = yaml_find_mapping_value(doc, root, ALL_COPS);
+    yaml_node_t *allcops = yaml_get_mapping_node(doc, root, ALL_COPS);
 
     const rule_registry_entry_t *registry = get_rule_registry();
     size_t registry_count = get_rule_registry_count();
@@ -60,15 +60,15 @@ bool apply_config(yaml_document_t *doc, config_t *cfg, pm_list_t *diagnostics)
          *    Enabled: true
          *  ```
          */
-        yaml_node_t *rule_node = yaml_find_mapping_value(doc, root, full_name);
+        yaml_node_t *rule_node = yaml_get_mapping_node(doc, root, full_name);
         yaml_node_t *category_node = NULL;
         if (!rule_node && category_name)
         {
-            yaml_node_t *cat = yaml_find_mapping_value(doc, root, category_name);
+            yaml_node_t *cat = yaml_get_mapping_node(doc, root, category_name);
             if (cat)
             {
                 category_node = cat;
-                rule_node = yaml_find_mapping_value(doc, cat, rule_name);
+                rule_node = yaml_get_mapping_node(doc, cat, rule_name);
             }
         }
 
@@ -114,19 +114,21 @@ bool apply_config(yaml_document_t *doc, config_t *cfg, pm_list_t *diagnostics)
         /* Apply specific configuration */
         if (entry->ops && entry->ops->apply_yaml)
         {
-            entry->ops->apply_yaml(rcfg, doc, rule_node, category_node, allcops, diagnostics);
+            entry->ops->apply_yaml(rcfg, doc, rule_node, category_node, allcops, err);
         }
     }
 
     return true;
 }
 
-/// @brief Load a configuration file into a config_t structure.
-/// @param cfg Pointer to the config_t structure
-/// @param path Path to the configuration file
-/// @param diagnostics Pointer to a pm_list_t for diagnostics
-/// @return true if successful, false otherwise
-bool load_config_file_into(config_t *cfg, const char *path, pm_list_t *diagnostics)
+/**
+ * @brief Load a configuration file into a config_t structure.
+ * @param cfg Pointer to the config_t structure
+ * @param path Path to the configuration file
+ * @param err Pointer to a char buffer for error messages
+ * @return true if successful, false otherwise
+ */
+bool load_config_file_into(config_t *cfg, const char *path, char **err)
 {
     if (!cfg || !path)
     {
@@ -138,11 +140,14 @@ bool load_config_file_into(config_t *cfg, const char *path, pm_list_t *diagnosti
     char *read_err = NULL;
     if (!read_file_to_buffer(path, &buf, &size, &read_err))
     {
-        if (diagnostics)
+        if (err)
         {
-            config_diagnostics_append(diagnostics, -1, -1, "Failed to read config file '%s': %s", path, read_err ? read_err : "unknown");
+            *err = read_err;
         }
-        free(read_err);
+        else
+        {
+            free(read_err);
+        }
         return false;
     }
 
@@ -157,7 +162,7 @@ bool load_config_file_into(config_t *cfg, const char *path, pm_list_t *diagnosti
         return false;
     }
 
-    bool ok = apply_config(&doc, cfg, diagnostics);
+    bool ok = apply_config(&doc, cfg, err);
 
     yaml_document_delete(&doc);
     yaml_parser_delete(&parser);

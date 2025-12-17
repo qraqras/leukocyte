@@ -9,7 +9,7 @@
 struct config_ops
 {
     rule_config_t *(*initialize)(void);
-    bool (*apply_yaml)(rule_config_t *config, const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, pm_list_t *diagnostics);
+    bool (*apply_yaml)(rule_config_t *config, const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, char **err);
 };
 
 typedef struct config_ops config_ops_t;

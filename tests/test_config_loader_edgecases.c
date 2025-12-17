@@ -6,7 +6,6 @@
 #include "configs/generated_config.h"
 #include "rule_registry.h"
 #include "configs/layout/indentation_consistency.h"
-#include "configs/diagnostics.h"
 
 static yaml_document_t *load_doc(const char *input)
 {
@@ -65,7 +64,7 @@ int main(void)
     assert(cfgp2->severity_level == SEVERITY_ERROR);
     // enforced style from rule node
     layout_indentation_consistency_config_t *sc = (layout_indentation_consistency_config_t *)cfgp2->specific_config;
-    assert(sc->enforced_style == INDENTATION_CONSISTENCY_ENFORCED_STYLE_INDENTED_INTERNAL_METHODS);
+    assert(sc->enforced_style == LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_INDENTED_INTERNAL_METHODS);
     yaml_document_delete(d2);
     free(d2);
     free_config(&cfg2);
@@ -92,15 +91,15 @@ int main(void)
     const char *yaml4 = "AllCops:\n  Severity: warning\nLayout:\n  IndentationConsistency:\n    Severity: [bad]\n";
     yaml_document_t *d4 = load_doc(yaml4);
     assert(d4);
-    pm_list_t diags = {0};
-    assert(apply_config(d4, &cfg4, &diags));
+    char *err = NULL;
+    assert(apply_config(d4, &cfg4, &err));
     rule_config_t *cfgp4 = get_rule_config_by_index(&cfg4, idx);
     // Because rule-level Severity is not scalar, merged string lookup should fall back to category/allcops -> warning
     assert(cfgp4->severity_level == SEVERITY_WARNING);
     // diagnostics should NOT have an entry (we do not emit diagnostics for non-scalar Severity)
-    const char *msg = config_diagnostics_first_message(&diags);
+    const char *msg = err;
     assert(msg == NULL);
-    config_diagnostics_free(&diags);
+    free(err);
     yaml_document_delete(d4);
     free(d4);
     free_config(&cfg4);

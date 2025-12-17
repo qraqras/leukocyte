@@ -8,6 +8,14 @@
 
 #include "io/file.h"
 
+/**
+ * @brief Read the contents of a file into a buffer.
+ * @param path Path to the file
+ * @param out_buf Pointer to output buffer pointer
+ * @param out_size Pointer to output size variable
+ * @param err Pointer to a char buffer for error messages
+ * @return true if successful, false otherwise
+ */
 bool read_file_to_buffer(const char *path, uint8_t **out_buf, size_t *out_size, char **err)
 {
     if (!path || !out_buf || !out_size)

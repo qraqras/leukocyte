@@ -42,7 +42,6 @@ set(SOURCES
     src/configs/layout/indentation_consistency.c
     src/configs/generated_config.c
     src/configs/yaml_helpers.c
-    src/configs/diagnostics.c
     src/configs/loader.c
     src/category.c
     src/severity.c
