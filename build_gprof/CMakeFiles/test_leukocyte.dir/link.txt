@@ -1,0 +1,1 @@
+/usr/bin/cc -O3 -DNDEBUG CMakeFiles/test_leukocyte.dir/tests/test_main.c.o -o test_leukocyte  libleuko_lib.a vendor/libyaml/libyaml.a /workspaces/leukocyte/vendor/prism/build/libprism.a 

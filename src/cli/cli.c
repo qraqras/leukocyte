@@ -2,6 +2,7 @@
 #include <string.h>
 #include <getopt.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #include "category.h"
 #include "cli/cli.h"
@@ -41,6 +42,7 @@ int parse_command_line(int argc, char *argv[], cli_options_t *opts)
         {"help", no_argument, 0, 'h'},
         {"only", required_argument, 0, 0},
         {"version", no_argument, 0, 'v'},
+        {"timings", no_argument, 0, 0},
         {0, 0, 0, 0}};
 
     for (;;)
@@ -116,6 +118,10 @@ int parse_command_line(int argc, char *argv[], cli_options_t *opts)
                 }
                 if (merge_string_lists(&opts->only, &opts->only_count, tmp, tmp_count) != 0)
                     return -1;
+            }
+            if (strcmp(long_options[option_index].name, "timings") == 0)
+            {
+                opts->timings = true;
             }
             break;
         case '?':
@@ -273,6 +279,7 @@ static void print_help(void)
     printf("  -f, --format <format>       Specify output format (text, json)\n");
     printf("  -h, --help                  Show this help message\n");
     printf("  -v, --version               Show version information\n");
+    printf("      --timings               Print per-file phase timings (parse, build_rules, visit, handler)\n");
     printf("      --only <rule1,rule2>    Only include specific rules\n");
 }
 

@@ -1,48 +1,58 @@
+# TODO — メモリ・性能調査結果と次のアクション ✅
 
-# TODO: RULES_LIST マクロ拡張 (カテゴリ / 短縮名 の導入) ✅
-
-## 概要
-- 現状の `fullname` を実行時に '/' で分割する実装をやめ、**ルール登録時点で** `category` / `rule_name` (短名) / `full_name` を保持する。
-- 目的: 安全性向上、パフォーマンス改善、可読性・テスト性の向上。
-
-## 高レベル設計
-1. RULES_LIST の X-macro を拡張して、各エントリに `category` と `rule_name` (短名) を含める（例: X(field, category, rule_name, full_name, rule_ptr, ops_ptr)）。
-2. `rule_registry_entry_t` に `const char *category_name` と `const char *short_name` を追加する。
-3. レジストリ生成コードで静的文字列として埋める（malloc不要）。
-4. `loader.c` 等の callsite では `entry->category_name` / `entry->short_name` を参照して探索する（`strchr` / `strndup` を削除）。
-
-## 移行手順（段階的）
-1. マクロ定義の拡張（設計完了） ✅
-2. `rule_registry.c` の生成ロジックを更新して新フィールドを埋める
-3. `include/rules` / `rules` の RULES_LIST を順次更新
-4. `loader.c` の分割ロジックを削除して新フィールド参照に置換
-5. ユニットテスト（レジストリ検証・loader 統合テスト）を追加
-6. フルテストスイートを実行し回帰を修正
-7. ドキュメントと CHANGELOG を更新
-8. 互換ラッパーが必要なら追加して段階的に削除
-
-## テストケース（必須）
-- レジストリの各エントリが `category` / `short_name` / `fullname` を持つことを確認する単体テスト
-- Loader の統合テスト（カテゴリノード内の rule ノードを見つけられること、トップレベル fullname による指定が動作すること）
-- 既存の edge-case テストの再実行（回帰がないこと）
-
-## 注意点
-- RuboCop の互換は「1階層のみ」を前提とする（`Category/Rule`）。
-- マクロ変更は一斉にビルドエラーを引き起こすため、段階的かつ注意深く適用する。
+## 調査の背景
+- 目的: Leuko のスケーラビリティ問題（ファイルサイズに比例した線形スケール）の原因を特定するためにベンチとプロファイリングを実行。
+- 実施した計測: ベンチ (tests/bench/bench_*.rb)、gprof（CPU）、LD_PRELOAD ベースの簡易 malloc プロファイラ、環境変数有効化によるモジュール別割当計測（`PRISM_ALLOC_STATS=1`）。
 
 ---
 
-作業を進めてよければ、次に `RULES_LIST` の具体的なマクロ行形式と `rule_registry_entry_t` の差分を用意します。
+## 主要な発見 🔍
+- **字句解析 (parser_lex など) が大きな割当を生成**: `prism` 名義の計測で `callocs=519,994`、`bytes_alloc ≈ 48.64 MB` が観測され、字句解析側で多数の短命な割当が発生している。
+- **pm_constant_pool が大量の挿入を処理**: `allocs = 40,001`、`bytes_alloc ≈ 2.68 MB`。トークン／名前の挿入と関係あり。
+- **pm_newline_list が大きなメモリ塊を確保**: `allocs = 4`（少回数）だが `bytes_alloc ≈ 5.76 MB` と、行数に依存した大きな確保が発生。
+- **全体概観（簡易 malloc プロファイラ）**: `total_alloc_calls ≈ 240k`, `total_calloc_calls ≈ 680k`, `peak ≈ 47.6 MB` — 小さな割当が大量に発生している。
 
-## 実装状況（更新）
-- 実装済み ✅
-  - `RULES_LIST` の拡張（カテゴリ文字列と短縮名を含めるように変更）
-  - `rule_registry_entry_t` に `category_name` / `short_name` を追加
-  - `rule_registry` の静的生成を更新（`rule_name` は `FULLNAME(category, short)` で構築）
-  - `loader.c` の runtime split ロジックを削除し `entry->category_name` / `entry->short_name` を参照するように変更
-  - ユニットテスト: レジストリ検証 `tests/test_rule_registry.c` を追加
-  - 統合テスト: `tests/test_config_loader.c` / `tests/test_loader_fullname.c` によりカテゴリ指定と fullname 指定の双方を確認
+---
 
-- 残タスク（次）
-  - ドキュメントと CHANGELOG を更新する
-  - 互換ラッパーを検討（必要に応じて追加）
+## 解釈（短く）
+- ファイル長に線形スケールする主因は「字句解析がバイトごと／トークンごとに短命なメモリ割当を大量に行っていること」と「行数に比例して大きな配列を確保する newline list の挙動」の組合せです。
+
+---
+
+## 優先度付き推奨アクション（次のステップ） 🔧
+1. **アリーナ（region allocator）を導入する PoC（優先度: 高）**
+   - 目的: トークンや一時オブジェクトの割当をまとめて行い、個別割当（calloc/malloc）回数を大幅削減する。字句解析部分に限定した軽量アリーナを先に作る。
+   - 検証: PoC を導入して `tests/bench/bench_200000.rb` の `PRISM_ALLOC_STATS` と malloc_profiler の結果で割当回数とメモリピークの改善を確認。
+
+2. **pm_newline_list の容量戦略改善（優先度: 中）**
+   - 目的: 行数に応じた初期容量推定（または成長率の見直し）で大きな再確保を削減する。
+   - 検証: 初期容量推定を入れたベンチで bytes_alloc / realloc 回数を比較。
+
+3. **字句解析の fast-path とコピー削減（優先度: 中）**
+   - 目的: ASCII fast-path、名前コピーの参照化（可能な場合）などで1割〜数十％の改善を目指す。
+   - 検証: `lex_identifier` や `parser_lex` の最もホットなコードを微最適化した上でベンチ実行。
+
+4. **pm_constant_pool のコスト改善（優先度: 中）**
+   - 目的: ハッシュテーブルの衝突処理や resize のコスト、頻繁な所有権切り替えに伴うコピー/解放コストを減らす。
+   - 検証: 挿入のホットパスを最適化し、alloc/bytes を再測定。
+
+5. **継続的なベンチ & プロファイル**
+   - ベンチ (1KB–1MB) を継続的に実行し、各改修の効果を数値で比較する。プロファイラ（gprof / malloc_profiler / PRISM_ALLOC_STATS）を回して差分を確認。
+
+---
+
+## 小さな短期タスク（実装しやすい）
+- [ ] `pm_newline_list` の初期 capacity をファイル長（概算行数）から推定するロジックを追加して効果確認。
+- [ ] `PRISM_ALLOC_STATS` の出力を CI のベンチジョブに組み込む（回帰検出）
+- [ ] `malloc_profiler.so` をリポジトリ内 tools に整理し、再利用できるようにドキュメント化する。
+
+---
+
+## メモ（実験時のコマンド）
+- ベンチ実行: `python3 tests/bench/run_scaling.py`（既存スクリプト）
+- 単体ベンチ: `PRISM_ALLOC_STATS=1 LD_PRELOAD=build/malloc_profiler.so build_gprof/leuko --timings tests/bench/bench_200000.rb`
+- gprof ビルド: `cmake -S . -B build_gprof -DENABLE_GPROF=ON && cmake --build build_gprof -j` → 実行で `gmon.out` を生成 → `gprof build_gprof/leuko gmon.out > gprof.txt`
+
+---
+
+必要であれば、上記タスク（特に PoC のアリーナ導入）について、実装方針（コードの差分）を提示してから実装に移ります。どれを優先して着手しましょうか？

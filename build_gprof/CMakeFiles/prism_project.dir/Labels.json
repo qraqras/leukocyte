@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/workspaces/leukocyte/build_gprof/CMakeFiles/prism_project"
+		},
+		{
+			"file" : "/workspaces/leukocyte/build_gprof/CMakeFiles/prism_project.rule"
+		},
+		{
+			"file" : "/workspaces/leukocyte/build_gprof/CMakeFiles/prism_project-complete.rule"
+		},
+		{
+			"file" : "/workspaces/leukocyte/build_gprof/prism_project-prefix/src/prism_project-stamp/prism_project-build.rule"
+		},
+		{
+			"file" : "/workspaces/leukocyte/build_gprof/prism_project-prefix/src/prism_project-stamp/prism_project-configure.rule"
+		},
+		{
+			"file" : "/workspaces/leukocyte/build_gprof/prism_project-prefix/src/prism_project-stamp/prism_project-download.rule"
+		},
+		{
+			"file" : "/workspaces/leukocyte/build_gprof/prism_project-prefix/src/prism_project-stamp/prism_project-install.rule"
+		},
+		{
+			"file" : "/workspaces/leukocyte/build_gprof/prism_project-prefix/src/prism_project-stamp/prism_project-mkdir.rule"
+		},
+		{
+			"file" : "/workspaces/leukocyte/build_gprof/prism_project-prefix/src/prism_project-stamp/prism_project-patch.rule"
+		},
+		{
+			"file" : "/workspaces/leukocyte/build_gprof/prism_project-prefix/src/prism_project-stamp/prism_project-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"prism_project"
+		],
+		"name" : "prism_project"
+	}
+}

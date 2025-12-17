@@ -1,0 +1,1 @@
+/usr/bin/cc -O3 -DNDEBUG -pg CMakeFiles/leuko.dir/src/main.c.o -o leuko  libleuko_lib.a /workspaces/leukocyte/vendor/prism/build/libprism.a vendor/libyaml/libyaml.a 

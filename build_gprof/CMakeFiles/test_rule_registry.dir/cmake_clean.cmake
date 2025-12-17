@@ -1,0 +1,11 @@
+file(REMOVE_RECURSE
+  "CMakeFiles/test_rule_registry.dir/tests/test_rule_registry.c.o"
+  "CMakeFiles/test_rule_registry.dir/tests/test_rule_registry.c.o.d"
+  "test_rule_registry"
+  "test_rule_registry.pdb"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang C)
+  include(CMakeFiles/test_rule_registry.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

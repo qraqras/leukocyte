@@ -1,6 +1,7 @@
 #include "io/file.h"
 #include "parse.h"
 #include "prism.h"
+#include "leuko_allocator.h"
 
 /**
  * @brief Parse Ruby file at `filepath` into a Prism AST node.
@@ -35,6 +36,8 @@ bool parse_ruby_file(const char *filepath, pm_node_t **out_node, pm_parser_t *ou
      * Initialize parser. The parser references the buffer but does not free it;
      * caller is responsible for freeing the buffer after pm_parser_free.
      */
+    /* Prepare arena for per-parse allocations (enabled when LEUKO_ARENA=1) */
+    leuko_allocator_begin_parse();
     pm_parser_init(out_parser, source, file_size, NULL);
     *out_node = pm_parse(out_parser);
 
@@ -43,6 +46,7 @@ bool parse_ruby_file(const char *filepath, pm_node_t **out_node, pm_parser_t *ou
     {
         pm_node_destroy(out_parser, *out_node);
         pm_parser_free(out_parser);
+        leuko_allocator_end_parse();
         free(source);
         return false;
     }
@@ -51,6 +55,12 @@ bool parse_ruby_file(const char *filepath, pm_node_t **out_node, pm_parser_t *ou
     {
         *out_source = source;
     }
+
+    /* Note: caller (main) expects parser to be left valid until they call pm_parser_free
+     * so we only end the arena here after the caller has freed parser; but parse_ruby_file
+     * currently frees parser here. Keep as-is and end the arena after pm_parser_free. */
+    pm_parser_free(out_parser);
+    leuko_allocator_end_parse();
 
     return true;
 }

@@ -2,6 +2,7 @@
 #ifndef LEUKOCYTE_CLI_H
 #define LEUKOCYTE_CLI_H
 
+#include <stdbool.h>
 #include "cli/formatter.h"
 
 /// @brief Quick fix mode enum.
@@ -19,6 +20,7 @@ typedef struct cli_options_s
     size_t paths_count;
     char *config_path;
     cli_formatter_t formatter;
+    bool timings;
     char **only;
     size_t only_count;
     char **except;

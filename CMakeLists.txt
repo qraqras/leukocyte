@@ -6,6 +6,8 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # Option to enable address sanitizer for debugging
 option(ENABLE_ASAN "Enable Address Sanitizer for leukocyte target" OFF)
+# Option to enable gprof profiling (adds -pg to compile and link flags)
+option(ENABLE_GPROF "Enable gprof profiling for leukocyte target" OFF)
 
 # Include directories
 include_directories(include)
@@ -18,7 +20,7 @@ include(ExternalProject)
 ExternalProject_Add(prism_project
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vendor/prism
     CONFIGURE_COMMAND ""
-    BUILD_COMMAND make static
+    BUILD_COMMAND cd ${CMAKE_CURRENT_SOURCE_DIR}/vendor/prism && make static CPPFLAGS="-I${CMAKE_SOURCE_DIR}/include" CFLAGS="${CFLAGS} -DPRISM_XALLOCATOR"
     BUILD_IN_SOURCE 1
     INSTALL_COMMAND ""
 )
@@ -52,6 +54,7 @@ set(SOURCES
     src/io/file.c
     src/io/scan.c
     src/parse.c
+    src/leuko_allocator.c
     # Add more sources here
 )
 
@@ -74,6 +77,10 @@ add_test(NAME test_yaml_helpers COMMAND test_yaml_helpers)
 add_executable(test_rule_registry tests/test_rule_registry.c)
 target_link_libraries(test_rule_registry leuko_lib yaml)
 add_test(NAME test_rule_registry COMMAND test_rule_registry)
+
+add_executable(test_rule_manager tests/test_rule_manager.c)
+target_link_libraries(test_rule_manager leuko_lib yaml)
+add_test(NAME test_rule_manager COMMAND test_rule_manager)
 
 # YAML case sensitivity tests
 add_executable(test_yaml_case_sensitive tests/test_yaml_case_sensitive.c)
@@ -105,6 +112,13 @@ target_link_libraries(leuko leuko_lib)
 if (ENABLE_ASAN)
     target_compile_options(leuko PRIVATE -fsanitize=address -fno-omit-frame-pointer)
     target_link_options(leuko PRIVATE -fsanitize=address)
+endif()
+
+if (ENABLE_GPROF)
+    message(STATUS "Enabling gprof profiling (adding -pg)")
+    target_compile_options(leuko PRIVATE -pg)
+    target_link_options(leuko PRIVATE -pg)
+    target_compile_options(leuko_lib PRIVATE -pg)
 endif()
 
 # Link libraries
