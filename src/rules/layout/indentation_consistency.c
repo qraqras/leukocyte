@@ -20,6 +20,8 @@ void get_line_column(const pm_parser_t *parser, const uint8_t *pos, size_t *line
 // Handler for DefNode: check indentation of body statements
 bool check_def_indentation(pm_node_t *node, pm_parser_t *parser, pm_list_t *diagnostics, config_t *cfg)
 {
+    printf("Indentation issue at line\n");
+
     pm_def_node_t *def_node = (pm_def_node_t *)node;
 
     if (def_node->body && def_node->body->type == PM_STATEMENTS_NODE)

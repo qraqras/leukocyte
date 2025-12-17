@@ -25,7 +25,7 @@ typedef struct layout_indentation_consistency_config_s
 } layout_indentation_consistency_config_t;
 
 rule_config_t *layout_indentation_consistency_initialize(void);
-bool layout_indentation_consistency_apply(rule_config_t *config, const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, pm_list_t *diagnostics);
+bool layout_indentation_consistency_apply(rule_config_t *config, const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, char **err);
 void layout_indentation_consistency_config_free(void *config);
 
 #endif /* LEUKOCYTE_CONFIGS_LAYOUT_INDENTATION_CONSISTENCY_H */

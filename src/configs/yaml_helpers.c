@@ -47,7 +47,7 @@ static char **sequence_to_array(yaml_document_t *doc, yaml_node_t *seq_node, siz
  * @param key The key to search for
  * @return Pointer to the value yaml_node_t structure, or NULL if not found
  */
-yaml_node_t *yaml_get_mapping_node(yaml_document_t *doc, yaml_node_t *mapping_node, const char *key)
+yaml_node_t *yaml_get_mapping_node(const yaml_document_t *doc, yaml_node_t *mapping_node, const char *key)
 {
     if (!mapping_node || mapping_node->type != YAML_MAPPING_NODE)
     {
@@ -79,7 +79,7 @@ yaml_node_t *yaml_get_mapping_node(yaml_document_t *doc, yaml_node_t *mapping_no
  * @note - If the caller needs an owned copy, duplicate the string (e.g. with
  *         `strdup`) or use `yaml_get_merged_string` which returns an allocated copy.
  */
-char *yaml_get_mapping_scalar_value(yaml_document_t *doc, yaml_node_t *mapping_node, const char *key)
+char *yaml_get_mapping_scalar_value(const yaml_document_t *doc, yaml_node_t *mapping_node, const char *key)
 {
     yaml_node_t *node = yaml_get_mapping_node(doc, mapping_node, key);
     if (node && node->type == YAML_SCALAR_NODE)
@@ -98,7 +98,7 @@ char *yaml_get_mapping_scalar_value(yaml_document_t *doc, yaml_node_t *mapping_n
  * @return Array of strings, or NULL if not found or not a sequence node
  * @note - The returned array and its elements are owned by the caller and MUST be freed
  */
-char **yaml_get_mapping_sequence_values(yaml_document_t *doc, yaml_node_t *mapping_node, const char *key, size_t *count)
+char **yaml_get_mapping_sequence_values(const yaml_document_t *doc, yaml_node_t *mapping_node, const char *key, size_t *count)
 {
     if (!count)
     {
@@ -108,7 +108,7 @@ char **yaml_get_mapping_sequence_values(yaml_document_t *doc, yaml_node_t *mappi
     yaml_node_t *node = yaml_get_mapping_node(doc, mapping_node, key);
     if (node && node->type == YAML_SEQUENCE_NODE)
     {
-        char **arr = sequence_to_array(doc, node, count);
+        char **arr = sequence_to_array((yaml_document_t *)doc, node, count);
         if (arr)
         {
             return arr;
@@ -128,7 +128,7 @@ char **yaml_get_mapping_sequence_values(yaml_document_t *doc, yaml_node_t *mappi
  * @param out Pointer to output string buffer
  * @return true if found, false otherwise
  */
-bool yaml_get_merged_string(yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, const char *key, char *out)
+bool yaml_get_merged_string(const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, const char *key, char *out)
 {
     const char *val = NULL;
     if (rule_node)
@@ -163,7 +163,7 @@ bool yaml_get_merged_string(yaml_document_t *doc, yaml_node_t *rule_node, yaml_n
  * @param out Pointer to output boolean variable
  * @return true if found, false otherwise
  */
-bool yaml_get_merged_bool(yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, const char *key, bool *out)
+bool yaml_get_merged_bool(const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, const char *key, bool *out)
 {
     const char *s = NULL;
     if (rule_node)
@@ -214,7 +214,7 @@ bool yaml_get_merged_bool(yaml_document_t *doc, yaml_node_t *rule_node, yaml_nod
  * @param count Pointer to output count of elements
  * @return true if any scalar elements were merged, false otherwise
  */
-bool yaml_get_merged_sequence(yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, const char *key, char ***out, size_t *count)
+bool yaml_get_merged_sequence(const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, const char *key, char ***out, size_t *count)
 {
     if (!count || !out)
     {
@@ -277,7 +277,7 @@ bool yaml_get_merged_sequence(yaml_document_t *doc, yaml_node_t *rule_node, yaml
  * @param out Pointer to a bool to store the result
  * @return true if a boolean was successfully retrieved, false otherwise
  */
-bool yaml_get_merged_enabled(yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, bool *out)
+bool yaml_get_merged_enabled(const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, bool *out)
 {
     return yaml_get_merged_bool(doc, rule_node, category_node, allcops_node, CONFIG_KEY_ENABLED, out);
 }
@@ -291,7 +291,7 @@ bool yaml_get_merged_enabled(yaml_document_t *doc, yaml_node_t *rule_node, yaml_
  * @param out Pointer to a severity_level_t to store the result
  * @return true if a severity level was successfully retrieved, false otherwise
  */
-bool yaml_get_merged_severity(yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, severity_level_t *out)
+bool yaml_get_merged_severity(const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, severity_level_t *out)
 {
     // First get the string value
     char buf[64];
@@ -312,7 +312,7 @@ bool yaml_get_merged_severity(yaml_document_t *doc, yaml_node_t *rule_node, yaml
  * @param count Pointer to a size_t to store the count
  * @return true if a sequence was successfully retrieved, false otherwise
  */
-bool yaml_get_merged_include(yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, char ***out, size_t *count)
+bool yaml_get_merged_include(const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, char ***out, size_t *count)
 {
     return yaml_get_merged_sequence(doc, rule_node, category_node, allcops_node, CONFIG_KEY_INCLUDE, out, count);
 }
@@ -327,7 +327,7 @@ bool yaml_get_merged_include(yaml_document_t *doc, yaml_node_t *rule_node, yaml_
  * @param count Pointer to a size_t to store the count
  * @return true if a sequence was successfully retrieved, false otherwise
  */
-bool yaml_get_merged_exclude(yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, char ***out, size_t *count)
+bool yaml_get_merged_exclude(const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, char ***out, size_t *count)
 {
     return yaml_get_merged_sequence(doc, rule_node, category_node, allcops_node, CONFIG_KEY_EXCLUDE, out, count);
 }

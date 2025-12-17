@@ -15,7 +15,6 @@ rule_config_t *layout_indentation_consistency_initialize(void)
     layout_indentation_consistency_config_t *specific_cfg = calloc(1, sizeof(*specific_cfg));
     if (!specific_cfg)
     {
-        free(specific_cfg);
         return NULL;
     }
     specific_cfg->enforced_style = LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_NORMAL;
@@ -23,7 +22,10 @@ rule_config_t *layout_indentation_consistency_initialize(void)
     /* Rule configuration */
     rule_config_t *cfg = calloc(1, sizeof(*cfg));
     if (!cfg)
+    {
+        free(specific_cfg);
         return NULL;
+    }
     cfg->enabled = true;
     cfg->severity_level = SEVERITY_CONVENTION;
     cfg->include = NULL;
@@ -42,8 +44,13 @@ rule_config_t *layout_indentation_consistency_initialize(void)
  * @param parser Pointer to the pm_parser_t structure
  * @return true if the event was handled, false otherwise
  */
-bool layout_indentation_consistency_apply(rule_config_t *config, const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, pm_list_t *diagnostics)
+bool layout_indentation_consistency_apply(rule_config_t *config, const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, char **err)
 {
+    if (err)
+    {
+        *err = NULL;
+    }
+
     if (!config || !config->specific_config)
     {
         return false;

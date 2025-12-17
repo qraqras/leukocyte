@@ -80,6 +80,11 @@ int main(int argc, char *argv[])
             any_failures = 1;
             continue;
         }
+
+        // **** RULE APPLICATION ****
+        printf("Applying rules to file: %s\n", ruby_files[i]);
+        visit_node(root_node, &parser, NULL, &cfg);
+
         pm_node_destroy(&parser, root_node);
         pm_parser_free(&parser);
         free(source);

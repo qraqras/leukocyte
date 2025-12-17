@@ -31,7 +31,9 @@ bool apply_config(yaml_document_t *doc, config_t *cfg, char **err)
         return false;
     }
 
-    /* TODO: INHERIT_FROM */
+    /**
+     * TODO: Handle `inherit_from` directive
+     */
     yaml_node_t *inherit_from = yaml_get_mapping_node(doc, root, INHERIT_FROM);
 
     yaml_node_t *allcops = yaml_get_mapping_node(doc, root, ALL_COPS);
@@ -135,6 +137,7 @@ bool load_config_file_into(config_t *cfg, const char *path, char **err)
         return false;
     }
 
+    /* Read file */
     uint8_t *buf = NULL;
     size_t size = 0;
     char *read_err = NULL;
@@ -151,6 +154,7 @@ bool load_config_file_into(config_t *cfg, const char *path, char **err)
         return false;
     }
 
+    /* Parse YAML */
     yaml_parser_t parser;
     yaml_document_t doc;
     yaml_parser_initialize(&parser);
@@ -162,10 +166,11 @@ bool load_config_file_into(config_t *cfg, const char *path, char **err)
         return false;
     }
 
-    bool ok = apply_config(&doc, cfg, err);
+    /* Apply configuration */
+    bool res = apply_config(&doc, cfg, err);
 
     yaml_document_delete(&doc);
     yaml_parser_delete(&parser);
     free(buf);
-    return ok;
+    return res;
 }
