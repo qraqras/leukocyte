@@ -21,7 +21,9 @@ static const struct
 bool rule_category_from_string(const char *s, category_t *out)
 {
     if (!s)
+    {
         return false;
+    }
     for (size_t i = 0; i < sizeof(rule_category_map) / sizeof(rule_category_map[0]); ++i)
     {
         if (strcmp(s, rule_category_map[i].s) == 0)

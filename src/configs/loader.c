@@ -3,51 +3,41 @@
 #include <string.h>
 #include <yaml.h>
 #include <stdbool.h>
+
+#include "configs/config.h"
+#include "configs/diagnostics.h"
+#include "configs/generated_config.h"
 #include "configs/loader.h"
 #include "configs/yaml_helpers.h"
-#include "rule_registry.h"
-#include "configs/config.h"
-#include "configs/generated_config.h"
-#include "configs/diagnostics.h"
 #include "io/file.h"
-
-/// @brief Find a value node in a mapping by key.
-/// @param doc Pointer to the yaml_document_t structure
-/// @param mapping Pointer to the mapping yaml_node_t structure
-/// @param key The key to search for
-/// @return Pointer to the value yaml_node_t structure, or NULL if not found
-static yaml_node_t *find_mapping_value(const yaml_document_t *doc, yaml_node_t *mapping, const char *key)
-{
-    if (!mapping || mapping->type != YAML_MAPPING_NODE)
-        return NULL;
-    for (yaml_node_pair_t *pair = mapping->data.mapping.pairs.start; pair < mapping->data.mapping.pairs.top; pair++)
-    {
-        yaml_node_t *k = yaml_document_get_node((yaml_document_t *)doc, pair->key);
-        if (k && k->type == YAML_SCALAR_NODE && strcmp((char *)k->data.scalar.value, key) == 0)
-            return yaml_document_get_node((yaml_document_t *)doc, pair->value);
-    }
-    return NULL;
-}
+#include "rule_registry.h"
 
 /// @brief Apply a YAML document to a config_t structure.
 /// @param doc Pointer to the yaml_document_t structure
 /// @param cfg Pointer to the config_t structure
 /// @param diagnostics Pointer to a pm_list_t for diagnostics
 /// @return true if successful, false otherwise
-bool apply_config(const yaml_document_t *doc, config_t *cfg, pm_list_t *diagnostics)
+bool apply_config(yaml_document_t *doc, config_t *cfg, pm_list_t *diagnostics)
 {
     if (!doc || !cfg)
+    {
         return false;
+    }
 
     yaml_node_t *root = yaml_document_get_root_node((yaml_document_t *)doc);
     if (!root || root->type != YAML_MAPPING_NODE)
+    {
         return false;
+    }
 
-    yaml_node_t *allcops = find_mapping_value(doc, root, ALL_COPS);
+    /* `inherit_from` */
+    yaml_node_t *inherit_from = yaml_find_mapping_value(doc, root, INHERIT_FROM);
+
+    /* `AllCops` */
+    yaml_node_t *allcops = yaml_find_mapping_value(doc, root, ALL_COPS);
 
     const rule_registry_entry_t *registry = get_rule_registry();
     size_t registry_count = get_rule_registry_count();
-
     for (size_t i = 0; i < registry_count; i++)
     {
         const rule_registry_entry_t *entry = &registry[i];
@@ -56,46 +46,54 @@ bool apply_config(const yaml_document_t *doc, config_t *cfg, pm_list_t *diagnost
         const char *full_name = entry->full_name;
 
         /* Find the rule node in the YAML document:
-         * 1. Try to find full_name in top-level mapping
+         * 1. Try to find full name in top-level mapping
+         *   Example:
          *   ```yaml
          *   Layout/AccessModifierIndentation:
          *     Enabled: true
          *   ```
-         * 2. If not found, try to find category_name, then rule_name within it
+         * 2. If not found, try to find category name, then rule name within it
+         *  Example:
          *  ```yaml
          *  Layout:
          *   AccessModifierIndentation:
          *    Enabled: true
          *  ```
          */
-        yaml_node_t *rule_node = find_mapping_value(doc, root, full_name);
+        yaml_node_t *rule_node = yaml_find_mapping_value(doc, root, full_name);
         yaml_node_t *category_node = NULL;
         if (!rule_node && category_name)
         {
-            yaml_node_t *cat = find_mapping_value(doc, root, category_name);
+            yaml_node_t *cat = yaml_find_mapping_value(doc, root, category_name);
             if (cat)
             {
                 category_node = cat;
-                rule_node = find_mapping_value(doc, cat, rule_name);
+                rule_node = yaml_find_mapping_value(doc, cat, rule_name);
             }
         }
 
         /* Get the rule configuration */
         rule_config_t *rcfg = get_rule_config_by_index(cfg, i);
         if (!rcfg)
+        {
             continue;
+        }
 
-        /* Merge Enabled */
+        /* Merge `Enabled` */
         bool merged_enabled = false;
         if (yaml_get_merged_enabled(doc, rule_node, category_node, allcops, &merged_enabled))
+        {
             rcfg->enabled = merged_enabled;
+        }
 
-        /* Merge Severity */
+        /* Merge `Severity` */
         severity_level_t merged_severity = SEVERITY_CONVENTION;
         if (yaml_get_merged_severity(doc, rule_node, category_node, allcops, &merged_severity))
+        {
             rcfg->severity_level = merged_severity;
+        }
 
-        /* Merge Include */
+        /* Merge `Include` */
         char **inc = NULL;
         size_t inc_count = 0;
         if (yaml_get_merged_include(doc, rule_node, category_node, allcops, &inc, &inc_count) && 0 < inc_count)
@@ -104,7 +102,7 @@ bool apply_config(const yaml_document_t *doc, config_t *cfg, pm_list_t *diagnost
             rcfg->include_count = inc_count;
         }
 
-        /* Merge Exclude */
+        /* Merge `Exclude` */
         char **exc = NULL;
         size_t exc_count = 0;
         if (yaml_get_merged_exclude(doc, rule_node, category_node, allcops, &exc, &exc_count) && 0 < exc_count)
@@ -113,9 +111,11 @@ bool apply_config(const yaml_document_t *doc, config_t *cfg, pm_list_t *diagnost
             rcfg->exclude_count = exc_count;
         }
 
-        // delegate to rule-specific apply
+        /* Apply specific configuration */
         if (entry->ops && entry->ops->apply_yaml)
+        {
             entry->ops->apply_yaml(rcfg, doc, rule_node, category_node, allcops, diagnostics);
+        }
     }
 
     return true;
@@ -129,7 +129,9 @@ bool apply_config(const yaml_document_t *doc, config_t *cfg, pm_list_t *diagnost
 bool load_config_file_into(config_t *cfg, const char *path, pm_list_t *diagnostics)
 {
     if (!cfg || !path)
+    {
         return false;
+    }
 
     uint8_t *buf = NULL;
     size_t size = 0;

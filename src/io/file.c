@@ -13,7 +13,9 @@ bool read_file_to_buffer(const char *path, uint8_t **out_buf, size_t *out_size, 
     if (!path || !out_buf || !out_size)
     {
         if (err)
+        {
             *err = strdup("invalid args");
+        }
         return false;
     }
 
@@ -25,7 +27,9 @@ bool read_file_to_buffer(const char *path, uint8_t **out_buf, size_t *out_size, 
             size_t len = 64 + strlen(path);
             *err = malloc(len);
             if (*err)
+            {
                 snprintf(*err, len, "failed to open '%s': %s", path, strerror(errno));
+            }
         }
         return false;
     }
@@ -41,7 +45,9 @@ bool read_file_to_buffer(const char *path, uint8_t **out_buf, size_t *out_size, 
         if (st.st_size < 0 || (unsigned long long)st.st_size > (unsigned long long)(SIZE_MAX - 1))
         {
             if (err)
+            {
                 *err = strdup("file too large");
+            }
             fclose(file);
             return false;
         }
@@ -50,7 +56,9 @@ bool read_file_to_buffer(const char *path, uint8_t **out_buf, size_t *out_size, 
         if (!source)
         {
             if (err)
+            {
                 *err = strdup("out of memory");
+            }
             fclose(file);
             return false;
         }
@@ -58,7 +66,9 @@ bool read_file_to_buffer(const char *path, uint8_t **out_buf, size_t *out_size, 
         if (read_size != file_size || ferror(file))
         {
             if (err)
+            {
                 *err = strdup("failed to read file");
+            }
             fclose(file);
             free(source);
             return false;
@@ -73,7 +83,9 @@ bool read_file_to_buffer(const char *path, uint8_t **out_buf, size_t *out_size, 
         if (!source)
         {
             if (err)
+            {
                 *err = strdup("out of memory");
+            }
             fclose(file);
             return false;
         }
@@ -88,7 +100,9 @@ bool read_file_to_buffer(const char *path, uint8_t **out_buf, size_t *out_size, 
                 if (cap >= max_store)
                 {
                     if (err)
+                    {
                         *err = strdup("input too large");
+                    }
                     free(source);
                     fclose(file);
                     return false;
@@ -98,7 +112,9 @@ bool read_file_to_buffer(const char *path, uint8_t **out_buf, size_t *out_size, 
                 if (!tmp)
                 {
                     if (err)
+                    {
                         *err = strdup("out of memory");
+                    }
                     free(source);
                     fclose(file);
                     return false;
@@ -110,7 +126,9 @@ bool read_file_to_buffer(const char *path, uint8_t **out_buf, size_t *out_size, 
         if (ferror(file))
         {
             if (err)
+            {
                 *err = strdup("failed to read stream");
+            }
             free(source);
             fclose(file);
             return false;
@@ -123,6 +141,8 @@ bool read_file_to_buffer(const char *path, uint8_t **out_buf, size_t *out_size, 
     *out_buf = source;
     *out_size = file_size;
     if (err)
+    {
         *err = NULL;
+    }
     return true;
 }

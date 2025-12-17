@@ -41,19 +41,27 @@ rule_config_t *layout_indentation_consistency_initialize(void)
 bool layout_indentation_consistency_apply(rule_config_t *config, const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, pm_list_t *diagnostics)
 {
     if (!config || !config->specific_config)
+    {
         return false;
+    }
 
     layout_indentation_consistency_config_t *sc = (layout_indentation_consistency_config_t *)config->specific_config;
 
     char val[256];
     bool merged = yaml_get_merged_string(doc, rule_node, category_node, allcops_node, "EnforcedStyle", val);
     if (!merged)
+    {
         return true; /* nothing to do, but considered handled */
+    }
 
     if (strcmp(val, "indented_internal_methods") == 0)
+    {
         sc->enforced_style = INDENTATION_CONSISTENCY_ENFORCED_STYLE_INDENTED_INTERNAL_METHODS;
+    }
     else
+    {
         sc->enforced_style = INDENTATION_CONSISTENCY_ENFORCED_STYLE_NORMAL;
+    }
 
     return true;
 }
@@ -63,7 +71,9 @@ bool layout_indentation_consistency_apply(rule_config_t *config, const yaml_docu
 void layout_indentation_consistency_config_free(void *config)
 {
     if (!config)
+    {
         return;
+    }
     free(config);
 }
 

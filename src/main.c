@@ -85,7 +85,9 @@ int main(int argc, char *argv[])
     }
 
     for (size_t i = 0; i < ruby_files_count; ++i)
+    {
         free(ruby_files[i]);
+    }
     free(ruby_files);
 
     // TODO: Apply rules and perform analysis on root_node

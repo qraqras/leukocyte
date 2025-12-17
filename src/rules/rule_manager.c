@@ -60,12 +60,16 @@ void init_rules()
         for (size_t node = 0; node < PM_NODE_TYPE_COUNT; node++)
         {
             if (!r->handlers[node])
+            {
                 continue;
+            }
 
             size_t cur = rules_count_by_type[node];
             rule_t **newarr = realloc(rules_by_type[node], (cur + 1) * sizeof(rule_t *));
             if (!newarr)
+            {
                 continue; // OOM: skip
+            }
             newarr[cur] = r;
             rules_by_type[node] = newarr;
             rules_count_by_type[node] = cur + 1;

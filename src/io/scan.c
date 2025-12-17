@@ -15,7 +15,9 @@
 static void set_err(char **err, const char *fmt, ...)
 {
     if (!err)
+    {
         return;
+    }
     va_list ap;
     va_start(ap, fmt);
     char buf[512];
@@ -33,7 +35,9 @@ static bool append_path(char ***arrp, size_t *countp, const char *path)
 {
     char *copy = strdup(path);
     if (!copy)
+    {
         return false;
+    }
     char **tmp = realloc(*arrp, (*countp + 1) * sizeof(char *));
     if (!tmp)
     {
@@ -49,12 +53,18 @@ static bool append_path(char ***arrp, size_t *countp, const char *path)
 static const char *get_extension(const char *path)
 {
     if (!path)
+    {
         return NULL;
+    }
     const char *base = strrchr(path, '/');
     if (base)
+    {
         base++;
+    }
     else
+    {
         base = path;
+    }
     const char *dot = strrchr(base, '.');
     return dot; /* may be NULL */
 }
@@ -66,7 +76,9 @@ static bool is_ruby(const char *name)
 {
     const char *ext = get_extension(name);
     if (!ext)
+    {
         return false;
+    }
     return strcmp(ext, ".rb") == 0;
 }
 
@@ -88,7 +100,9 @@ static bool scan_dir_recursive(const char *dirpath, char ***out, size_t *out_cou
     while ((ent = readdir(d)) != NULL)
     {
         if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
+        {
             continue;
+        }
 
         char path[PATH_MAX];
         if (snprintf(path, sizeof(path), "%s/%s", dirpath, ent->d_name) >= (int)sizeof(path))
@@ -140,7 +154,9 @@ bool has_glob_metachar(const char *pattern)
     for (const char *p = pattern; *p; ++p)
     {
         if (*p == '*' || *p == '?' || *p == '[')
+        {
             return true;
+        }
     }
     return false;
 }
@@ -167,7 +183,9 @@ bool collect_ruby_files(char **paths, size_t paths_count, char ***out_paths, siz
     {
         const char *p = paths[i];
         if (!p)
+        {
             continue;
+        }
 
         // '-' is treated as a literal filename token (stdin).
         if (strcmp(p, "-") == 0)
@@ -255,7 +273,9 @@ bool collect_ruby_files(char **paths, size_t paths_count, char ***out_paths, siz
         if (S_ISDIR(st.st_mode))
         {
             if (!scan_dir_recursive(p, out_paths, out_count, err))
+            {
                 return false;
+            }
         }
         // Regular file: include if explicit (regardless of extension)
         else if (S_ISREG(st.st_mode))

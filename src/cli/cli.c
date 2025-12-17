@@ -23,7 +23,9 @@ static void print_version(void);
 int parse_command_line(int argc, char *argv[], cli_options_t *opts)
 {
     if (!opts)
+    {
         return -1;
+    }
     memset(opts, 0, sizeof(*opts));
     opts->formatter = CLI_FORMATTER_PROGRESS;
 
@@ -44,7 +46,9 @@ int parse_command_line(int argc, char *argv[], cli_options_t *opts)
         int option_index = 0;
         int c = getopt_long(argc, argv, "aAc:xf:hv", long_options, &option_index);
         if (c == -1)
+        {
             break;
+        }
         switch (c)
         {
         case 'a':
@@ -141,7 +145,9 @@ int parse_command_line(int argc, char *argv[], cli_options_t *opts)
 static int merge_string_lists(char ***destp, size_t *dest_countp, char **src, size_t src_count)
 {
     if (!src || src_count == 0)
+    {
         return 0;
+    }
 
     if (!*destp)
     {
@@ -172,7 +178,9 @@ static int merge_string_lists(char ***destp, size_t *dest_countp, char **src, si
         {
             // Free remaining src tokens.
             for (size_t k = i; k < src_count; ++k)
+            {
                 free(src[k]);
+            }
             free(src);
             return -1;
         }
@@ -197,8 +205,12 @@ static char **split_comma_list(const char *str, size_t *out_count)
     // Count commas to determine number of elements.
     size_t count = 1;
     for (const char *p = str; *p; ++p)
+    {
         if (*p == ',')
+        {
             ++count;
+        }
+    }
     // Allocate array of string pointers.
     char **arr = calloc(count, sizeof(char *));
     if (!arr)
@@ -219,7 +231,9 @@ static char **split_comma_list(const char *str, size_t *out_count)
             {
                 // Free previously allocated tokens.
                 for (size_t j = 0; j < idx; ++j)
+                {
                     free(arr[j]);
+                }
                 free(arr);
                 *out_count = 0;
                 return NULL;
@@ -228,7 +242,9 @@ static char **split_comma_list(const char *str, size_t *out_count)
             tok[len] = '\0';
             arr[idx++] = tok;
             if (*p == '\0')
+            {
                 break;
+            }
             start = p + 1;
         }
     }
@@ -263,15 +279,23 @@ static void print_version()
 void cli_options_free(cli_options_t *opts)
 {
     if (!opts)
+    {
         return;
+    }
     for (size_t i = 0; i < opts->paths_count; ++i)
+    {
         free(opts->paths[i]);
+    }
     free(opts->paths);
     for (size_t i = 0; i < opts->only_count; ++i)
+    {
         free(opts->only[i]);
+    }
     free(opts->only);
     for (size_t i = 0; i < opts->except_count; ++i)
+    {
         free(opts->except[i]);
+    }
     free(opts->except);
     free(opts->config_path);
 }

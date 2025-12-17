@@ -37,7 +37,9 @@ bool cli_formatter_from_string(const char *str, cli_formatter_t *out)
 {
     *out = CLI_FORMATTER_PROGRESS;
     if (!str)
+    {
         return false;
+    }
     for (size_t i = 0; i < sizeof(formatter_map) / sizeof(formatter_map[0]); ++i)
     {
         if (strcmp(str, formatter_map[i].str) == 0)
@@ -46,6 +48,5 @@ bool cli_formatter_from_string(const char *str, cli_formatter_t *out)
             return true;
         }
     }
-
     return false;
 }

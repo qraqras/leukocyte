@@ -11,7 +11,9 @@
 bool parse_ruby_file(const char *filepath, pm_node_t **out_node, pm_parser_t *out_parser, uint8_t **out_source)
 {
     if (!filepath || !out_node || !out_parser)
+    {
         return false;
+    }
 
     // Read file into buffer.
     uint8_t *source = NULL;
@@ -42,7 +44,9 @@ bool parse_ruby_file(const char *filepath, pm_node_t **out_node, pm_parser_t *ou
     }
 
     if (out_source)
+    {
         *out_source = source;
+    }
 
     return true;
 }
