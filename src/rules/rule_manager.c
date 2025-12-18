@@ -10,6 +10,7 @@
 
 #include "rules/rule.h"
 #include "rule_registry.h"
+#include "prism/diagnostic.h"
 
 /* Array of rules by node type */
 rule_t **rules_by_type[PM_NODE_TYPE_COUNT];
@@ -115,7 +116,8 @@ bool visit_node(pm_node_t *node, pm_parser_t *parser, pm_list_t *diagnostics, co
     pm_visit_node(node, node_visitor, &data);
     if (!diagnostics)
     {
-        pm_list_free(&local_list);
+        /* Use pm_diagnostic_list_free to ensure owned message strings are freed */
+        pm_diagnostic_list_free(&local_list);
     }
     return true;
 }
@@ -129,7 +131,8 @@ bool visit_node_with_rules(pm_node_t *node, pm_parser_t *parser, pm_list_t *diag
     pm_visit_node(node, node_visitor, &data);
     if (!diagnostics)
     {
-        pm_list_free(&local_list);
+        /* Use pm_diagnostic_list_free to ensure owned message strings are freed */
+        pm_diagnostic_list_free(&local_list);
     }
     return true;
 }

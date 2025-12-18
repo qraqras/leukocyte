@@ -1,1 +1,0 @@
-/usr/bin/cc -O3 -DNDEBUG CMakeFiles/test_rule_manager.dir/tests/test_rule_manager.c.o -o test_rule_manager  libleuko_lib.a vendor/libyaml/libyaml.a /workspaces/leukocyte/vendor/prism/build/libprism.a 

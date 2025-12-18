@@ -1,1 +1,0 @@
-/usr/bin/cc -O3 -DNDEBUG CMakeFiles/test_loader_fullname.dir/tests/test_loader_fullname.c.o -o test_loader_fullname  libleuko_lib.a vendor/libyaml/libyaml.a /workspaces/leukocyte/vendor/prism/build/libprism.a 

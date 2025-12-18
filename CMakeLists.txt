@@ -12,6 +12,7 @@ option(ENABLE_GPROF "Enable gprof profiling for leukocyte target" OFF)
 # Include directories
 include_directories(include)
 include_directories(include/rules)
+include_directories(include/allocator)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/vendor/prism/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/vendor/libyaml/include)
 
@@ -20,15 +21,23 @@ include(ExternalProject)
 ExternalProject_Add(prism_project
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vendor/prism
     CONFIGURE_COMMAND ""
-    BUILD_COMMAND cd ${CMAKE_CURRENT_SOURCE_DIR}/vendor/prism && make static CPPFLAGS="-I${CMAKE_SOURCE_DIR}/include" CFLAGS="${CFLAGS} -DPRISM_XALLOCATOR"
+    # Export CPPFLAGS in the environment so the vendor Makefile uses them
+    BUILD_COMMAND cd ${CMAKE_CURRENT_SOURCE_DIR}/vendor/prism && env CPPFLAGS="-I${CMAKE_SOURCE_DIR}/include -I${CMAKE_SOURCE_DIR}/include/allocator" CFLAGS="${CFLAGS} -DPRISM_XALLOCATOR" make static
     BUILD_IN_SOURCE 1
     INSTALL_COMMAND ""
 )
 
 # Provide an imported target for the built static library so we can link against it
 add_library(prism_static STATIC IMPORTED GLOBAL)
+# Use static archive when available, otherwise fallback to shared object produced by the Prism build
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/vendor/prism/build/libprism.a)
+    set(PRISM_LIB_PATH ${CMAKE_CURRENT_SOURCE_DIR}/vendor/prism/build/libprism.a)
+else()
+    set(PRISM_LIB_PATH ${CMAKE_CURRENT_SOURCE_DIR}/vendor/prism/build/libprism${CMAKE_SHARED_LIBRARY_SUFFIX})
+endif()
+
 set_target_properties(prism_static PROPERTIES
-    IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/vendor/prism/build/libprism.a
+    IMPORTED_LOCATION ${PRISM_LIB_PATH}
     INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/vendor/prism/include
 )
 
@@ -54,60 +63,86 @@ set(SOURCES
     src/io/file.c
     src/io/scan.c
     src/parse.c
-    src/leuko_allocator.c
+    src/allocator/arena.c
+    src/allocator/prism_xallocator.c
+    src/diagnostic_debug_stub.c
     # Add more sources here
 )
 
 # IO tests
 add_executable(test_io_scan tests/test_io_scan.c)
-target_link_libraries(test_io_scan leuko_lib yaml)
+# Ensure leuko_prism_helpers follows prism_static so its symbols can satisfy
+# unresolved references from libprism.a during static linking.
+target_link_libraries(test_io_scan leuko_prism_helpers leuko_lib prism_static yaml)
 add_test(NAME test_io_scan COMMAND test_io_scan)
 
 # Generated config tests
 add_executable(test_generated_config tests/test_generated_config.c)
-target_link_libraries(test_generated_config leuko_lib yaml)
+target_link_libraries(test_generated_config leuko_prism_helpers leuko_lib prism_static yaml)
 add_test(NAME test_generated_config COMMAND test_generated_config)
 
 # YAML helpers tests
 add_executable(test_yaml_helpers tests/test_yaml_helpers.c)
-target_link_libraries(test_yaml_helpers leuko_lib yaml)
+target_link_libraries(test_yaml_helpers leuko_prism_helpers leuko_lib prism_static yaml)
 add_test(NAME test_yaml_helpers COMMAND test_yaml_helpers)
 
 # Rule registry test
 add_executable(test_rule_registry tests/test_rule_registry.c)
-target_link_libraries(test_rule_registry leuko_lib yaml)
+target_link_libraries(test_rule_registry leuko_prism_helpers leuko_lib prism_static yaml)
 add_test(NAME test_rule_registry COMMAND test_rule_registry)
 
 add_executable(test_rule_manager tests/test_rule_manager.c)
-target_link_libraries(test_rule_manager leuko_lib yaml)
+target_link_libraries(test_rule_manager leuko_prism_helpers leuko_lib prism_static yaml)
 add_test(NAME test_rule_manager COMMAND test_rule_manager)
 
 # YAML case sensitivity tests
 add_executable(test_yaml_case_sensitive tests/test_yaml_case_sensitive.c)
-target_link_libraries(test_yaml_case_sensitive leuko_lib yaml)
+target_link_libraries(test_yaml_case_sensitive prism_static leuko_prism_helpers leuko_lib yaml)
 add_test(NAME test_yaml_case_sensitive COMMAND test_yaml_case_sensitive)
 
 # Config loader tests
 add_executable(test_config_loader tests/test_config_loader.c)
-target_link_libraries(test_config_loader leuko_lib yaml)
+target_link_libraries(test_config_loader prism_static leuko_prism_helpers leuko_lib yaml)
 add_test(NAME test_config_loader COMMAND test_config_loader)
 
 # Loader fullname tests
 add_executable(test_loader_fullname tests/test_loader_fullname.c)
-target_link_libraries(test_loader_fullname leuko_lib yaml)
+target_link_libraries(test_loader_fullname prism_static leuko_prism_helpers leuko_lib yaml)
 add_test(NAME test_loader_fullname COMMAND test_loader_fullname)
 
 # Edge-case config loader tests
 add_executable(test_config_loader_edgecases tests/test_config_loader_edgecases.c)
-target_link_libraries(test_config_loader_edgecases leuko_lib yaml)
+target_link_libraries(test_config_loader_edgecases prism_static leuko_prism_helpers leuko_lib yaml)
 add_test(NAME test_config_loader_edgecases COMMAND test_config_loader_edgecases)
+
+# Arena allocator tests
+add_executable(test_arena tests/test_arena.c)
+target_link_libraries(test_arena prism_static leuko_prism_helpers leuko_lib yaml)
+add_test(NAME test_arena COMMAND test_arena)
+
+
+add_executable(test_parser_arena tests/test_parser_arena.c)
+target_link_libraries(test_parser_arena prism_static leuko_prism_helpers leuko_lib yaml)
+add_test(NAME test_parser_arena COMMAND test_parser_arena)
 
 # Library target for core sources so tests can link against it
 add_library(leuko_lib STATIC ${SOURCES})
 
+# Diagnostic free test
+add_executable(test_diagnostic_free tests/test_diagnostic_free.c)
+# Link order: ensure helper stubs and library are available before Prism static archive
+target_link_libraries(test_diagnostic_free leuko_prism_helpers leuko_lib prism_static yaml)
+add_test(NAME test_diagnostic_free COMMAND test_diagnostic_free)
+
+# Small helper library containing symbols required to satisfy Prism's
+# diagnostic references (keeps those objects available for link ordering)
+add_library(leuko_prism_helpers STATIC src/diagnostic_debug_stub.c)
+
 # Executable
 add_executable(leuko src/main.c)
-target_link_libraries(leuko leuko_lib)
+# Link order: ensure prism_static comes before leuko_lib so symbols provided by
+# leukocyte (e.g. diagnostic stubs) satisfy references from Prism static lib.
+target_link_libraries(leuko prism_static leuko_lib yaml)
 
 if (ENABLE_ASAN)
     target_compile_options(leuko PRIVATE -fsanitize=address -fno-omit-frame-pointer)
@@ -121,21 +156,23 @@ if (ENABLE_GPROF)
     target_compile_options(leuko_lib PRIVATE -pg)
 endif()
 
-# Link libraries
-# Use the imported prism_static target which depends on the ExternalProject build
-target_link_libraries(leuko prism_static yaml)
-target_link_libraries(leuko_lib prism_static yaml)
+# Link libraries for library target
+# Ensure helper stubs are linked before Prism static lib so their symbols satisfy
+# references from the libprism.a archive during static linking.
+target_link_libraries(leuko_lib leuko_prism_helpers prism_static yaml)
 
-# Ensure the external Prism build is run before building leukocyte
+# Ensure the external Prism build is run before building leukocyte and library targets used by tests
 add_dependencies(leuko prism_project)
+add_dependencies(leuko_lib prism_project)
+add_dependencies(test_parser_arena prism_project)
 
 # Tests
 enable_testing()
 add_executable(test_leukocyte tests/test_main.c)
-target_link_libraries(test_leukocyte leuko_lib yaml)
+target_link_libraries(test_leukocyte prism_static leuko_prism_helpers leuko_lib yaml)
 add_test(NAME test_leukocyte COMMAND test_leukocyte)
 
 # CLI tests for comma-splitting and parsing
 add_executable(test_cli tests/test_cli.c)
-target_link_libraries(test_cli leuko_lib yaml)
+target_link_libraries(test_cli prism_static leuko_prism_helpers leuko_lib yaml)
 add_test(NAME test_cli COMMAND test_cli)

@@ -3,16 +3,14 @@
 
 #include <stddef.h>
 
-/* Leuko-provided allocator hooks used when building Prism with -DPRISM_XALLOCATOR. */
-void *leuko_xmalloc(size_t size);
-void *leuko_xcalloc(size_t nmemb, size_t size);
-void *leuko_xrealloc(void *ptr, size_t size);
-void leuko_xfree(void *ptr);
+/* Function-based allocator API used when PRISM_XALLOCATOR is enabled. */
+void *xmalloc(size_t size);
+void *xrealloc(void *ptr, size_t size);
+void *xcalloc(size_t nmemb, size_t size);
+void xfree(void *ptr);
 
-/* Map prism's x* names to Leuko's implementations */
-#define xmalloc leuko_xmalloc
-#define xcalloc leuko_xcalloc
-#define xrealloc leuko_xrealloc
-#define xfree leuko_xfree
+/* Per-parse arena lifecycle */
+void x_allocator_begin_parse(void);
+void x_allocator_end_parse(void);
 
 #endif /* PRISM_XALLOCATOR_H */

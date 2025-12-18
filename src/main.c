@@ -6,6 +6,7 @@
 #include "cli/cli.h"
 #include "parse.h"
 #include "leukocyte.h"
+#include "prism_xallocator.h"
 #include "configs/generated_config.h"
 #include "configs/loader.h"
 #include "rules/rule_manager.h"
@@ -60,12 +61,14 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Error collecting Ruby files: %s\n", scan_err ? scan_err : "unknown");
         free(scan_err);
         cli_options_free(&cli_opts);
+        free_config(&cfg);
         return EXIT_FAILURE;
     }
     if (ruby_files_count == 0)
     {
         fprintf(stderr, "Usage: %s [options] <ruby_file>\n", argv[0]);
         cli_options_free(&cli_opts);
+        free_config(&cfg);
         free(ruby_files);
         return EXIT_FAILURE;
     }
@@ -124,6 +127,8 @@ int main(int argc, char *argv[])
 
         pm_node_destroy(&parser, root_node);
         pm_parser_free(&parser);
+        /* End per-parse arena state after parser is freed so tokens remain available during rules */
+        x_allocator_end_parse();
         free(source);
     }
 
@@ -142,6 +147,10 @@ int main(int argc, char *argv[])
         fprintf(stderr, "[timings] totals parse=%.3fms build_rules=%.3fms visit=%.3fms handler=%.3fms\n",
                 total_parse, total_build, total_visit, total_handler_ms);
     }
+
+    /* debug: print number of freed diagnostics to verify pm_diagnostic_list_free behavior */
+    extern size_t g_diag_freed;
+    fprintf(stderr, "[debug] g_diag_freed=%zu\n", g_diag_freed);
 
     // TODO: Apply rules and perform analysis on root_node
 

@@ -1,1 +1,0 @@
-/usr/bin/cc -O3 -DNDEBUG CMakeFiles/test_yaml_case_sensitive.dir/tests/test_yaml_case_sensitive.c.o -o test_yaml_case_sensitive  libleuko_lib.a vendor/libyaml/libyaml.a /workspaces/leukocyte/vendor/prism/build/libprism.a 

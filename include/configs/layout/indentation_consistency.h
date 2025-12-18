@@ -8,7 +8,7 @@
 #define CONFIG_VALUE_OF_LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_NORMAL "normal"
 #define CONFIG_VALUE_OF_LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_INDENTED_INTERNAL_METHODS "indented_internal_methods"
 
-extern const struct config_ops layout_indentation_consistency_config_ops;
+extern struct config_ops layout_indentation_consistency_config_ops;
 
 /// @brief Indentation consistency enforced styles.
 /// @note default: LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_NORMAL

@@ -3,6 +3,7 @@
 #include <strings.h>
 
 #include "configs/yaml_helpers.h"
+#include "allocator/prism_xallocator.h"
 #include "severity.h"
 #include "configs/config.h"
 
@@ -33,7 +34,11 @@ static char **sequence_to_array(yaml_document_t *doc, yaml_node_t *seq_node, siz
         yaml_node_t *v = yaml_document_get_node(doc, *it);
         if (v && v->type == YAML_SCALAR_NODE)
         {
-            arr[idx++] = strdup((char *)v->data.scalar.value);
+            /* allocate via malloc because caller frees these strings */
+            size_t sl = strlen((char *)v->data.scalar.value) + 1;
+            char *sdup = malloc(sl);
+            if (sdup) memcpy(sdup, (char *)v->data.scalar.value, sl);
+            arr[idx++] = sdup;
         }
     }
     *count = idx;
@@ -229,31 +234,71 @@ bool yaml_get_merged_sequence(const yaml_document_t *doc, yaml_node_t *rule_node
     arr = yaml_get_mapping_sequence_values(doc, allcops_node, key, &cnt);
     if (arr)
     {
-        acc = realloc(acc, (total + cnt) * sizeof(char *));
+        size_t new_total = total + cnt;
+        char **tmp = realloc(acc, new_total * sizeof(char *));
+        if (!tmp) {
+            /* cleanup */
+            for (size_t i = 0; i < cnt; i++) free(arr[i]);
+            free(arr);
+            for (size_t i = 0; i < total; i++) free(acc[i]);
+            free(acc);
+            *count = 0;
+            *out = NULL;
+            return false;
+        }
+        acc = tmp;
         for (size_t i = 0; i < cnt; i++)
         {
-            acc[total++] = arr[i];
+            acc[total + i] = strdup(arr[i]);
+            free(arr[i]);
         }
+        total = new_total;
         free(arr);
     }
     arr = yaml_get_mapping_sequence_values(doc, category_node, key, &cnt);
     if (arr)
     {
-        acc = realloc(acc, (total + cnt) * sizeof(char *));
+        size_t new_total = total + cnt;
+        char **tmp = realloc(acc, new_total * sizeof(char *));
+        if (!tmp) {
+            for (size_t i = 0; i < cnt; i++) free(arr[i]);
+            free(arr);
+            for (size_t i = 0; i < total; i++) free(acc[i]);
+            free(acc);
+            *count = 0;
+            *out = NULL;
+            return false;
+        }
+        acc = tmp;
         for (size_t i = 0; i < cnt; i++)
         {
-            acc[total++] = arr[i];
+            acc[total + i] = strdup(arr[i]);
+            free(arr[i]);
         }
+        total = new_total;
         free(arr);
     }
     arr = yaml_get_mapping_sequence_values(doc, rule_node, key, &cnt);
     if (arr)
     {
-        acc = realloc(acc, (total + cnt) * sizeof(char *));
+        size_t new_total = total + cnt;
+        char **tmp = realloc(acc, new_total * sizeof(char *));
+        if (!tmp) {
+            for (size_t i = 0; i < cnt; i++) free(arr[i]);
+            free(arr);
+            for (size_t i = 0; i < total; i++) free(acc[i]);
+            free(acc);
+            *count = 0;
+            *out = NULL;
+            return false;
+        }
+        acc = tmp;
         for (size_t i = 0; i < cnt; i++)
         {
-            acc[total++] = arr[i];
+            acc[total + i] = strdup(arr[i]);
+            free(arr[i]);
         }
+        total = new_total;
         free(arr);
     }
 

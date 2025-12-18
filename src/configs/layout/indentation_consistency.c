@@ -92,7 +92,7 @@ void layout_indentation_consistency_config_free(void *config)
 /**
  * @brief Configuration operations for Layout/IndentationConsistency rule.
  */
-const struct config_ops layout_indentation_consistency_config_ops = {
+struct config_ops layout_indentation_consistency_config_ops = {
     .initialize = layout_indentation_consistency_initialize,
     .apply_yaml = layout_indentation_consistency_apply,
 };
