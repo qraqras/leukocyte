@@ -37,7 +37,8 @@ static char **sequence_to_array(yaml_document_t *doc, yaml_node_t *seq_node, siz
             /* allocate via malloc because caller frees these strings */
             size_t sl = strlen((char *)v->data.scalar.value) + 1;
             char *sdup = malloc(sl);
-            if (sdup) memcpy(sdup, (char *)v->data.scalar.value, sl);
+            if (sdup)
+                memcpy(sdup, (char *)v->data.scalar.value, sl);
             arr[idx++] = sdup;
         }
     }
@@ -236,11 +237,14 @@ bool yaml_get_merged_sequence(const yaml_document_t *doc, yaml_node_t *rule_node
     {
         size_t new_total = total + cnt;
         char **tmp = realloc(acc, new_total * sizeof(char *));
-        if (!tmp) {
+        if (!tmp)
+        {
             /* cleanup */
-            for (size_t i = 0; i < cnt; i++) free(arr[i]);
+            for (size_t i = 0; i < cnt; i++)
+                free(arr[i]);
             free(arr);
-            for (size_t i = 0; i < total; i++) free(acc[i]);
+            for (size_t i = 0; i < total; i++)
+                free(acc[i]);
             free(acc);
             *count = 0;
             *out = NULL;
@@ -260,10 +264,13 @@ bool yaml_get_merged_sequence(const yaml_document_t *doc, yaml_node_t *rule_node
     {
         size_t new_total = total + cnt;
         char **tmp = realloc(acc, new_total * sizeof(char *));
-        if (!tmp) {
-            for (size_t i = 0; i < cnt; i++) free(arr[i]);
+        if (!tmp)
+        {
+            for (size_t i = 0; i < cnt; i++)
+                free(arr[i]);
             free(arr);
-            for (size_t i = 0; i < total; i++) free(acc[i]);
+            for (size_t i = 0; i < total; i++)
+                free(acc[i]);
             free(acc);
             *count = 0;
             *out = NULL;
@@ -283,10 +290,13 @@ bool yaml_get_merged_sequence(const yaml_document_t *doc, yaml_node_t *rule_node
     {
         size_t new_total = total + cnt;
         char **tmp = realloc(acc, new_total * sizeof(char *));
-        if (!tmp) {
-            for (size_t i = 0; i < cnt; i++) free(arr[i]);
+        if (!tmp)
+        {
+            for (size_t i = 0; i < cnt; i++)
+                free(arr[i]);
             free(arr);
-            for (size_t i = 0; i < total; i++) free(acc[i]);
+            for (size_t i = 0; i < total; i++)
+                free(acc[i]);
             free(acc);
             *count = 0;
             *out = NULL;

@@ -1,8 +1,9 @@
+#include <stdint.h>
+
 #include "io/file.h"
 #include "parse.h"
 #include "prism.h"
-#include "prism_xallocator.h"
-#include <stdint.h>
+#include "allocator/prism_xallocator.h"
 
 /**
  * @brief Parse Ruby file at `filepath` into a Prism AST node.

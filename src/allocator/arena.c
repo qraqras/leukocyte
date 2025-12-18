@@ -10,14 +10,16 @@
 #define ARENA_MIN_BLOCK 4096
 
 /* Internal block structure */
-struct arena_block {
+struct arena_block
+{
     char *data;
     size_t size;
     size_t used;
     struct arena_block *next;
 };
 
-struct arena {
+struct arena
+{
     struct arena_block *blocks;
     size_t default_block_size;
 };
@@ -140,7 +142,8 @@ int arena_contains(struct arena *a, void *ptr)
         return 0;
     size_t hdr = sizeof(void *); /* pointer-aligned offset isn't needed here */
     struct arena_block *b = a->blocks;
-    while (b) {
+    while (b)
+    {
         char *start = b->data;
         char *end = b->data + b->used;
         if ((char *)ptr >= start && (char *)ptr < end)

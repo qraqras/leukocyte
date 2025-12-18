@@ -26,7 +26,8 @@ int main(void)
     /* Reset counter then free list */
     g_diag_freed = 0;
     pm_diagnostic_list_free(&list);
-    if (g_diag_freed != N) {
+    if (g_diag_freed != N)
+    {
         fprintf(stderr, "expected g_diag_freed=%zu got=%zu\n", N, g_diag_freed);
         return EXIT_FAILURE;
     }

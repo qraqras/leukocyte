@@ -12,6 +12,6 @@ size_t g_diag_freed = 0;
 void LDEBUG(const char *fmt, ...)
 {
     /* No-op by default; enable via env var if needed. */
-    (void) fmt;
+    (void)fmt;
     return;
 }
