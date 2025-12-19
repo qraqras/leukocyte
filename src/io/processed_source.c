@@ -44,6 +44,9 @@ void processed_source_init_from_parser(processed_source_t *ps, const pm_parser_t
     ps->pos2line_cap = 0;
     ps->pos2line_count = 0;
 
+    /* line_start_offsets is optional; lazily initialized on first use */
+    ps->line_start_offsets = NULL;
+
     /* Compute per-line first non-whitespace offsets (absolute offsets from start)
      * Allocate an array of length lines_count. If allocation fails, leave pointer NULL
      * and fall back to scanning on demand in other APIs. */
@@ -106,7 +109,8 @@ size_t processed_source_col_of_pos(const processed_source_t *ps, const uint8_t *
     /* idx == 0 -> offset before first newline, column = offset */
     if (idx == 0)
         return offset;
-    size_t line_begin = offsets[idx - 1];
+    size_t line_idx0 = (idx == 0) ? 0 : (idx - 1);
+    size_t line_begin = ps->line_start_offsets ? ps->line_start_offsets[line_idx0] : offsets[line_idx0];
     return (size_t)(offset - line_begin);
 }
 
@@ -218,6 +222,22 @@ int processed_source_pos2line_get(const processed_source_t *ps, size_t pos, size
     return 0;
 }
 
+static void processed_source_ensure_line_starts(processed_source_t *ps)
+{
+    if (!ps || ps->line_start_offsets)
+        return;
+    size_t n = ps->lines_count;
+    if (n == 0)
+        return;
+    const size_t *offs = ps->newline_list->offsets;
+    size_t *arr = (size_t *)xcalloc(n, sizeof(size_t));
+    if (!arr)
+        return; /* allocation failed, leave NULL */
+    for (size_t i = 0; i < n; ++i)
+        arr[i] = offs[i];
+    ps->line_start_offsets = arr;
+}
+
 void processed_source_pos_info(processed_source_t *ps, const uint8_t *pos, processed_source_pos_info_t *out)
 {
     size_t offset = (size_t)(pos - ps->start);
@@ -231,6 +251,9 @@ void processed_source_pos_info(processed_source_t *ps, const uint8_t *pos, proce
         out->begins = (offset == 0);
         return;
     }
+
+    /* ensure optional line starts cache */
+    processed_source_ensure_line_starts(ps);
 
     size_t line_idx0 = (size_t)-1;
 
@@ -263,7 +286,7 @@ void processed_source_pos_info(processed_source_t *ps, const uint8_t *pos, proce
 
     out->line = (int32_t)(ps->start_line + (int32_t)line_idx0);
 
-    size_t line_begin = offsets[line_idx0];
+    size_t line_begin = ps->line_start_offsets ? ps->line_start_offsets[line_idx0] : offsets[line_idx0];
     out->col = (size_t)(offset - line_begin);
 
     if (ps->first_non_ws_offsets)
@@ -297,6 +320,11 @@ void processed_source_free(processed_source_t *ps)
     {
         xfree(ps->first_non_ws_offsets);
         ps->first_non_ws_offsets = NULL;
+    }
+    if (ps->line_start_offsets)
+    {
+        xfree(ps->line_start_offsets);
+        ps->line_start_offsets = NULL;
     }
     if (ps->pos2line_keys)
     {

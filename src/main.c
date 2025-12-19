@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
         pm_node_destroy(&parser, root_node);
         pm_parser_free(&parser);
         /* End per-parse arena state after parser is freed so tokens remain available during rules */
-        x_allocator_end_parse();
+        leuko_x_allocator_end();
         free(source);
     }
 

@@ -38,7 +38,7 @@ bool parse_ruby_file(const char *filepath, pm_node_t **out_node, pm_parser_t *ou
      * Initialize parser. The parser references the buffer but does not free it;
      * caller is responsible for freeing the buffer after pm_parser_free.
      */
-    x_allocator_begin_parse();
+    leuko_x_allocator_begin();
     pm_parser_init(out_parser, source, file_size, NULL);
     *out_node = pm_parse(out_parser);
 
@@ -47,7 +47,7 @@ bool parse_ruby_file(const char *filepath, pm_node_t **out_node, pm_parser_t *ou
     {
         pm_node_destroy(out_parser, *out_node);
         pm_parser_free(out_parser);
-        x_allocator_end_parse();
+        leuko_x_allocator_end();
         free(source);
         return false;
     }
@@ -58,7 +58,7 @@ bool parse_ruby_file(const char *filepath, pm_node_t **out_node, pm_parser_t *ou
     }
 
     /* Note: do NOT free the parser or end the arena here on success; caller is
-     * expected to call pm_parser_free() and then x_allocator_end_parse() so
+     * expected to call pm_parser_free() and then leuko_x_allocator_end() so
      * that tokens remain available while rules run. */
 
     return true;

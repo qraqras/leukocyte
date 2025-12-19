@@ -37,7 +37,7 @@ int main(void)
     if (node)
         pm_node_destroy(&parser, node);
     pm_parser_free(&parser);
-    x_allocator_end_parse();
+    leuko_x_allocator_end();
     if (source)
         free(source);
 

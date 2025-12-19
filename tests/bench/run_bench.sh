@@ -6,7 +6,7 @@ BUILD=${ROOT}/build
 BENCH_DIR=${ROOT}/tests/bench
 mkdir -p "$BENCH_DIR"
 
-sizes=(5000 10000 100000)
+sizes=(2000 5000 10000 100000)
 
 # Generate Ruby file with approx 'lines' lines. Each method is 5 lines.
 generate_file() {

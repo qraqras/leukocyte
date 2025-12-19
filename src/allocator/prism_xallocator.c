@@ -1,261 +1,233 @@
 #define _GNU_SOURCE
-#include "prism_xallocator.h"
-#include "allocator/arena.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <pthread.h>
 #include <stdint.h>
 
-/* Unified implementation of the Prism allocator (x* API).
- * All legacy leuko_x* aliases were removed during migration; code should
- * call the x* API directly (e.g., xmalloc/xfree) defined in
- * include/allocator/prism_xallocator.h.
+#include "prism_xallocator.h"
+#include "allocator/arena.h"
+
+/**
+ * Prism allocator (x* API) implementation.
+ * - Public API: xmalloc/xcalloc/xrealloc/xfree.
+ * - Uses per-thread arenas (leuko_arena_head) for small allocations
+ *   (<= LEUKO_ARENA_SMALL_LIMIT); larger allocations fall back to malloc.
+ * - Arena chunks default to LEUKO_ARENA_CHUNK_DEFAULT and are created lazily.
+ * - Arena lifecycle: leuko_x_allocator_begin() / leuko_x_allocator_end().
+ * - Internal helpers and symbols are prefixed with `leuko_`.
  */
 
-#define ARENA_CHUNK_DEFAULT (1 << 20) /* 1MB */
-#define ARENA_SMALL_LIMIT 16384       /* 16KB */
-
-/* Environment-overridable parameters:
- * - LEUKO_ARENA_CHUNK: chunk size in bytes (default: ARENA_CHUNK_DEFAULT)
- * - LEUKO_ARENA_SMALL_LIMIT: maximum size served from arena (default: ARENA_SMALL_LIMIT)
+/**
+ * @brief Default arena chunk size.
+ * @note 4MB
  */
-static size_t get_arena_chunk(void)
-{
-    static size_t chunk = 0;
-    if (chunk)
-        return chunk;
-    const char *s = getenv("LEUKO_ARENA_CHUNK");
-    if (s)
-    {
-        unsigned long long v = strtoull(s, NULL, 0);
-        if (v > 0)
-        {
-            chunk = (size_t)v;
-        }
-    }
-    if (!chunk)
-        chunk = ARENA_CHUNK_DEFAULT;
-    return chunk;
-}
+#define LEUKO_ARENA_CHUNK_DEFAULT (4 << 20)
 
-static size_t get_arena_small_limit(void)
-{
-    static size_t lim = 0;
-    if (lim)
-        return lim;
-    const char *s = getenv("LEUKO_ARENA_SMALL_LIMIT");
-    if (s)
-    {
-        unsigned long long v = strtoull(s, NULL, 0);
-        if (v > 0)
-        {
-            lim = (size_t)v;
-        }
-    }
-    if (!lim)
-        lim = ARENA_SMALL_LIMIT;
-    return lim;
-}
+/**
+ * @brief Small allocation limit for arena usage.
+ * @note 8KB
+ */
+#define LEUKO_ARENA_SMALL_LIMIT 8192
 
-static __thread struct arena *arena_head = NULL;
-static __thread int arena_enabled = 1;
-static pthread_mutex_t arena_lock = PTHREAD_MUTEX_INITIALIZER;
+/**
+ * @brief Magic number to identify arena allocations (arena block header).
+ */
+#define LEUKO_ARENA_BLOCK_MAGIC 0x4152454E414D4741ULL
 
-static size_t sys_malloc_calls = 0;
-static size_t sys_calloc_calls = 0;
-static size_t sys_realloc_calls = 0;
-static size_t sys_free_calls = 0;
+/**
+ * @brief Thread-local arena head for the current thread (lazily created).
+ */
+static __thread struct leuko_arena *leuko_arena_head = NULL;
 
-static int is_arena_enabled(void)
-{
-    (void)arena_enabled;
-    return 1;
-}
-static int is_arena_log_enabled(void)
-{
-    const char *env = getenv("LEUKO_ARENA_LOG");
-    return (env && env[0] == '1');
-}
-
-void x_allocator_begin_parse(void)
-{
-    if (!is_arena_enabled())
-        return;
-    if (is_arena_log_enabled())
-        fprintf(stderr, "[arena] begin_parse\n");
-    pthread_mutex_lock(&arena_lock);
-    if (arena_head)
-    {
-        arena_free(arena_head);
-        arena_head = NULL;
-    }
-    pthread_mutex_unlock(&arena_lock);
-}
-
-void x_allocator_end_parse(void)
-{
-    if (!is_arena_enabled())
-        return;
-    pthread_mutex_lock(&arena_lock);
-    if (arena_head)
-    {
-        arena_free(arena_head);
-        arena_head = NULL;
-    }
-    fprintf(stderr, "[x_alloc_stats] sys_alloc_calls=%zu sys_calloc_calls=%zu sys_realloc_calls=%zu sys_free_calls=%zu\n",
-            sys_malloc_calls, sys_calloc_calls, sys_realloc_calls, sys_free_calls);
-    sys_malloc_calls = sys_calloc_calls = sys_realloc_calls = sys_free_calls = 0;
-    pthread_mutex_unlock(&arena_lock);
-}
-
-static size_t align_up(size_t v, size_t a) { return (v + (a - 1)) & ~(a - 1); }
-
-typedef struct mp_hdr
+/**
+ * @brief Header used to mark arena allocations.
+ */
+typedef struct leuko_arena_block_hdr
 {
     uint64_t magic;
-    size_t size;
-} mp_hdr_t;
-#define ARENA_MAGIC 0x4152454E414D4741ULL /* "ARENAGMA" */
+    size_t user_size;
+} leuko_arena_block_hdr_t;
 
-static void *arena_alloc_wrapper(size_t size)
+/**
+ * @brief Begin allocator usage for the current thread.
+ */
+void leuko_x_allocator_begin(void)
 {
-    if (!is_arena_enabled())
-        return malloc(size);
-    size_t hdr = sizeof(mp_hdr_t);
+    if (leuko_arena_head)
+    {
+        leuko_arena_free(leuko_arena_head);
+        leuko_arena_head = NULL;
+    }
+}
+
+/**
+ * @brief End allocator usage for the current thread.
+ */
+void leuko_x_allocator_end(void)
+{
+    if (leuko_arena_head)
+    {
+        leuko_arena_free(leuko_arena_head);
+        leuko_arena_head = NULL;
+    }
+}
+
+/**
+ * @brief Helper to align sizes to pointer width.
+ * @param v Size to align
+ * @param a Alignment
+ * @return Aligned size
+ */
+static size_t leuko_align_up(size_t v, size_t a)
+{
+    return (v + (a - 1)) & ~(a - 1);
+}
+
+/**
+ * @brief Allocate memory from the arena or system allocator.
+ * @param size Size of memory to allocate
+ * @return Pointer to the allocated memory, or NULL on failure
+ */
+static void *leuko_arena_alloc_wrapper(size_t size)
+{
+    size_t hdr = sizeof(leuko_arena_block_hdr_t);
     size_t align = sizeof(void *);
-    size_t total = align_up(hdr + size, align);
-    pthread_mutex_lock(&arena_lock);
-    if (!arena_head)
+    size_t total = leuko_align_up(hdr + size, align);
+    /* Create per-thread arena lazily without global locking */
+    if (!leuko_arena_head)
     {
-        size_t chunk = get_arena_chunk();
-        if (is_arena_log_enabled())
-            fprintf(stderr, "[arena] creating head chunk=%zu\n", chunk);
-        arena_head = arena_new(chunk);
-        if (!arena_head)
-        {
-            pthread_mutex_unlock(&arena_lock);
+        size_t chunk = LEUKO_ARENA_CHUNK_DEFAULT;
+        leuko_arena_head = leuko_arena_new(chunk);
+        if (!leuko_arena_head)
             return NULL;
-        }
     }
-    size_t small_limit = get_arena_small_limit();
+
+    size_t small_limit = LEUKO_ARENA_SMALL_LIMIT;
     if (size > small_limit)
-    {
-        pthread_mutex_unlock(&arena_lock);
         return malloc(size);
-    }
-    void *p = arena_alloc(arena_head, total);
+
+    void *p = leuko_arena_alloc(leuko_arena_head, total);
     if (!p)
-    {
-        pthread_mutex_unlock(&arena_lock);
         return NULL;
-    }
-    mp_hdr_t *h = (mp_hdr_t *)p;
-    h->magic = ARENA_MAGIC;
-    h->size = size;
+
+    leuko_arena_block_hdr_t *h = (leuko_arena_block_hdr_t *)p;
+    h->magic = LEUKO_ARENA_BLOCK_MAGIC;
+    h->user_size = size;
     void *user = (char *)p + hdr;
-    pthread_mutex_unlock(&arena_lock);
     return user;
 }
 
-static int ptr_in_arena(void *ptr)
+/**
+ * @brief Check if a pointer was allocated from the arena.
+ * @param ptr Pointer to check
+ * @return 1 if the pointer is in the arena, 0 otherwise
+ */
+static int leuko_ptr_in_arena(void *ptr)
 {
     if (!ptr)
         return 0;
-    if (!arena_head)
+    if (!leuko_arena_head)
         return 0;
     /* Compute header pointer and verify it lies inside the arena. If it does,
        check the magic field to ensure the pointer was actually allocated by
        the arena. This prevents false positives where a heap pointer minus the
        header size coincidentally falls inside the arena memory. */
-    char *hdr = (char *)ptr - sizeof(mp_hdr_t);
-    if (!arena_contains(arena_head, hdr))
+    char *hdr = (char *)ptr - sizeof(leuko_arena_block_hdr_t);
+    if (!leuko_arena_contains(leuko_arena_head, hdr))
     {
         return 0;
     }
-    mp_hdr_t *h = (mp_hdr_t *)hdr;
-    return h->magic == ARENA_MAGIC;
+    leuko_arena_block_hdr_t *h = (leuko_arena_block_hdr_t *)hdr;
+    return h->magic == LEUKO_ARENA_BLOCK_MAGIC;
 }
 
-/* Core implementations used by both symbol sets */
+/**
+ * @brief Allocate memory using the Prism allocator.
+ * @param size Size of memory to allocate
+ * @return Pointer to the allocated memory, or NULL on failure
+ */
 void *prism_alloc_impl(size_t size)
 {
-    if (!is_arena_enabled())
-    {
-        __sync_fetch_and_add(&sys_malloc_calls, 1);
-        return malloc(size);
-    }
-    void *p = arena_alloc_wrapper(size);
+    void *p = leuko_arena_alloc_wrapper(size);
     if (p)
         return p;
-    __sync_fetch_and_add(&sys_malloc_calls, 1);
     return malloc(size);
 }
 
+/**
+ * @brief Allocate zero-initialized memory using the Prism allocator.
+ * @param nmemb Number of members
+ * @param size Size of each member
+ * @return Pointer to the allocated memory, or NULL on failure
+ */
 void *prism_calloc_impl(size_t nmemb, size_t size)
 {
     size_t total = nmemb * size;
-    if (!is_arena_enabled())
-    {
-        __sync_fetch_and_add(&sys_calloc_calls, 1);
-        return calloc(nmemb, size);
-    }
-    void *p = arena_alloc_wrapper(total);
+    void *p = leuko_arena_alloc_wrapper(total);
     if (p)
     {
         memset(p, 0, total);
         return p;
     }
-    __sync_fetch_and_add(&sys_calloc_calls, 1);
     return calloc(nmemb, size);
 }
 
+/**
+ * @brief Reallocate memory using the Prism allocator.
+ * @param ptr Pointer to existing memory
+ * @param size New size of memory
+ * @return Pointer to the reallocated memory, or NULL on failure
+ */
 void *prism_realloc_impl(void *ptr, size_t size)
 {
     if (!ptr)
         return prism_alloc_impl(size);
-    if (!is_arena_enabled())
+    if (leuko_ptr_in_arena(ptr))
     {
-        __sync_fetch_and_add(&sys_realloc_calls, 1);
-        return realloc(ptr, size);
-    }
-    if (ptr_in_arena(ptr))
-    {
-        mp_hdr_t *oh = (mp_hdr_t *)((char *)ptr - sizeof(mp_hdr_t));
+        leuko_arena_block_hdr_t *oh = (leuko_arena_block_hdr_t *)((char *)ptr - sizeof(leuko_arena_block_hdr_t));
         size_t old_size = 0;
-        if (oh->magic == ARENA_MAGIC)
-            old_size = oh->size;
-        void *n = arena_alloc_wrapper(size);
+        if (oh->magic == LEUKO_ARENA_BLOCK_MAGIC)
+            old_size = oh->user_size;
+        void *n = leuko_arena_alloc_wrapper(size);
         if (!n)
             return NULL;
         size_t to_copy = (old_size && old_size < size) ? old_size : size;
         memcpy(n, ptr, to_copy);
         return n;
     }
-    __sync_fetch_and_add(&sys_realloc_calls, 1);
     return realloc(ptr, size);
 }
 
+/**
+ * @brief Free memory using the Prism allocator.
+ * @param ptr Pointer to memory to free
+ */
 void prism_free_impl(void *ptr)
 {
     if (!ptr)
         return;
-    if (!is_arena_enabled())
-    {
-        __sync_fetch_and_add(&sys_free_calls, 1);
-        free(ptr);
-        return;
-    }
-    if (ptr_in_arena(ptr))
+    if (leuko_ptr_in_arena(ptr))
         return; /* no-op */
-    __sync_fetch_and_add(&sys_free_calls, 1);
     free(ptr);
 }
 
-/* Export the x* API (xmalloc/xcalloc/xrealloc/xfree).
- * Legacy leuko_* aliases have been removed; use x* functions directly.
+/**
+ * @brief Aliases for Prism allocator functions.
  */
 void *xmalloc(size_t size) { return prism_alloc_impl(size); }
+
+/**
+ * @brief Aliases for Prism allocator functions.
+ */
 void *xcalloc(size_t nmemb, size_t size) { return prism_calloc_impl(nmemb, size); }
+
+/**
+ * @brief Aliases for Prism allocator functions.
+ */
 void *xrealloc(void *ptr, size_t size) { return prism_realloc_impl(ptr, size); }
+
+/**
+ * @brief Aliases for Prism allocator functions.
+ */
 void xfree(void *ptr) { prism_free_impl(ptr); }

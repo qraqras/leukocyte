@@ -1,15 +1,22 @@
-/*
- * Simple arena allocator PoC.
- */
-#include "allocator/arena.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 
-/* Minimum block size used by the arena. */
+#include "allocator/arena.h"
+
+/**
+ * @brief Minimum block size used by the arena.
+ */
 #define ARENA_MIN_BLOCK 4096
 
-/* Internal block structure */
+/**
+ * @brief Helper to align sizes to pointer width.
+ */
+typedef struct leuko_arena arena_t;
+
+/**
+ * @brief Internal block structure.
+ */
 struct arena_block
 {
     char *data;
@@ -18,19 +25,31 @@ struct arena_block
     struct arena_block *next;
 };
 
-struct arena
+/**
+ * @brief Arena structure.
+ */
+struct leuko_arena
 {
     struct arena_block *blocks;
     size_t default_block_size;
 };
 
-/* Helper to align sizes to pointer width */
+/**
+ * @brief Helper to align sizes to pointer width.
+ * @param n Size to align
+ * @return Aligned size
+ */
 static size_t align_up(size_t n)
 {
     size_t a = sizeof(void *);
     return (n + a - 1) & ~(a - 1);
 }
 
+/**
+ * @brief Create a new arena block of given size.
+ * @param size Size of the block
+ * @return Pointer to the new block, or NULL on failure
+ */
 static struct arena_block *block_new(size_t size)
 {
     struct arena_block *b = malloc(sizeof(*b));
@@ -48,6 +67,10 @@ static struct arena_block *block_new(size_t size)
     return b;
 }
 
+/**
+ * @brief Free all blocks in a linked list.
+ * @param b Pointer to the first block
+ */
 static void block_free_all(struct arena_block *b)
 {
     while (b)
@@ -59,9 +82,14 @@ static void block_free_all(struct arena_block *b)
     }
 }
 
-struct arena *arena_new(size_t initial_size)
+/**
+ * @brief Create a new arena with an initial size.
+ * @param initial_size Initial size of the arena
+ * @return Pointer to the new arena, or NULL on failure
+ */
+struct leuko_arena *leuko_arena_new(size_t initial_size)
 {
-    struct arena *a = malloc(sizeof(*a));
+    struct leuko_arena *a = malloc(sizeof(*a));
     if (!a)
         return NULL;
     size_t bs = initial_size ? initial_size : ARENA_MIN_BLOCK;
@@ -77,7 +105,13 @@ struct arena *arena_new(size_t initial_size)
     return a;
 }
 
-void *arena_alloc(struct arena *a, size_t size)
+/**
+ * @brief Allocate memory from the arena.
+ * @param a Pointer to the arena
+ * @param size Size of memory to allocate
+ * @return Pointer to the allocated memory, or NULL on failure
+ */
+void *leuko_arena_alloc(struct leuko_arena *a, size_t size)
 {
     if (!a || size == 0)
         return NULL;
@@ -116,19 +150,29 @@ void *arena_alloc(struct arena *a, size_t size)
     return nb->data;
 }
 
-char *arena_strdup(struct arena *a, const char *s)
+/**
+ * @brief Duplicate a string into the arena.
+ * @param a Pointer to the arena
+ * @param s String to duplicate
+ * @return Pointer to the duplicated string, or NULL on failure
+ */
+char *leuko_arena_strdup(struct leuko_arena *a, const char *s)
 {
     if (!s)
         return NULL;
     size_t n = strlen(s) + 1;
-    char *p = arena_alloc(a, n);
+    char *p = leuko_arena_alloc(a, n);
     if (!p)
         return NULL;
     memcpy(p, s, n);
     return p;
 }
 
-void arena_reset(struct arena *a)
+/**
+ * @brief Reset the arena, freeing all allocations.
+ * @param a Pointer to the arena
+ */
+void leuko_arena_reset(struct leuko_arena *a)
 {
     if (!a)
         return;
@@ -136,7 +180,13 @@ void arena_reset(struct arena *a)
     a->blocks = block_new(a->default_block_size);
 }
 
-int arena_contains(struct arena *a, void *ptr)
+/**
+ * @brief Check if a pointer belongs to the arena.
+ * @param a Pointer to the arena
+ * @param ptr Pointer to check
+ * @return 1 if the pointer is in the arena, 0 otherwise
+ */
+int leuko_arena_contains(struct leuko_arena *a, void *ptr)
 {
     if (!a || !ptr)
         return 0;
@@ -153,7 +203,11 @@ int arena_contains(struct arena *a, void *ptr)
     return 0;
 }
 
-void arena_free(struct arena *a)
+/**
+ * @brief Free the arena and all its allocations.
+ * @param a Pointer to the arena
+ */
+void leuko_arena_free(struct leuko_arena *a)
 {
     if (!a)
         return;

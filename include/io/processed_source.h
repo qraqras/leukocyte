@@ -3,29 +3,27 @@
 
 #include <stddef.h>
 #include <stdint.h>
+
 #include "prism/util/pm_newline_list.h"
 #include "prism/parser.h"
 
+/**
+ * @brief Processed source structure for efficient position lookups.
+ */
 typedef struct processed_source
 {
     const pm_newline_list_t *newline_list;
     const uint8_t *start;
     const uint8_t *end;
     int32_t start_line;
-    /* number of lines == newline_list->size */
     size_t lines_count;
-    /* per-line first non-whitespace offsets (absolute offsets from start)
-     * length == lines_count; may be NULL if not computed */
     size_t *first_non_ws_offsets;
-    /* Cache: last accessed 0-based line index, or (size_t)-1 when unknown */
+    size_t *line_start_offsets; /* optional cache: per-line start offsets (from start) */
     size_t last_line_idx;
-
-    /* Position -> line hash cache (open addressing). Keys == SIZE_MAX means empty. */
-    size_t *pos2line_keys; /* length == pos2line_cap or NULL */
-    size_t *pos2line_vals; /* same length */
-    size_t pos2line_cap;   /* power-of-two capacity; 0 means uninitialized */
-    size_t pos2line_count; /* number of entries currently stored */
-
+    size_t *pos2line_keys;
+    size_t *pos2line_vals;
+    size_t pos2line_cap;
+    size_t pos2line_count;
 } processed_source_t;
 
 /* Initialize processed_source from an existing parser. */
