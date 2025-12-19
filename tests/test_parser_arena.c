@@ -26,7 +26,7 @@ int main(void)
     pm_parser_t parser;
     uint8_t *source = NULL;
     /* token collection feature removed; parse without collecting tokens */
-    int ok = parse_ruby_file(path, &node, &parser, &source);
+    int ok = leuko_parse_ruby_file(path, &node, &parser, &source);
     if (!ok)
     {
         fprintf(stderr, "parse failed\n");

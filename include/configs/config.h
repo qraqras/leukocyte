@@ -19,7 +19,7 @@
 typedef struct rule_config_s
 {
     bool enabled;
-    severity_level_t severity_level;
+    leuko_severity_level_t severity_level;
     char **include;
     size_t include_count;
     char **exclude;

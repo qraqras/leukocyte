@@ -105,7 +105,12 @@ size_t leuko_processed_source_col_of_pos(const leuko_processed_source_t *ps, con
     return (size_t)lc.column;
 }
 
-/* Simple open-addressing map for pos->line mapping. Capacity is power of two; key == SIZE_MAX means empty. */
+/**
+ * @brief Check if a position begins its line (i.e., is at the first non-whitespace character).
+ * @param ps Pointer to leuko_processed_source_t
+ * @param pos Position within the source
+ * @return true if position begins its line, false otherwise
+ */
 static void leuko_processed_source_offset2line_ensure_capacity(leuko_processed_source_t *ps, size_t min_cap)
 {
     if (ps->offset2line_cap >= min_cap)
@@ -160,6 +165,12 @@ static void leuko_processed_source_offset2line_ensure_capacity(leuko_processed_s
     ps->offset2line_cap = cap;
 }
 
+/**
+ * @brief Insert or update the offset-to-line cache.
+ * @param ps Pointer to leuko_processed_source_t
+ * @param offset Offset within the source
+ * @param line_idx 0-based line index
+ */
 void leuko_processed_source_offset2line_put(leuko_processed_source_t *ps, size_t offset, size_t line_idx)
 {
     /* Lazy allocate small table */
@@ -195,6 +206,13 @@ void leuko_processed_source_offset2line_put(leuko_processed_source_t *ps, size_t
     }
 }
 
+/**
+ * @brief Retrieve the line index for a given offset from the cache.
+ * @param ps Pointer to leuko_processed_source_t
+ * @param offset Offset within the source
+ * @param out_line_idx Pointer to store the 0-based line index
+ * @return 1 if found, 0 otherwise
+ */
 int leuko_processed_source_offset2line_get(const leuko_processed_source_t *ps, size_t offset, size_t *out_line_idx)
 {
     if (!ps || ps->offset2line_cap == 0 || !ps->offset2line_keys)
@@ -213,6 +231,10 @@ int leuko_processed_source_offset2line_get(const leuko_processed_source_t *ps, s
     return 0;
 }
 
+/**
+ * @brief Ensure that line_start_offsets is initialized.
+ * @param ps Pointer to leuko_processed_source_t
+ */
 static void leuko_processed_source_ensure_line_starts(leuko_processed_source_t *ps)
 {
     if (!ps || ps->line_start_offsets)
@@ -229,6 +251,12 @@ static void leuko_processed_source_ensure_line_starts(leuko_processed_source_t *
     ps->line_start_offsets = arr;
 }
 
+/**
+ * @brief Get detailed position information within the processed source.
+ * @param ps Pointer to leuko_processed_source_t
+ * @param pos Position within the source
+ * @param out Pointer to leuko_processed_source_pos_info_t to fill
+ */
 void leuko_processed_source_pos_info(leuko_processed_source_t *ps, const uint8_t *pos, leuko_processed_source_pos_info_t *out)
 {
     size_t offset = (size_t)(pos - ps->source_start);
@@ -312,6 +340,10 @@ void leuko_processed_source_pos_info(leuko_processed_source_t *ps, const uint8_t
     }
 }
 
+/**
+ * @brief Free any allocations owned by leuko_processed_source_t (safe to call on partially initialized structures).
+ * @param ps Pointer to leuko_processed_source_t to free
+ */
 void leuko_processed_source_free(leuko_processed_source_t *ps)
 {
     if (!ps)

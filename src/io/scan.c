@@ -18,7 +18,7 @@
  * @param fmt Format string
  * @param ... Format arguments
  */
-static void set_err(char **err, const char *fmt, ...)
+static void leuko_set_err(char **err, const char *fmt, ...)
 {
     if (!err)
     {
@@ -39,7 +39,7 @@ static void set_err(char **err, const char *fmt, ...)
  * @param path The path string to append
  * @return true on success, false on failure
  */
-static bool append_path(char ***arrp, size_t *countp, const char *path)
+static bool leuko_append_path(char ***arrp, size_t *countp, const char *path)
 {
     char *copy = strdup(path);
     if (!copy)
@@ -62,7 +62,7 @@ static bool append_path(char ***arrp, size_t *countp, const char *path)
  * @param path The file path
  * @return Pointer to the extension including dot, or NULL if none
  */
-static const char *get_extension(const char *path)
+static const char *leuko_get_extension(const char *path)
 {
     if (!path)
     {
@@ -86,9 +86,9 @@ static const char *get_extension(const char *path)
  * @param name The filename to check
  * @return true if it has .rb extension, false otherwise
  */
-static bool is_ruby(const char *name)
+static bool leuko_is_ruby(const char *name)
 {
-    const char *ext = get_extension(name);
+    const char *ext = leuko_get_extension(name);
     if (!ext)
     {
         return false;
@@ -104,12 +104,12 @@ static bool is_ruby(const char *name)
  * @param err Output error message on failure
  * @return true on success, false on failure
  */
-static bool scan_dir_recursive(const char *dirpath, char ***out, size_t *out_count, char **err)
+static bool leuko_scan_dir_recursive(const char *dirpath, char ***out, size_t *out_count, char **err)
 {
     DIR *d = opendir(dirpath);
     if (!d)
     {
-        set_err(err, "opendir('%s'): %s", dirpath, strerror(errno));
+        leuko_set_err(err, "opendir('%s'): %s", dirpath, strerror(errno));
         return false;
     }
     struct dirent *ent;
@@ -123,7 +123,7 @@ static bool scan_dir_recursive(const char *dirpath, char ***out, size_t *out_cou
         char path[PATH_MAX];
         if (snprintf(path, sizeof(path), "%s/%s", dirpath, ent->d_name) >= (int)sizeof(path))
         {
-            set_err(err, "path too long");
+            leuko_set_err(err, "path too long");
             closedir(d);
             return false;
         }
@@ -132,14 +132,14 @@ static bool scan_dir_recursive(const char *dirpath, char ***out, size_t *out_cou
         if (lstat(path, &st) != 0)
         {
             fprintf(stderr, "lstat('%s') returned %d errno=%d (%s)\n", path, -1, errno, strerror(errno));
-            set_err(err, "stat('%s'): %s", path, strerror(errno));
+            leuko_set_err(err, "stat('%s'): %s", path, strerror(errno));
             closedir(d);
             return false;
         }
 
         if (S_ISDIR(st.st_mode))
         {
-            if (!scan_dir_recursive(path, out, out_count, err))
+            if (!leuko_scan_dir_recursive(path, out, out_count, err))
             {
                 closedir(d);
                 return false;
@@ -147,11 +147,11 @@ static bool scan_dir_recursive(const char *dirpath, char ***out, size_t *out_cou
         }
         else if (S_ISREG(st.st_mode))
         {
-            if (is_ruby(ent->d_name))
+            if (leuko_is_ruby(ent->d_name))
             {
-                if (!append_path(out, out_count, path))
+                if (!leuko_append_path(out, out_count, path))
                 {
-                    set_err(err, "out of memory");
+                    leuko_set_err(err, "out of memory");
                     closedir(d);
                     return false;
                 }
@@ -167,7 +167,7 @@ static bool scan_dir_recursive(const char *dirpath, char ***out, size_t *out_cou
  * @param pattern The pattern string to check
  * @return true if the pattern contains glob metacharacters, false otherwise
  */
-bool has_glob_metachar(const char *pattern)
+bool leuko_has_glob_metachar(const char *pattern)
 {
     for (const char *p = pattern; *p; ++p)
     {
@@ -188,11 +188,11 @@ bool has_glob_metachar(const char *pattern)
  * @param err Output error message on failure
  * @return true on success, false on failure
  */
-bool collect_ruby_files(char **paths, size_t paths_count, char ***out_paths, size_t *out_count, char **err)
+bool leuko_collect_ruby_files(char **paths, size_t paths_count, char ***out_paths, size_t *out_count, char **err)
 {
     if (!out_paths || !out_count)
     {
-        set_err(err, "invalid arguments");
+        leuko_set_err(err, "invalid arguments");
         return false;
     }
 
@@ -210,15 +210,16 @@ bool collect_ruby_files(char **paths, size_t paths_count, char ***out_paths, siz
         // '-' is treated as a literal filename token (stdin).
         if (strcmp(p, "-") == 0)
         {
-            if (!append_path(out_paths, out_count, p))
+            if (!leuko_append_path(out_paths, out_count, p))
             {
-                set_err(err, "out of memory");
+                leuko_set_err(err, "out of memory");
                 return false;
             }
             continue;
         }
 
-        if (has_glob_metachar(p))
+        /* If pattern contains glob meta-characters, expand it */
+        if (leuko_has_glob_metachar(p))
         {
             glob_t g;
             memset(&g, 0, sizeof(g));
@@ -227,12 +228,12 @@ bool collect_ruby_files(char **paths, size_t paths_count, char ***out_paths, siz
             {
                 if (res != GLOB_NOMATCH)
                 {
-                    // Treat pattern as literal if nothing matched
+                    /* Treat pattern as literal if nothing matched */
                     globfree(&g);
                 }
                 else
                 {
-                    set_err(err, "glob('%s') failed: %d", p, res);
+                    leuko_set_err(err, "glob('%s') failed: %d", p, res);
                     globfree(&g);
                     return false;
                 }
@@ -243,32 +244,31 @@ bool collect_ruby_files(char **paths, size_t paths_count, char ***out_paths, siz
                 {
                     const char *mp = g.gl_pathv[gi];
                     struct stat st2;
-                    // Symbolic links: follow to determine type
+                    /* Symbolic links: follow to determine type */
                     if (lstat(mp, &st2) != 0)
                     {
-                        set_err(err, "stat('%s'): %s", mp, strerror(errno));
+                        leuko_set_err(err, "stat('%s'): %s", mp, strerror(errno));
                         globfree(&g);
                         return false;
                     }
-                    // Directory: scan recursively
+                    /* Directory: scan recursively */
                     if (S_ISDIR(st2.st_mode))
                     {
-                        if (!scan_dir_recursive(mp, out_paths, out_count, err))
+                        if (!leuko_scan_dir_recursive(mp, out_paths, out_count, err))
                         {
                             globfree(&g);
                             return false;
                         }
                     }
-                    // Regular file: include if .rb extension
+                    /* Regular file: include if .rb extension */
                     else if (S_ISREG(st2.st_mode))
                     {
-                        /* Only include regular files that look like Ruby sources (.rb) */
-                        if (is_ruby(mp))
+                        if (leuko_is_ruby(mp))
                         {
-                            if (!append_path(out_paths, out_count, mp))
+                            if (!leuko_append_path(out_paths, out_count, mp))
                             {
-                                fprintf(stderr, "append_path failed for '%s'\n", mp);
-                                set_err(err, "out of memory");
+                                fprintf(stderr, "leuko_append_path failed for '%s'\n", mp);
+                                leuko_set_err(err, "out of memory");
                                 globfree(&g);
                                 return false;
                             }
@@ -282,33 +282,34 @@ bool collect_ruby_files(char **paths, size_t paths_count, char ***out_paths, siz
         }
 
         struct stat st;
-        // Symbolic links: follow to determine type
+        /* Symbolic links: follow to determine type */
         if (lstat(p, &st) != 0)
         {
             fprintf(stderr, "lstat('%s') failed errno=%d (%s)\n", p, errno, strerror(errno));
-            set_err(err, "stat('%s'): %s", p, strerror(errno));
+            leuko_set_err(err, "stat('%s'): %s", p, strerror(errno));
             return false;
         }
-        // Directory: scan recursively
+
+        /* Directory: scan recursively */
         if (S_ISDIR(st.st_mode))
         {
-            if (!scan_dir_recursive(p, out_paths, out_count, err))
+            if (!leuko_scan_dir_recursive(p, out_paths, out_count, err))
             {
                 return false;
             }
         }
-        // Regular file: include if explicit (regardless of extension)
+        /* Regular file: include if explicit (regardless of extension) */
         else if (S_ISREG(st.st_mode))
         {
-            if (!append_path(out_paths, out_count, p))
+            if (!leuko_append_path(out_paths, out_count, p))
             {
-                set_err(err, "out of memory");
+                leuko_set_err(err, "out of memory");
                 return false;
             }
         }
         else
         {
-            set_err(err, "unsupported file type: %s", p);
+            leuko_set_err(err, "unsupported file type: %s", p);
             return false;
         }
     }

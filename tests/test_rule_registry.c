@@ -5,8 +5,8 @@
 
 int main(void)
 {
-    const rule_registry_entry_t *reg = get_rule_registry();
-    size_t count = get_rule_registry_count();
+    const rule_registry_entry_t *reg = leuko_get_rule_registry();
+    size_t count = leuko_get_rule_registry_count();
 
     int found = 0;
     for (size_t i = 0; i < count; i++)

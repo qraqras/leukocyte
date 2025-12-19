@@ -38,7 +38,7 @@ static int test_scan_dir(void)
     char **out = NULL;
     size_t out_count = 0;
     char *err = NULL;
-    int ok = collect_ruby_files(in, 1, &out, &out_count, &err);
+    int ok = leuko_collect_ruby_files(in, 1, &out, &out_count, &err);
     int rv = 0;
     if (!ok)
     {
@@ -72,7 +72,7 @@ static int test_scan_dir(void)
         char **out2 = NULL;
         size_t out2_count = 0;
         char *err2 = NULL;
-        int ok2 = collect_ruby_files(in_glob, 1, &out2, &out2_count, &err2);
+        int ok2 = leuko_collect_ruby_files(in_glob, 1, &out2, &out2_count, &err2);
         if (!ok2)
         {
             fprintf(stderr, "collect_ruby_files(glob) failed: %s\n", err2 ? err2 : "unknown");
@@ -124,7 +124,7 @@ static int test_dash_token(void)
     char **out = NULL;
     size_t out_count = 0;
     char *err = NULL;
-    int ok = collect_ruby_files(in, 1, &out, &out_count, &err);
+    int ok = leuko_collect_ruby_files(in, 1, &out, &out_count, &err);
     if (!ok)
     {
         fprintf(stderr, "collect_ruby_files failed: %s\n", err ? err : "unknown");
@@ -180,7 +180,7 @@ static int test_glob_star(void)
     char **out = NULL;
     size_t out_count = 0;
     char *err = NULL;
-    int ok = collect_ruby_files(in_glob, 1, &out, &out_count, &err);
+    int ok = leuko_collect_ruby_files(in_glob, 1, &out, &out_count, &err);
     int rv = 0;
     if (!ok)
     {

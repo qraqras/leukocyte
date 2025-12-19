@@ -9,7 +9,7 @@ static const struct
 {
     const char *s;
     category_t category;
-} rule_category_map[] = {
+} leuko_rule_category_map[] = {
     {"layout", CATEGORY_LAYOUT},
     {"Layout", CATEGORY_LAYOUT},
     {"lint", CATEGORY_LINT},
@@ -22,17 +22,17 @@ static const struct
  * @param out Output parameter to store the corresponding rule_category_t value
  * @return true if conversion was successful, false otherwise
  */
-bool rule_category_from_string(const char *s, category_t *out)
+bool leuko_rule_category_from_string(const char *s, category_t *out)
 {
     if (!s)
     {
         return false;
     }
-    for (size_t i = 0; i < sizeof(rule_category_map) / sizeof(rule_category_map[0]); ++i)
+    for (size_t i = 0; i < sizeof(leuko_rule_category_map) / sizeof(leuko_rule_category_map[0]); ++i)
     {
-        if (strcmp(s, rule_category_map[i].s) == 0)
+        if (strcmp(s, leuko_rule_category_map[i].s) == 0)
         {
-            *out = rule_category_map[i].category;
+            *out = leuko_rule_category_map[i].category;
             return true;
         }
     }
@@ -45,13 +45,13 @@ bool rule_category_from_string(const char *s, category_t *out)
  * @param out Output parameter to store the corresponding string representation
  * @return true if conversion was successful, false otherwise
  */
-bool rule_category_to_string(category_t category, const char **out)
+bool leuko_rule_category_to_string(category_t category, const char **out)
 {
-    for (size_t i = 0; i < sizeof(rule_category_map) / sizeof(rule_category_map[0]); ++i)
+    for (size_t i = 0; i < sizeof(leuko_rule_category_map) / sizeof(leuko_rule_category_map[0]); ++i)
     {
-        if (category == rule_category_map[i].category)
+        if (category == leuko_rule_category_map[i].category)
         {
-            *out = rule_category_map[i].s;
+            *out = leuko_rule_category_map[i].s;
             return true;
         }
     }

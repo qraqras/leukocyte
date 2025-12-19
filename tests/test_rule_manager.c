@@ -13,8 +13,8 @@ int main(void)
     config_t cfg = {0};
     initialize_config(&cfg);
 
-    const rule_registry_entry_t *reg = get_rule_registry();
-    size_t count = get_rule_registry_count();
+    const rule_registry_entry_t *reg = leuko_get_rule_registry();
+    size_t count = leuko_get_rule_registry_count();
 
     /* Find Layout/IndentationConsistency */
     size_t idx = (size_t)-1;

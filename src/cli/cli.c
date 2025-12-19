@@ -66,7 +66,7 @@ int parse_command_line(int argc, char *argv[], cli_options_t *opts)
             // Treat `-x` as equivalent to `--only layout`.
             {
                 const char *s = NULL;
-                if (!rule_category_to_string(CATEGORY_LAYOUT, &s) || !s)
+                if (!leuko_rule_category_to_string(CATEGORY_LAYOUT, &s) || !s)
                     return -1;
                 char *tok = strdup(s);
                 if (!tok)

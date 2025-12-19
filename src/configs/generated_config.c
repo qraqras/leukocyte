@@ -27,7 +27,7 @@ void initialize_config(config_t *cfg)
             cfg->field = NULL;                       \
         }                                            \
     } while (0);
-    RULES_LIST
+    LEUKO_RULES_LIST
 #undef X
 }
 
@@ -54,7 +54,7 @@ rule_config_t *get_rule_config_by_index(config_t *cfg, size_t idx)
         }                                            \
         cur++;                                       \
     } while (0);
-    RULES_LIST
+    LEUKO_RULES_LIST
 #undef X
 
     return NULL;
@@ -66,7 +66,7 @@ rule_config_t *get_rule_config_by_index(config_t *cfg, size_t idx)
  */
 size_t config_count(void)
 {
-    return get_rule_registry_count();
+    return leuko_get_rule_registry_count();
 }
 
 /**
@@ -119,6 +119,6 @@ void free_config(config_t *cfg)
         free_rule_config(cfg->field);                \
         cfg->field = NULL;                           \
     } while (0);
-    RULES_LIST
+    LEUKO_RULES_LIST
 #undef X
 }

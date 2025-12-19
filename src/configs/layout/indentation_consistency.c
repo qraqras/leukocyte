@@ -27,7 +27,7 @@ rule_config_t *layout_indentation_consistency_initialize(void)
         return NULL;
     }
     cfg->enabled = true;
-    cfg->severity_level = SEVERITY_CONVENTION;
+    cfg->severity_level = LEUKO_SEVERITY_CONVENTION;
     cfg->include = NULL;
     cfg->include_count = 0;
     cfg->exclude = NULL;

@@ -214,8 +214,8 @@ bool build_rules_by_type_for_file(const config_t *cfg, const char *file_path, ru
 
     memset(out, 0, sizeof(*out));
 
-    const rule_registry_entry_t *registry = get_rule_registry();
-    size_t registry_count = get_rule_registry_count();
+    const rule_registry_entry_t *registry = leuko_get_rule_registry();
+    size_t registry_count = leuko_get_rule_registry_count();
 
     for (size_t i = 0; i < registry_count; i++)
     {
@@ -354,8 +354,8 @@ void init_rules(void)
     memset(rules_by_type, 0, sizeof(rules_by_type));
     memset(rules_count_by_type, 0, sizeof(rules_count_by_type));
 
-    const rule_registry_entry_t *registry = get_rule_registry();
-    size_t registry_count = get_rule_registry_count();
+    const rule_registry_entry_t *registry = leuko_get_rule_registry();
+    size_t registry_count = leuko_get_rule_registry_count();
 
     for (size_t i = 0; i < registry_count; i++)
     {

@@ -11,7 +11,7 @@ int main(void)
 
     // At least the indentation rule should be initialized
 #define X(field, cat_name, sname, rule_ptr, ops_ptr) assert(cfg.field != NULL);
-    RULES_LIST
+    LEUKO_RULES_LIST
 #undef X
 
     free_config(&cfg);

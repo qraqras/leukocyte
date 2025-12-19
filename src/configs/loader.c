@@ -38,8 +38,8 @@ bool apply_config(yaml_document_t *doc, config_t *cfg, char **err)
 
     yaml_node_t *allcops = yaml_get_mapping_node(doc, root, ALL_COPS);
 
-    const rule_registry_entry_t *registry = get_rule_registry();
-    size_t registry_count = get_rule_registry_count();
+    const rule_registry_entry_t *registry = leuko_get_rule_registry();
+    size_t registry_count = leuko_get_rule_registry_count();
     for (size_t i = 0; i < registry_count; i++)
     {
         const rule_registry_entry_t *entry = &registry[i];
@@ -89,7 +89,7 @@ bool apply_config(yaml_document_t *doc, config_t *cfg, char **err)
         }
 
         /* Merge `Severity` */
-        severity_level_t merged_severity = SEVERITY_CONVENTION;
+        leuko_severity_level_t merged_severity = LEUKO_SEVERITY_CONVENTION;
         if (yaml_get_merged_severity(doc, rule_node, category_node, allcops, &merged_severity))
         {
             rcfg->severity_level = merged_severity;

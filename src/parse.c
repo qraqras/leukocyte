@@ -13,7 +13,7 @@
  * @param out_source Source buffer output
  * @return true on success, false on failure
  */
-bool parse_ruby_file(const char *filepath, pm_node_t **out_node, pm_parser_t *out_parser, uint8_t **out_source)
+bool leuko_parse_ruby_file(const char *filepath, pm_node_t **out_node, pm_parser_t *out_parser, uint8_t **out_source)
 {
     if (!filepath || !out_node || !out_parser)
     {
@@ -57,7 +57,8 @@ bool parse_ruby_file(const char *filepath, pm_node_t **out_node, pm_parser_t *ou
         *out_source = source;
     }
 
-    /* Note: do NOT free the parser or end the arena here on success; caller is
+    /**
+     * Note: do NOT free the parser or end the arena here on success; caller is
      * expected to call pm_parser_free() and then leuko_x_allocator_end() so
      * that tokens remain available while rules run. */
 

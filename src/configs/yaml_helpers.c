@@ -343,10 +343,10 @@ bool yaml_get_merged_enabled(const yaml_document_t *doc, yaml_node_t *rule_node,
  * @param rule_node Pointer to the rule yaml_node_t structure
  * @param category_node Pointer to the category yaml_node_t structure
  * @param allcops_node Pointer to the allcops yaml_node_t structure
- * @param out Pointer to a severity_level_t to store the result
+ * @param out Pointer to a leuko_severity_level_t to store the result
  * @return true if a severity level was successfully retrieved, false otherwise
  */
-bool yaml_get_merged_severity(const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, severity_level_t *out)
+bool yaml_get_merged_severity(const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, leuko_severity_level_t *out)
 {
     // First get the string value
     char buf[64];
@@ -354,7 +354,7 @@ bool yaml_get_merged_severity(const yaml_document_t *doc, yaml_node_t *rule_node
     {
         return false;
     }
-    return severity_level_from_string(buf, out);
+    return leuko_severity_level_from_string(buf, out);
 }
 
 /**

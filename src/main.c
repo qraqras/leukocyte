@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
     char **ruby_files = NULL;
     size_t ruby_files_count = 0;
     char *scan_err = NULL;
-    bool res = collect_ruby_files(cli_opts.paths, cli_opts.paths_count, &ruby_files, &ruby_files_count, &scan_err);
+    bool res = leuko_collect_ruby_files(cli_opts.paths, cli_opts.paths_count, &ruby_files, &ruby_files_count, &scan_err);
     if (!res)
     {
         fprintf(stderr, "Error collecting Ruby files: %s\n", scan_err ? scan_err : "unknown");
@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
         pm_parser_t parser = {0};
         uint8_t *source = NULL;
         clock_gettime(CLOCK_MONOTONIC, &t0);
-        if (!parse_ruby_file(ruby_files[i], &root_node, &parser, &source))
+        if (!leuko_parse_ruby_file(ruby_files[i], &root_node, &parser, &source))
         {
             fprintf(stderr, "Failed to parse Ruby file: %s\n", ruby_files[i]);
             any_failures = 1;

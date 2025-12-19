@@ -9,7 +9,7 @@
 typedef struct config_s
 {
 #define X(field, cat_name, sname, rule_ptr, ops_ptr) rule_config_t *field;
-    RULES_LIST
+    LEUKO_RULES_LIST
 #undef X
 } config_t;
 
