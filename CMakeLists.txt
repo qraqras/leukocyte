@@ -4,6 +4,15 @@ project(leukocyte C)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+# Default to Release build type (for single-config generators) when not provided
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
+    message(STATUS "CMAKE_BUILD_TYPE not set; defaulting to Release")
+endif()
+
+# Ensure Release builds use -O3 and define NDEBUG
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DNDEBUG")
+
 # Option to enable address sanitizer for debugging
 option(ENABLE_ASAN "Enable Address Sanitizer for leukocyte target" OFF)
 # Option to enable gprof profiling (adds -pg to compile and link flags)

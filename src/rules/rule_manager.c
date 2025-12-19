@@ -25,7 +25,7 @@ typedef struct
     const rules_by_type_t *rules; /* per-file rules set (optional) */
 
     /* processed_source prepared once per visit */
-    processed_source_t ps;
+    leuko_processed_source_t ps;
     bool has_ps;
 } visit_data_t;
 
@@ -127,13 +127,13 @@ bool visit_node(pm_node_t *node, pm_parser_t *parser, pm_list_t *diagnostics, co
     pm_list_t *diag = diagnostics ? diagnostics : &local_list;
     visit_data_t data = {parser, diag, cfg, NULL, {0}, false};
     /* Initialize processed_source once per visit */
-    processed_source_init_from_parser(&data.ps, parser);
+    leuko_processed_source_init_from_parser(&data.ps, parser);
     data.has_ps = true;
     pm_visit_node(node, node_visitor, &data);
     /* Free any allocations in processed_source prepared for this visit */
     if (data.has_ps)
     {
-        processed_source_free(&data.ps);
+        leuko_processed_source_free(&data.ps);
     }
     if (!diagnostics)
     {
@@ -150,13 +150,13 @@ bool visit_node_with_rules(pm_node_t *node, pm_parser_t *parser, pm_list_t *diag
     pm_list_t *diag = diagnostics ? diagnostics : &local_list;
     visit_data_t data = {parser, diag, cfg, rules, {0}, false};
     /* Initialize processed_source once per visit */
-    processed_source_init_from_parser(&data.ps, parser);
+    leuko_processed_source_init_from_parser(&data.ps, parser);
     data.has_ps = true;
     pm_visit_node(node, node_visitor, &data);
     /* Free any allocations in processed_source prepared for this visit */
     if (data.has_ps)
     {
-        processed_source_free(&data.ps);
+        leuko_processed_source_free(&data.ps);
     }
     if (!diagnostics)
     {

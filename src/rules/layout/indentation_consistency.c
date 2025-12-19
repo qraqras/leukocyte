@@ -38,13 +38,13 @@ bool check_def(pm_node_t *node, const rule_context_t *ctx)
         bool base_set = false;
         int32_t prev_line = -1;
 
-        processed_source_t *ps = ctx->ps;
-        processed_source_t local_ps;
+        leuko_processed_source_t *ps = ctx->ps;
+        leuko_processed_source_t local_ps;
         bool used_local_ps = false;
         if (!ps)
         {
             /* Fallback: initialize a local processed_source if not provided */
-            processed_source_init_from_parser(&local_ps, parser);
+            leuko_processed_source_init_from_parser(&local_ps, parser);
             ps = &local_ps;
             used_local_ps = true;
         }
@@ -53,23 +53,23 @@ bool check_def(pm_node_t *node, const rule_context_t *ctx)
         {
             const uint8_t *pos = stmts->body.nodes[i]->location.start;
 
-            processed_source_pos_info_t info;
-            processed_source_pos_info(ps, pos, &info);
+            leuko_processed_source_pos_info_t info;
+            leuko_processed_source_pos_info(ps, pos, &info);
 
             /* Only consider nodes that begin their line */
-            if (!info.begins)
+            if (info.column != info.indentation_column)
             {
                 continue;
             }
 
-            int32_t line = info.line;
+            int32_t line = info.line_number;
             if (line == prev_line)
             {
                 continue;
             }
             prev_line = line;
 
-            size_t col = info.col;
+            size_t col = info.column;
 
             if (!base_set)
             {
@@ -89,7 +89,7 @@ bool check_def(pm_node_t *node, const rule_context_t *ctx)
 
         if (used_local_ps)
         {
-            processed_source_free(&local_ps);
+            leuko_processed_source_free(&local_ps);
         }
     }
 

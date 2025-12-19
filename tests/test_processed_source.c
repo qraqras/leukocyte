@@ -28,57 +28,57 @@ int main(void)
         }
     }
 
-    processed_source_t ps;
-    processed_source_init_from_parser(&ps, &parser);
+    leuko_processed_source_t ps;
+    leuko_processed_source_init_from_parser(&ps, &parser);
 
     /* start of file */
     const uint8_t *p0 = parser.start;
-    assert(processed_source_line_of_pos(&ps, p0) == 1);
-    assert(processed_source_col_of_pos(&ps, p0) == 0);
-    assert(processed_source_begins_its_line(&ps, p0));
+    assert(leuko_processed_source_line_of_pos(&ps, p0) == 1);
+    assert(leuko_processed_source_col_of_pos(&ps, p0) == 0);
+    assert(leuko_processed_source_begins_its_line(&ps, p0));
 
     /* position of 'bar' line: it has two leading spaces */
     const uint8_t *p_bar = (const uint8_t *)(src + 8); /* points to 'b' */
-    assert(processed_source_line_of_pos(&ps, p_bar) == 2);
-    assert(processed_source_col_of_pos(&ps, p_bar) == 2);
-    assert(processed_source_begins_its_line(&ps, p_bar));
+    assert(leuko_processed_source_line_of_pos(&ps, p_bar) == 2);
+    assert(leuko_processed_source_col_of_pos(&ps, p_bar) == 2);
+    assert(leuko_processed_source_begins_its_line(&ps, p_bar));
 
     /* position in middle of line '    baz' (4 spaces) check column */
     const uint8_t *p_baz = (const uint8_t *)(src + 13); /* points to 'b' of baz */
-    assert(processed_source_line_of_pos(&ps, p_baz) == 3);
-    assert(processed_source_col_of_pos(&ps, p_baz) == 4);
-    assert(processed_source_begins_its_line(&ps, p_baz));
+    assert(leuko_processed_source_line_of_pos(&ps, p_baz) == 3);
+    assert(leuko_processed_source_col_of_pos(&ps, p_baz) == 4);
+    assert(leuko_processed_source_begins_its_line(&ps, p_baz));
 
     /* position inside 'baz' but not at beginning (c of baz) */
     const uint8_t *p_baz_c = (const uint8_t *)(src + 14);
-    assert(processed_source_line_of_pos(&ps, p_baz_c) == 3);
-    assert(processed_source_col_of_pos(&ps, p_baz_c) == 5);
-    assert(!processed_source_begins_its_line(&ps, p_baz_c));
+    assert(leuko_processed_source_line_of_pos(&ps, p_baz_c) == 3);
+    assert(leuko_processed_source_col_of_pos(&ps, p_baz_c) == 5);
+    assert(!leuko_processed_source_begins_its_line(&ps, p_baz_c));
 
     /* verify processed_source_pos_info matches expectations */
-    processed_source_pos_info_t info;
-    processed_source_pos_info(&ps, p0, &info);
-    assert(info.line == 1 && info.col == 0 && info.begins);
+    leuko_processed_source_pos_info_t info;
+    leuko_processed_source_pos_info(&ps, p0, &info);
+    assert(info.line_number == 1 && info.column == 0 && info.indentation_column == 0);
 
-    processed_source_pos_info(&ps, p_bar, &info);
-    assert(info.line == 2 && info.col == 2 && info.begins);
+    leuko_processed_source_pos_info(&ps, p_bar, &info);
+    assert(info.line_number == 2 && info.column == 2 && info.indentation_column == 2);
 
-    processed_source_pos_info(&ps, p_baz, &info);
-    assert(info.line == 3 && info.col == 4 && info.begins);
+    leuko_processed_source_pos_info(&ps, p_baz, &info);
+    assert(info.line_number == 3 && info.column == 4 && info.indentation_column == 4);
 
-    processed_source_pos_info(&ps, p_baz_c, &info);
-    assert(info.line == 3 && info.col == 5 && !info.begins);
+    leuko_processed_source_pos_info(&ps, p_baz_c, &info);
+    assert(info.line_number == 3 && info.column == 5 && info.indentation_column == 4);
 
     /* ensure a later token on the same line is not considered beginning */
     const char *p_foo_bar = strstr((const char *)parser.start, "foo bar");
     assert(p_foo_bar != NULL);
     const uint8_t *p_bar_late = (const uint8_t *)(p_foo_bar + 4); /* 'b' of 'bar' */
-    assert(processed_source_line_of_pos(&ps, p_bar_late) == 6);
-    assert(processed_source_col_of_pos(&ps, p_bar_late) == 4);
-    assert(!processed_source_begins_its_line(&ps, p_bar_late));
+    assert(leuko_processed_source_line_of_pos(&ps, p_bar_late) == 6);
+    assert(leuko_processed_source_col_of_pos(&ps, p_bar_late) == 4);
+    assert(!leuko_processed_source_begins_its_line(&ps, p_bar_late));
 
     /* free processed_source allocations */
-    processed_source_free(&ps);
+    leuko_processed_source_free(&ps);
     pm_newline_list_free(&parser.newline_list);
 
     return 0;

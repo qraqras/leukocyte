@@ -19,19 +19,19 @@ int main(void)
     nl.offsets = offsets;
     parser.newline_list = nl;
 
-    processed_source_t ps = {0};
-    processed_source_init_from_parser(&ps, &parser);
+    leuko_processed_source_t ps = {0};
+    leuko_processed_source_init_from_parser(&ps, &parser);
 
     /* Query some positions multiple times and ensure cache returns same line */
     const uint8_t *p = parser.start + 6; /* in line 2 */
-    processed_source_pos_info(&ps, p, &(processed_source_pos_info_t){0});
+    leuko_processed_source_pos_info(&ps, p, &(leuko_processed_source_pos_info_t){0});
     /* Now ensure a subsequent get hits the cache (we can't inspect internal map directly) */
-    processed_source_pos_info_t info;
-    processed_source_pos_info(&ps, p, &info);
-    assert(info.line == 2);
+    leuko_processed_source_pos_info_t info;
+    leuko_processed_source_pos_info(&ps, p, &info);
+    assert(info.line_number == 2);
 
-    processed_source_free(&ps);
+    leuko_processed_source_free(&ps);
 
-    printf("pos2line cache smoke test passed\n");
+    printf("offset2line cache smoke test passed\n");
     return 0;
 }
