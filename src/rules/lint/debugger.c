@@ -7,7 +7,9 @@
 rule_t lint_debugger_rule = {
     .handlers = {[PM_CALL_NODE] = check_call}};
 
-bool check_call(pm_node_t *node, pm_parser_t *parser, pm_list_t *diagnostics)
+bool check_call(pm_node_t *node, const rule_context_t *ctx)
 {
+    /* Example: use ctx->diagnostics or ctx->parser if needed */
+    (void)ctx;
     return true;
 }

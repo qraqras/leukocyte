@@ -11,9 +11,11 @@ typedef struct config_s config_t;
 #define PM_NODE_TYPE_COUNT 256
 
 // Rule struct (tagged so it can be forward-declared from other headers)
+#include "rules/rule_context.h"
+
 typedef struct rule_s
 {
-    bool (*handlers[PM_NODE_TYPE_COUNT])(pm_node_t *node, pm_parser_t *parser, pm_list_t *diagnostics, config_t *cfg); // Handlers per node type
+    bool (*handlers[PM_NODE_TYPE_COUNT])(pm_node_t *node, const rule_context_t *ctx); // Handlers per node type
 } rule_t;
 
 // External rule declarations

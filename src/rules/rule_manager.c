@@ -23,6 +23,10 @@ typedef struct
     pm_list_t *diagnostics;
     config_t *cfg;
     const rules_by_type_t *rules; /* per-file rules set (optional) */
+
+    /* processed_source prepared once per visit */
+    processed_source_t ps;
+    bool has_ps;
 } visit_data_t;
 
 /**
@@ -44,6 +48,15 @@ bool node_visitor(const pm_node_t *node, void *data)
 {
     visit_data_t *visit_data = (visit_data_t *)data;
     pm_node_type_t type = node->type;
+
+    /* Build rule context for this callback */
+    rule_context_t ctx = {
+        .cfg = visit_data->cfg,
+        .ps = visit_data->has_ps ? &visit_data->ps : NULL,
+        .parser = visit_data->parser,
+        .diagnostics = visit_data->diagnostics,
+        .parent = NULL,
+    };
 
     /* Optional debug logging; enable by defining RULE_MANAGER_DEBUG */
 #ifdef RULE_MANAGER_DEBUG
@@ -73,7 +86,7 @@ bool node_visitor(const pm_node_t *node, void *data)
                 rule_t *rule = rb->rules_by_type[type][i];
                 struct timespec t0, t1;
                 clock_gettime(CLOCK_MONOTONIC, &t0);
-                rule->handlers[type]((pm_node_t *)node, visit_data->parser, visit_data->diagnostics, visit_data->cfg);
+                rule->handlers[type]((pm_node_t *)node, &ctx);
                 clock_gettime(CLOCK_MONOTONIC, &t1);
                 g_handler_time_ns += timespec_diff_ns(&t0, &t1);
                 g_handler_calls += 1;
@@ -89,7 +102,7 @@ bool node_visitor(const pm_node_t *node, void *data)
                 rule_t *rule = rules_by_type[type][i];
                 struct timespec t0, t1;
                 clock_gettime(CLOCK_MONOTONIC, &t0);
-                rule->handlers[type]((pm_node_t *)node, visit_data->parser, visit_data->diagnostics, visit_data->cfg);
+                rule->handlers[type]((pm_node_t *)node, &ctx);
                 clock_gettime(CLOCK_MONOTONIC, &t1);
                 g_handler_time_ns += timespec_diff_ns(&t0, &t1);
                 g_handler_calls += 1;
@@ -112,8 +125,16 @@ bool visit_node(pm_node_t *node, pm_parser_t *parser, pm_list_t *diagnostics, co
 {
     pm_list_t local_list = {0};
     pm_list_t *diag = diagnostics ? diagnostics : &local_list;
-    visit_data_t data = {parser, diag, cfg, NULL};
+    visit_data_t data = {parser, diag, cfg, NULL, {0}, false};
+    /* Initialize processed_source once per visit */
+    processed_source_init_from_parser(&data.ps, parser);
+    data.has_ps = true;
     pm_visit_node(node, node_visitor, &data);
+    /* Free any allocations in processed_source prepared for this visit */
+    if (data.has_ps)
+    {
+        processed_source_free(&data.ps);
+    }
     if (!diagnostics)
     {
         /* Use pm_diagnostic_list_free to ensure owned message strings are freed */
@@ -127,8 +148,16 @@ bool visit_node_with_rules(pm_node_t *node, pm_parser_t *parser, pm_list_t *diag
 {
     pm_list_t local_list = {0};
     pm_list_t *diag = diagnostics ? diagnostics : &local_list;
-    visit_data_t data = {parser, diag, cfg, rules};
+    visit_data_t data = {parser, diag, cfg, rules, {0}, false};
+    /* Initialize processed_source once per visit */
+    processed_source_init_from_parser(&data.ps, parser);
+    data.has_ps = true;
     pm_visit_node(node, node_visitor, &data);
+    /* Free any allocations in processed_source prepared for this visit */
+    if (data.has_ps)
+    {
+        processed_source_free(&data.ps);
+    }
     if (!diagnostics)
     {
         /* Use pm_diagnostic_list_free to ensure owned message strings are freed */

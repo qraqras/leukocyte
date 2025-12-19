@@ -7,6 +7,7 @@
 - [MUST]勝手にgit操作をしないでください
 - [MUST]RuboCopとのAPI互換性を最優先してください(特にRuboCopに存在しない機能は追加しないでください)
 - [SHOULD]処理の流れはなるべく図示してください
+- [SHOULD]RuboCopとの比較ベンチマークはキャッシュOFFかつLayout/IndentationConsistencyのみで実行してください
 
 ## コーディング規約
 - [MUST]`if`や`for`などの制御構文のブロックは必ずブレース `{}` で囲むこと

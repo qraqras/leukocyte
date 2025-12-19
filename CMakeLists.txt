@@ -62,6 +62,7 @@ set(SOURCES
     src/rules/layout/indentation_consistency.c
     src/io/file.c
     src/io/scan.c
+    src/io/processed_source.c
     src/parse.c
     src/allocator/arena.c
     src/allocator/prism_xallocator.c
@@ -73,56 +74,58 @@ set(SOURCES
 add_executable(test_io_scan tests/test_io_scan.c)
 # Ensure leuko_prism_helpers follows prism_static so its symbols can satisfy
 # unresolved references from libprism.a during static linking.
-target_link_libraries(test_io_scan leuko_prism_helpers leuko_lib prism_static yaml)
+target_link_libraries(test_io_scan PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
 add_test(NAME test_io_scan COMMAND test_io_scan)
 
 # Generated config tests
 add_executable(test_generated_config tests/test_generated_config.c)
-target_link_libraries(test_generated_config leuko_prism_helpers leuko_lib prism_static yaml)
+# Link with --start-group/--end-group to resolve circular static references between Prism and leuko
+target_link_libraries(test_generated_config PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
 add_test(NAME test_generated_config COMMAND test_generated_config)
 
 # YAML helpers tests
 add_executable(test_yaml_helpers tests/test_yaml_helpers.c)
-target_link_libraries(test_yaml_helpers leuko_prism_helpers leuko_lib prism_static yaml)
+target_link_libraries(test_yaml_helpers PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
 add_test(NAME test_yaml_helpers COMMAND test_yaml_helpers)
 
 # Rule registry test
 add_executable(test_rule_registry tests/test_rule_registry.c)
-target_link_libraries(test_rule_registry leuko_prism_helpers leuko_lib prism_static yaml)
+target_link_libraries(test_rule_registry PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
 add_test(NAME test_rule_registry COMMAND test_rule_registry)
 
 add_executable(test_rule_manager tests/test_rule_manager.c)
-target_link_libraries(test_rule_manager leuko_prism_helpers leuko_lib prism_static yaml)
+target_link_libraries(test_rule_manager PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
 add_test(NAME test_rule_manager COMMAND test_rule_manager)
 
 # YAML case sensitivity tests
 add_executable(test_yaml_case_sensitive tests/test_yaml_case_sensitive.c)
-target_link_libraries(test_yaml_case_sensitive prism_static leuko_prism_helpers leuko_lib yaml)
+# Link Prism and leuko libraries as a group to allow mutual static references
+target_link_libraries(test_yaml_case_sensitive PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
 add_test(NAME test_yaml_case_sensitive COMMAND test_yaml_case_sensitive)
 
 # Config loader tests
 add_executable(test_config_loader tests/test_config_loader.c)
-target_link_libraries(test_config_loader prism_static leuko_prism_helpers leuko_lib yaml)
+target_link_libraries(test_config_loader PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
 add_test(NAME test_config_loader COMMAND test_config_loader)
 
 # Loader fullname tests
 add_executable(test_loader_fullname tests/test_loader_fullname.c)
-target_link_libraries(test_loader_fullname prism_static leuko_prism_helpers leuko_lib yaml)
+target_link_libraries(test_loader_fullname PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
 add_test(NAME test_loader_fullname COMMAND test_loader_fullname)
 
 # Edge-case config loader tests
 add_executable(test_config_loader_edgecases tests/test_config_loader_edgecases.c)
-target_link_libraries(test_config_loader_edgecases prism_static leuko_prism_helpers leuko_lib yaml)
+target_link_libraries(test_config_loader_edgecases PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
 add_test(NAME test_config_loader_edgecases COMMAND test_config_loader_edgecases)
 
 # Arena allocator tests
 add_executable(test_arena tests/test_arena.c)
-target_link_libraries(test_arena prism_static leuko_prism_helpers leuko_lib yaml)
+target_link_libraries(test_arena PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
 add_test(NAME test_arena COMMAND test_arena)
 
 
 add_executable(test_parser_arena tests/test_parser_arena.c)
-target_link_libraries(test_parser_arena prism_static leuko_prism_helpers leuko_lib yaml)
+target_link_libraries(test_parser_arena PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
 add_test(NAME test_parser_arena COMMAND test_parser_arena)
 
 # Library target for core sources so tests can link against it
@@ -131,7 +134,7 @@ add_library(leuko_lib STATIC ${SOURCES})
 # Diagnostic free test
 add_executable(test_diagnostic_free tests/test_diagnostic_free.c)
 # Link order: ensure helper stubs and library are available before Prism static archive
-target_link_libraries(test_diagnostic_free leuko_prism_helpers leuko_lib prism_static yaml)
+target_link_libraries(test_diagnostic_free PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
 add_test(NAME test_diagnostic_free COMMAND test_diagnostic_free)
 
 # Small helper library containing symbols required to satisfy Prism's
@@ -169,10 +172,21 @@ add_dependencies(test_parser_arena prism_project)
 # Tests
 enable_testing()
 add_executable(test_leukocyte tests/test_main.c)
-target_link_libraries(test_leukocyte prism_static leuko_prism_helpers leuko_lib yaml)
+target_link_libraries(test_leukocyte PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
 add_test(NAME test_leukocyte COMMAND test_leukocyte)
 
 # CLI tests for comma-splitting and parsing
 add_executable(test_cli tests/test_cli.c)
-target_link_libraries(test_cli prism_static leuko_prism_helpers leuko_lib yaml)
+target_link_libraries(test_cli PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
 add_test(NAME test_cli COMMAND test_cli)
+
+# Processed source tests
+add_executable(test_processed_source tests/test_processed_source.c)
+# Use grouping to resolve references between prism and leuko libs
+target_link_libraries(test_processed_source PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
+add_test(NAME test_processed_source COMMAND test_processed_source)
+
+# Position->line cache smoke test
+add_executable(test_pos2line_cache tests/test_pos2line_cache.c)
+target_link_libraries(test_pos2line_cache PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
+add_test(NAME test_pos2line_cache COMMAND test_pos2line_cache)
