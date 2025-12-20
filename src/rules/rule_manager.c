@@ -16,25 +16,6 @@
 rule_t **rules_by_type[PM_NODE_TYPE_COUNT];
 size_t rules_count_by_type[PM_NODE_TYPE_COUNT];
 
-/* Data passed to visitor */
-typedef struct
-{
-    pm_parser_t *parser;
-    pm_list_t *diagnostics;
-    config_t *cfg;
-    const rules_by_type_t *rules; /* per-file rules set (optional) */
-
-    /* processed_source prepared once per visit */
-    leuko_processed_source_t ps;
-    bool has_ps;
-} visit_data_t;
-
-/**
- * @brief Visitor function called for each node during AST traversal.
- * @param node Pointer to the current AST node
- * @param data Pointer to visit_data_t structure
- * @return true to continue visiting, false to stop
- */
 /* Simple accumulators for handler timing */
 static uint64_t g_handler_time_ns = 0;
 static size_t g_handler_calls = 0;
@@ -44,41 +25,72 @@ static inline uint64_t timespec_diff_ns(const struct timespec *a, const struct t
     return (uint64_t)(b->tv_sec - a->tv_sec) * 1000000000ull + (uint64_t)(b->tv_nsec - a->tv_nsec);
 }
 
-bool node_visitor(const pm_node_t *node, void *data)
+/**
+ * @brief Push an ancestor node onto the context's ancestor stack.
+ * @param ctx Pointer to the rule_context_t structure
+ * @param node Pointer to the pm_node_t ancestor node to push
+ * @return true on success, false on failure
+ */
+static bool rule_context_push_ancestor(rule_context_t *ctx, pm_node_t *node)
 {
-    visit_data_t *visit_data = (visit_data_t *)data;
+    if (!ctx)
+        return false;
+    if (ctx->ancestors_count + 1 > ctx->ancestors_cap)
+    {
+        size_t newcap = ctx->ancestors_cap == 0 ? 8 : ctx->ancestors_cap * 2;
+        pm_node_t **n = (pm_node_t **)realloc(ctx->ancestors, newcap * sizeof(pm_node_t *));
+        if (!n)
+            return false;
+        ctx->ancestors = n;
+        ctx->ancestors_cap = newcap;
+    }
+    ctx->ancestors[ctx->ancestors_count++] = node;
+    return true;
+}
+
+/**
+ * @brief Pop an ancestor node from the context's ancestor stack.
+ * @param ctx Pointer to the rule_context_t structure
+ */
+static void rule_context_pop_ancestor(rule_context_t *ctx)
+{
+    if (!ctx || ctx->ancestors_count == 0)
+        return;
+    ctx->ancestors_count -= 1;
+}
+
+/**
+ * @brief Implementation of node visitor applying rules.
+ */
+static inline __attribute__((always_inline)) bool node_visitor_impl(const pm_node_t *node, rule_context_t *base)
+{
     pm_node_type_t type = node->type;
 
-    /* Build rule context for this callback */
-    rule_context_t ctx = {
-        .cfg = visit_data->cfg,
-        .ps = visit_data->has_ps ? &visit_data->ps : NULL,
-        .parser = visit_data->parser,
-        .diagnostics = visit_data->diagnostics,
-        .parent = NULL,
-    };
+    /* Copy base context for this callback; direct parent is last ancestor if present */
+    rule_context_t ctx = *base;
+    ctx.parent = (ctx.ancestors_count > 0) ? ctx.ancestors[ctx.ancestors_count - 1] : NULL;
 
     /* Optional debug logging; enable by defining RULE_MANAGER_DEBUG */
 #ifdef RULE_MANAGER_DEBUG
-    if (!visit_data->diagnostics)
+    if (!base->diagnostics)
     {
         fprintf(stderr, "[rule_manager] warning: diagnostics pointer is NULL for node type %d\n", (int)type);
     }
     else
     {
         fprintf(stderr, "[rule_manager] diagnostics=%p size=%zu head=%p tail=%p for node type %d\n",
-                (void *)visit_data->diagnostics,
-                visit_data->diagnostics->size,
-                (void *)visit_data->diagnostics->head,
-                (void *)visit_data->diagnostics->tail,
+                (void *)base->diagnostics,
+                base->diagnostics->size,
+                (void *)base->diagnostics->head,
+                (void *)base->diagnostics->tail,
                 (int)type);
     }
 #endif
 
-    /* Prefer per-file rules if provided, otherwise fall back to global rules */
-    if (visit_data->rules)
+    /* Prefer per-file rules if provided in base context, otherwise fall back to global rules */
+    if (base->rules)
     {
-        const rules_by_type_t *rb = visit_data->rules;
+        const rules_by_type_t *rb = base->rules;
         if (rb->rules_count_by_type[type] > 0)
         {
             for (size_t i = 0; i < rb->rules_count_by_type[type]; i++)
@@ -110,7 +122,31 @@ bool node_visitor(const pm_node_t *node, void *data)
         }
     }
 
-    return true;
+    /* Traverse children with ancestor stack: push current node, visit children, then pop */
+    pm_node_t *prev_parent = base->parent;
+    if (rule_context_push_ancestor(base, (pm_node_t *)node))
+    {
+        base->parent = (pm_node_t *)node;
+        pm_visit_child_nodes(node, node_visitor, base);
+        base->parent = prev_parent;
+        rule_context_pop_ancestor(base);
+    }
+    else
+    {
+        /* Allocation failed; fallback to visiting children without ancestor tracking */
+        pm_visit_child_nodes(node, node_visitor, base);
+    }
+
+    /* We handled children ourselves; avoid letting pm_visit_node recurse again */
+    return false;
+}
+
+/**
+ * @brief Visitor callback for AST nodes applying rules.
+ */
+bool node_visitor(const pm_node_t *node, void *data)
+{
+    return node_visitor_impl(node, (rule_context_t *)data);
 }
 
 /**
@@ -125,16 +161,27 @@ bool visit_node(pm_node_t *node, pm_parser_t *parser, pm_list_t *diagnostics, co
 {
     pm_list_t local_list = {0};
     pm_list_t *diag = diagnostics ? diagnostics : &local_list;
-    visit_data_t data = {parser, diag, cfg, NULL, {0}, false};
-    /* Initialize processed_source once per visit */
-    leuko_processed_source_init_from_parser(&data.ps, parser);
-    data.has_ps = true;
-    pm_visit_node(node, node_visitor, &data);
-    /* Free any allocations in processed_source prepared for this visit */
-    if (data.has_ps)
+
+    /* Build base context */
+    leuko_processed_source_t ps = {0};
+    rule_context_t ctx = {.cfg = cfg, .rules = NULL, .ps = NULL, .parser = parser, .diagnostics = diag, .parent = NULL, .ancestors = NULL, .ancestors_count = 0, .ancestors_cap = 0};
+
+    /* Initialize processed_source once per visit and attach to context */
+    leuko_processed_source_init_from_parser(&ps, parser);
+    ctx.ps = &ps;
+
+    pm_visit_node(node, node_visitor, &ctx);
+
+    /* Free ancestor stack and any allocations in processed_source prepared for this visit */
+    if (ctx.ancestors)
     {
-        leuko_processed_source_free(&data.ps);
+        free(ctx.ancestors);
+        ctx.ancestors = NULL;
+        ctx.ancestors_count = 0;
+        ctx.ancestors_cap = 0;
     }
+    leuko_processed_source_free(&ps);
+
     if (!diagnostics)
     {
         /* Use pm_diagnostic_list_free to ensure owned message strings are freed */
@@ -148,16 +195,27 @@ bool visit_node_with_rules(pm_node_t *node, pm_parser_t *parser, pm_list_t *diag
 {
     pm_list_t local_list = {0};
     pm_list_t *diag = diagnostics ? diagnostics : &local_list;
-    visit_data_t data = {parser, diag, cfg, rules, {0}, false};
-    /* Initialize processed_source once per visit */
-    leuko_processed_source_init_from_parser(&data.ps, parser);
-    data.has_ps = true;
-    pm_visit_node(node, node_visitor, &data);
-    /* Free any allocations in processed_source prepared for this visit */
-    if (data.has_ps)
+
+    /* Build base context with per-file rules */
+    leuko_processed_source_t ps = {0};
+    rule_context_t ctx = {.cfg = cfg, .rules = rules, .ps = NULL, .parser = parser, .diagnostics = diag, .parent = NULL, .ancestors = NULL, .ancestors_count = 0, .ancestors_cap = 0};
+
+    /* Initialize processed_source once per visit and attach to context */
+    leuko_processed_source_init_from_parser(&ps, parser);
+    ctx.ps = &ps;
+
+    pm_visit_node(node, node_visitor, &ctx);
+
+    /* Free ancestor stack and any allocations in processed_source prepared for this visit */
+    if (ctx.ancestors)
     {
-        leuko_processed_source_free(&data.ps);
+        free(ctx.ancestors);
+        ctx.ancestors = NULL;
+        ctx.ancestors_count = 0;
+        ctx.ancestors_cap = 0;
     }
+    leuko_processed_source_free(&ps);
+
     if (!diagnostics)
     {
         /* Use pm_diagnostic_list_free to ensure owned message strings are freed */

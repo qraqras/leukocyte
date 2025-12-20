@@ -7,7 +7,7 @@
 void init_rules();
 
 /* Rules-by-type structure for per-file enabled rule sets */
-typedef struct
+typedef struct rules_by_type_s
 {
 	rule_t **rules_by_type[PM_NODE_TYPE_COUNT];
 	size_t rules_count_by_type[PM_NODE_TYPE_COUNT];
