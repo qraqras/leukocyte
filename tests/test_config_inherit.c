@@ -37,7 +37,8 @@ int main(void)
 
     /* sequence inherit */
     write_file("tests/tmp_inherit_base2.yml", "inherit_from:\n  - tests/tmp_inherit_child.yml\n  - tests/tmp_inherit_child2.yml\n");
-    base = NULL; err = NULL;
+    base = NULL;
+    err = NULL;
     rc = leuko_config_load_file("tests/tmp_inherit_base2.yml", &base, &err);
     assert(rc == 0);
     rc = leuko_config_resolve_inherit_from(base, &list, &count, &err);
@@ -48,7 +49,8 @@ int main(void)
 
     /* glob inherit */
     write_file("tests/tmp_inherit_base_glob.yml", "inherit_from: tests/tmp_inherit_child*.yml\n");
-    base = NULL; err = NULL;
+    base = NULL;
+    err = NULL;
     rc = leuko_config_load_file("tests/tmp_inherit_base_glob.yml", &base, &err);
     assert(rc == 0);
     rc = leuko_config_resolve_inherit_from(base, &list, &count, &err);
@@ -59,7 +61,8 @@ int main(void)
 
     /* missing file should error */
     write_file("tests/tmp_inherit_base_missing.yml", "inherit_from: tests/no_such_file.yml\n");
-    base = NULL; err = NULL;
+    base = NULL;
+    err = NULL;
     rc = leuko_config_load_file("tests/tmp_inherit_base_missing.yml", &base, &err);
     assert(rc == 0);
     rc = leuko_config_resolve_inherit_from(base, &list, &count, &err);
@@ -71,7 +74,8 @@ int main(void)
     /* invalid YAML in child should error */
     write_file("tests/tmp_inherit_badchild.yml", ":\n");
     write_file("tests/tmp_inherit_base_badchild.yml", "inherit_from: tests/tmp_inherit_badchild.yml\n");
-    base = NULL; err = NULL;
+    base = NULL;
+    err = NULL;
     rc = leuko_config_load_file("tests/tmp_inherit_base_badchild.yml", &base, &err);
     assert(rc == 0);
     rc = leuko_config_resolve_inherit_from(base, &list, &count, &err);

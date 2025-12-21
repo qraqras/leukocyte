@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <time.h>
 #include <stdio.h>
+#include <pthread.h>
 
 #include "rules/rule_manager.h"
 #include "configs/generated_config.h"
@@ -352,6 +353,9 @@ static rules_cache_entry_t *rules_cache = NULL;
 static size_t rules_cache_count = 0;
 static size_t rules_cache_cap = 0;
 
+/* Mutex protecting the rules cache for thread-safe access */
+static pthread_mutex_t rules_cache_lock = PTHREAD_MUTEX_INITIALIZER;
+
 const rules_by_type_t *get_rules_by_type_for_file(const config_t *cfg, const char *file_path)
 {
     if (!cfg || !file_path)
@@ -359,21 +363,50 @@ const rules_by_type_t *get_rules_by_type_for_file(const config_t *cfg, const cha
         return NULL;
     }
 
+    /* Fast-path: check under lock for an existing entry */
+    pthread_mutex_lock(&rules_cache_lock);
     for (size_t i = 0; i < rules_cache_count; i++)
     {
         if (rules_cache[i].cfg == cfg && strcmp(rules_cache[i].file_path, file_path) == 0)
         {
-            return &rules_cache[i].rules;
+            const rules_by_type_t *res = &rules_cache[i].rules;
+            pthread_mutex_unlock(&rules_cache_lock);
+            return res;
+        }
+    }
+    pthread_mutex_unlock(&rules_cache_lock);
+
+    /* Not found: build a temporary rules_by_type_t without holding the lock */
+    rules_by_type_t tmp = {0};
+    if (!build_rules_by_type_for_file(cfg, file_path, &tmp))
+    {
+        free_rules_by_type(&tmp);
+        return NULL;
+    }
+
+    /* Re-acquire lock and check again (another thread may have inserted) */
+    pthread_mutex_lock(&rules_cache_lock);
+    for (size_t i = 0; i < rules_cache_count; i++)
+    {
+        if (rules_cache[i].cfg == cfg && strcmp(rules_cache[i].file_path, file_path) == 0)
+        {
+            /* Use existing entry and discard our temporary */
+            const rules_by_type_t *res = &rules_cache[i].rules;
+            pthread_mutex_unlock(&rules_cache_lock);
+            free_rules_by_type(&tmp);
+            return res;
         }
     }
 
-    /* Build new entry */
+    /* Insert our built entry */
     if (rules_cache_count == rules_cache_cap)
     {
         size_t newcap = rules_cache_cap == 0 ? 8 : rules_cache_cap * 2;
         rules_cache_entry_t *n = realloc(rules_cache, newcap * sizeof(rules_cache_entry_t));
         if (!n)
         {
+            pthread_mutex_unlock(&rules_cache_lock);
+            free_rules_by_type(&tmp);
             return NULL;
         }
         rules_cache = n;
@@ -382,19 +415,23 @@ const rules_by_type_t *get_rules_by_type_for_file(const config_t *cfg, const cha
 
     rules_cache_entry_t *entry = &rules_cache[rules_cache_count];
     entry->file_path = strdup(file_path);
-    entry->cfg = cfg;
-    if (!build_rules_by_type_for_file(cfg, file_path, &entry->rules))
+    if (!entry->file_path)
     {
-        free(entry->file_path);
-        entry->file_path = NULL;
+        pthread_mutex_unlock(&rules_cache_lock);
+        free_rules_by_type(&tmp);
         return NULL;
     }
+    entry->cfg = cfg;
+    entry->rules = tmp; /* struct copy; tmp no longer needs explicit free */
     rules_cache_count++;
-    return &entry->rules;
+    const rules_by_type_t *res = &entry->rules;
+    pthread_mutex_unlock(&rules_cache_lock);
+    return res;
 }
 
 void rule_manager_clear_cache(void)
 {
+    pthread_mutex_lock(&rules_cache_lock);
     for (size_t i = 0; i < rules_cache_count; i++)
     {
         free(rules_cache[i].file_path);
@@ -404,6 +441,7 @@ void rule_manager_clear_cache(void)
     rules_cache = NULL;
     rules_cache_count = 0;
     rules_cache_cap = 0;
+    pthread_mutex_unlock(&rules_cache_lock);
 }
 
 /**

@@ -18,10 +18,14 @@ static int write_file(const char *path, const char *content)
 int main(void)
 {
     /* parent config defines include and Enabled */
-    write_file("tests/tmp_parent.yml", "Layout:\n  IndentationConsistency:\n    Include:\n      - ""foo""\n    Enabled: true\n");
+    write_file("tests/tmp_parent.yml", "Layout:\n  IndentationConsistency:\n    Include:\n      - "
+                                       "foo"
+                                       "\n    Enabled: true\n");
 
     /* child config defines another include and disables rule */
-    write_file("tests/tmp_child.yml", "inherit_from: tests/tmp_parent.yml\nLayout:\n  IndentationConsistency:\n    Include:\n      - ""bar""\n    Enabled: false\n");
+    write_file("tests/tmp_child.yml", "inherit_from: tests/tmp_parent.yml\nLayout:\n  IndentationConsistency:\n    Include:\n      - "
+                                      "bar"
+                                      "\n    Enabled: false\n");
 
     config_t cfg = {0};
     initialize_config(&cfg);

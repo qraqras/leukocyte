@@ -31,6 +31,7 @@ int parse_command_line(int argc, char *argv[], cli_options_t *opts)
     }
     memset(opts, 0, sizeof(*opts));
     opts->formatter = CLI_FORMATTER_PROGRESS;
+    opts->jobs = 1;
 
     static struct option long_options[] = {
         {"auto-correct", no_argument, 0, 'a'},
@@ -43,6 +44,7 @@ int parse_command_line(int argc, char *argv[], cli_options_t *opts)
         {"only", required_argument, 0, 0},
         {"version", no_argument, 0, 'v'},
         {"timings", no_argument, 0, 0},
+        {"jobs", required_argument, 0, 'j'},
         {0, 0, 0, 0}};
 
     for (;;)
@@ -90,6 +92,11 @@ int parse_command_line(int argc, char *argv[], cli_options_t *opts)
             return 1;
         case 'f':
             cli_formatter_from_string(optarg, &opts->formatter);
+            break;
+        case 'j':
+            opts->jobs = atoi(optarg);
+            if (opts->jobs < 1)
+                opts->jobs = 1;
             break;
         case 'c':
             opts->config_path = strdup(optarg);
@@ -280,6 +287,7 @@ static void print_help(void)
     printf("  -h, --help                  Show this help message\n");
     printf("  -v, --version               Show version information\n");
     printf("      --timings               Print per-file phase timings (parse, build_rules, visit, handler)\n");
+    printf("      -j, --jobs <n>           Number of worker threads for parallel processing\n");
     printf("      --only <rule1,rule2>    Only include specific rules\n");
 }
 

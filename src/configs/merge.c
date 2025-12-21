@@ -9,17 +9,25 @@
 #include "configs/config.h"
 
 /* Simple merged-node representation */
-typedef enum { MN_NONE = 0, MN_SCALAR, MN_SEQUENCE, MN_MAPPING } mm_type_t;
+typedef enum
+{
+    MN_NONE = 0,
+    MN_SCALAR,
+    MN_SEQUENCE,
+    MN_MAPPING
+} mm_type_t;
 
 typedef struct mm_node_s mm_node_t;
 typedef struct mm_entry_s mm_entry_t;
 
-struct mm_entry_s {
+struct mm_entry_s
+{
     char *key;
     mm_node_t *value;
 };
 
-struct mm_node_s {
+struct mm_node_s
+{
     mm_type_t type;
     char *scalar;
     char **sequence;
@@ -247,7 +255,8 @@ static bool mm_merge_from_mapping(mm_node_t **rootp, yaml_document_t *doc, yaml_
                 else
                 {
                     mm_append_sequence(&(existing), arr, idx);
-                    for (size_t i = 0; i < idx; i++) free(arr[i]);
+                    for (size_t i = 0; i < idx; i++)
+                        free(arr[i]);
                     free(arr);
                 }
             }
@@ -379,6 +388,50 @@ yaml_document_t *yaml_merge_rule_mapping_multi(yaml_document_t **docs, size_t do
 
     /* set root by ensuring the first added node is root; already is */
     (void)map;
+    mm_node_free(root);
+    return out;
+}
+
+yaml_document_t *yaml_merge_documents_multi(yaml_document_t **docs, size_t doc_count)
+{
+    if (!docs || doc_count == 0)
+        return NULL;
+
+    mm_node_t *root = NULL;
+    for (size_t di = 0; di < doc_count; di++)
+    {
+        yaml_document_t *doc = docs[di];
+        yaml_node_t *r = yaml_document_get_root_node(doc);
+        if (!r || r->type != YAML_MAPPING_NODE)
+            continue;
+        mm_merge_from_mapping(&root, doc, r);
+    }
+
+    if (!root)
+        return NULL;
+
+    yaml_document_t *out = malloc(sizeof(yaml_document_t));
+    if (!out)
+    {
+        mm_node_free(root);
+        return NULL;
+    }
+    if (!yaml_document_initialize(out, NULL, NULL, NULL, 1, 1))
+    {
+        free(out);
+        mm_node_free(root);
+        return NULL;
+    }
+
+    int map = build_yaml_node(out, root);
+    if (map == 0)
+    {
+        yaml_document_delete(out);
+        free(out);
+        mm_node_free(root);
+        return NULL;
+    }
+
     mm_node_free(root);
     return out;
 }

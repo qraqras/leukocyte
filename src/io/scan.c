@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <glob.h>
+#include <fnmatch.h>
 #include <stdbool.h>
 #include <sys/param.h>
 
@@ -104,9 +105,37 @@ static bool leuko_is_ruby(const char *name)
  * @param err Output error message on failure
  * @return true on success, false on failure
  */
-static bool leuko_scan_dir_recursive(const char *dirpath, char ***out, size_t *out_count, char **err)
+
+/* Helper: check path against patterns via fnmatch */
+static bool leuko_path_matches_patterns(const char *path, char **patterns, size_t count)
+{
+    if (!patterns || count == 0)
+        return false;
+    for (size_t i = 0; i < count; i++)
+    {
+        if (!patterns[i])
+            continue;
+        if (fnmatch(patterns[i], path, 0) == 0)
+            return true;
+        /* Also check path/* so patterns like ".../excluded/*" match the directory itself */
+        char buf[PATH_MAX + 3];
+        if (snprintf(buf, sizeof(buf), "%s/*", path) < (int)sizeof(buf))
+        {
+            if (fnmatch(patterns[i], buf, 0) == 0)
+                return true;
+        }
+    }
+    return false;
+}
+
+/* Recursive scan that respects exclude patterns */
+static bool leuko_scan_dir_recursive(const char *dirpath, char ***out, size_t *out_count, char **excludes, size_t exclude_count, char **err)
 {
     DIR *d = opendir(dirpath);
+    /* If the current directory matches an exclude pattern, skip it entirely */
+    if (leuko_path_matches_patterns(dirpath, excludes, exclude_count))
+        return true;
+
     if (!d)
     {
         leuko_set_err(err, "opendir('%s'): %s", dirpath, strerror(errno));
@@ -139,7 +168,10 @@ static bool leuko_scan_dir_recursive(const char *dirpath, char ***out, size_t *o
 
         if (S_ISDIR(st.st_mode))
         {
-            if (!leuko_scan_dir_recursive(path, out, out_count, err))
+            /* Skip directories matching any exclude pattern */
+            if (leuko_path_matches_patterns(path, excludes, exclude_count))
+                continue;
+            if (!leuko_scan_dir_recursive(path, out, out_count, excludes, exclude_count, err))
             {
                 closedir(d);
                 return false;
@@ -188,7 +220,7 @@ bool leuko_has_glob_metachar(const char *pattern)
  * @param err Output error message on failure
  * @return true on success, false on failure
  */
-bool leuko_collect_ruby_files(char **paths, size_t paths_count, char ***out_paths, size_t *out_count, char **err)
+bool leuko_collect_ruby_files_with_exclude(char **paths, size_t paths_count, char ***out_paths, size_t *out_count, char **excludes, size_t exclude_count, char **err)
 {
     if (!out_paths || !out_count)
     {
@@ -254,7 +286,11 @@ bool leuko_collect_ruby_files(char **paths, size_t paths_count, char ***out_path
                     /* Directory: scan recursively */
                     if (S_ISDIR(st2.st_mode))
                     {
-                        if (!leuko_scan_dir_recursive(mp, out_paths, out_count, err))
+                        if (leuko_path_matches_patterns(mp, excludes, exclude_count))
+                        {
+                            continue;
+                        }
+                        if (!leuko_scan_dir_recursive(mp, out_paths, out_count, excludes, exclude_count, err))
                         {
                             globfree(&g);
                             return false;
@@ -293,7 +329,11 @@ bool leuko_collect_ruby_files(char **paths, size_t paths_count, char ***out_path
         /* Directory: scan recursively */
         if (S_ISDIR(st.st_mode))
         {
-            if (!leuko_scan_dir_recursive(p, out_paths, out_count, err))
+            if (leuko_path_matches_patterns(p, excludes, exclude_count))
+            {
+                continue;
+            }
+            if (!leuko_scan_dir_recursive(p, out_paths, out_count, excludes, exclude_count, err))
             {
                 return false;
             }
@@ -315,4 +355,10 @@ bool leuko_collect_ruby_files(char **paths, size_t paths_count, char ***out_path
     }
 
     return true;
+}
+
+/* Backwards-compatible wrapper: no excludes */
+bool leuko_collect_ruby_files(char **paths, size_t paths_count, char ***out_paths, size_t *out_count, char **err)
+{
+    return leuko_collect_ruby_files_with_exclude(paths, paths_count, out_paths, out_count, NULL, 0, err);
 }

@@ -30,7 +30,8 @@ int main(void)
     /* invalid YAML */
     const char *tmp2 = "tests/tmp_invalid.yml";
     write_file(tmp2, ":\n");
-    cfg = NULL; err = NULL;
+    cfg = NULL;
+    err = NULL;
     rc = leuko_config_load_file(tmp2, &cfg, &err);
     assert(rc != 0);
     assert(cfg == NULL);
@@ -39,7 +40,8 @@ int main(void)
     free(err);
 
     /* non-existent file */
-    cfg = NULL; err = NULL;
+    cfg = NULL;
+    err = NULL;
     rc = leuko_config_load_file("tests/no_such_file.yml", &cfg, &err);
     assert(rc != 0);
     assert(cfg == NULL);

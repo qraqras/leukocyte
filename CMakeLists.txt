@@ -67,6 +67,8 @@ set(SOURCES
     src/configs/inherit.c
     src/configs/inherit_cache.c
     src/configs/merge.c
+    src/configs/discover.c
+    src/worker/pipeline.c
     src/category.c
     src/severity.c
     src/rules/rule_manager.c
@@ -80,6 +82,7 @@ set(SOURCES
     src/allocator/arena.c
     src/allocator/prism_xallocator.c
     src/diagnostic_debug_stub.c
+    src/cli/formatter_bridge.c
     # Add more sources here
 )
 
@@ -109,6 +112,10 @@ add_test(NAME test_rule_registry COMMAND test_rule_registry)
 add_executable(test_rule_manager tests/test_rule_manager.c)
 target_link_libraries(test_rule_manager PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
 add_test(NAME test_rule_manager COMMAND test_rule_manager)
+
+add_executable(test_rule_manager_threaded tests/test_rule_manager_threaded.c)
+target_link_libraries(test_rule_manager_threaded PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml pthread)
+add_test(NAME test_rule_manager_threaded COMMAND test_rule_manager_threaded)
 
 # YAML case sensitivity tests
 add_executable(test_yaml_case_sensitive tests/test_yaml_case_sensitive.c)
@@ -156,6 +163,11 @@ add_executable(test_config_inherit_cache tests/test_config_inherit_cache.c)
 target_link_libraries(test_config_inherit_cache PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
 add_test(NAME test_config_inherit_cache COMMAND test_config_inherit_cache)
 
+# Discovery tests
+add_executable(test_config_discover tests/test_config_discover.c)
+target_link_libraries(test_config_discover PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
+add_test(NAME test_config_discover COMMAND test_config_discover)
+
 # Arena allocator tests
 add_executable(test_arena tests/test_arena.c)
 target_link_libraries(test_arena PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
@@ -165,6 +177,10 @@ add_test(NAME test_arena COMMAND test_arena)
 add_executable(test_parser_arena tests/test_parser_arena.c)
 target_link_libraries(test_parser_arena PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
 add_test(NAME test_parser_arena COMMAND test_parser_arena)
+
+add_executable(test_pipeline tests/test_pipeline.c)
+target_link_libraries(test_pipeline PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml pthread)
+add_test(NAME test_pipeline COMMAND test_pipeline)
 
 # Library target for core sources so tests can link against it
 add_library(leuko_lib STATIC ${SOURCES})
@@ -183,7 +199,7 @@ add_library(leuko_prism_helpers STATIC src/diagnostic_debug_stub.c)
 add_executable(leuko src/main.c)
 # Link order: ensure prism_static comes before leuko_lib so symbols provided by
 # leukocyte (e.g. diagnostic stubs) satisfy references from Prism static lib.
-target_link_libraries(leuko prism_static leuko_lib yaml)
+target_link_libraries(leuko prism_static leuko_lib yaml pthread)
 
 if (ENABLE_ASAN)
     target_compile_options(leuko PRIVATE -fsanitize=address -fno-omit-frame-pointer)

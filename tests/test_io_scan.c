@@ -232,6 +232,73 @@ int main(void)
     if (r3 != 0)
         fprintf(stderr, "test_glob_star failed\n");
     failures += r3;
+    /* New test: directory excludes should skip files under matching directories */
+    {
+        char tmpl[] = "/tmp/leuko_scan_excl_XXXXXX";
+        char *dir = mkdtemp(tmpl);
+        char sub_a[512];
+        char sub_b[512];
+        char excl_dir[512];
+        snprintf(sub_a, sizeof(sub_a), "%s/included/a.rb", dir);
+        snprintf(excl_dir, sizeof(excl_dir), "%s/excluded", dir);
+        snprintf(sub_b, sizeof(sub_b), "%s/excluded/b.rb", dir);
+        /* Create included/excluded directories */
+        char included_dir[512];
+        snprintf(included_dir, sizeof(included_dir), "%s/included", dir);
+        char excluded_dir[512];
+        snprintf(excluded_dir, sizeof(excluded_dir), "%s/excluded", dir);
+        mkdir(included_dir, 0755);
+        mkdir(excluded_dir, 0755);
+        /* Create files */
+        FILE *f = fopen(sub_a, "w");
+        if (!f)
+            return 1;
+        fclose(f);
+        f = fopen(sub_b, "w");
+        if (!f)
+            return 1;
+        fclose(f);
+        char *in[] = {dir};
+        char *excludes[] = {"*/excluded/*"};
+        char **out = NULL;
+        size_t out_count = 0;
+        char *err = NULL;
+        int ok = leuko_collect_ruby_files_with_exclude(in, 1, &out, &out_count, excludes, 1, &err);
+        if (!ok)
+        {
+            fprintf(stderr, "collect_with_exclude failed: %s\n", err ? err : "unknown");
+            failures += 1;
+        }
+        else
+        {
+            int found_a = 0, found_b = 0;
+            for (size_t i = 0; i < out_count; ++i)
+            {
+                if (strcmp(out[i], sub_a) == 0)
+                    found_a = 1;
+                if (strcmp(out[i], sub_b) == 0)
+                    found_b = 1;
+            }
+            if (!found_a || found_b)
+            {
+                fprintf(stderr, "exclude test failed: found_a=%d found_b=%d out_count=%zu\n", found_a, found_b, out_count);
+                for (size_t i = 0; i < out_count; ++i)
+                    fprintf(stderr, "  %s\n", out[i]);
+                failures += 1;
+            }
+        }
+        if (out)
+        {
+            for (size_t i = 0; i < out_count; ++i)
+                free(out[i]);
+            free(out);
+        }
+        unlink(sub_a);
+        unlink(sub_b);
+        rmdir(excl_dir);
+        rmdir("/tmp/leuko_scan_excl_XXXXXX/included");
+        rmdir(dir);
+    }
     fprintf(stderr, "r1=%d r2=%d r3=%d failures=%d\n", r1, r2, r3, failures);
     if (failures)
     {

@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "cli/formatter.h"
 
@@ -53,4 +54,35 @@ bool cli_formatter_from_string(const char *str, cli_formatter_t *out)
         }
     }
     return false;
+}
+
+bool cli_formatter_print_diagnostic(cli_formatter_t fmt, const char *file, const char *message, int diag_id, uint8_t level)
+{
+    if (fmt == CLI_FORMATTER_QUIET)
+        return false;
+
+    switch (fmt)
+    {
+    case CLI_FORMATTER_SIMPLE:
+    case CLI_FORMATTER_PROGRESS:
+    case CLI_FORMATTER_AUTO_GEN:
+        if (file)
+            fprintf(stderr, "%s: %s\n", file, message ? message : "");
+        else
+            fprintf(stderr, "%s\n", message ? message : "");
+        return true;
+    case CLI_FORMATTER_JSON:
+        if (file)
+            printf("{\"path\": \"%s\", \"message\": \"%s\", \"id\": %d, \"level\": %u}\n", file, message ? message : "", diag_id, (unsigned)level);
+        else
+            printf("{\"message\": \"%s\", \"id\": %d, \"level\": %u}\n", message ? message : "", diag_id, (unsigned)level);
+        return true;
+    default:
+        /* Fallback: simple print */
+        if (file)
+            fprintf(stderr, "%s: %s\n", file, message ? message : "");
+        else
+            fprintf(stderr, "%s\n", message ? message : "");
+        return true;
+    }
 }

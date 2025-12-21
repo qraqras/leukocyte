@@ -232,4 +232,3 @@ bool apply_config(yaml_document_t *doc, config_t *cfg, char **err)
     docs[0] = doc;
     return apply_config_multi(docs, 1, cfg, err);
 }
-

@@ -36,7 +36,8 @@ int leuko_inherit_cache_try_get(const char *base_path, leuko_raw_config_t ***out
 {
     if (!base_path || !out_parents || !out_parent_count)
     {
-        if (err) *err = strdup("invalid arguments");
+        if (err)
+            *err = strdup("invalid arguments");
         return 1;
     }
 
@@ -70,7 +71,8 @@ int leuko_inherit_cache_try_get(const char *base_path, leuko_raw_config_t ***out
             leuko_raw_config_t **res = calloc(g_cache[i].parent_count, sizeof(leuko_raw_config_t *));
             if (!res)
             {
-                if (err) *err = strdup("allocation failure");
+                if (err)
+                    *err = strdup("allocation failure");
                 free(canon);
                 return 1;
             }
@@ -121,7 +123,8 @@ int leuko_inherit_cache_put(const char *base_path, leuko_raw_config_t **parents,
         {
             char *p = parents[i]->path;
             char *pc = realpath(p, NULL);
-            if (!pc) pc = strdup(p);
+            if (!pc)
+                pc = strdup(p);
             ppaths[i] = pc;
             pmt[i] = get_mtime(pc);
             /* cache should own a reference */
@@ -138,12 +141,14 @@ int leuko_inherit_cache_put(const char *base_path, leuko_raw_config_t **parents,
         if (strcmp(g_cache[i].base_canon, canon) == 0)
         {
             /* replace: free old entries (paths + mtimes + cfg refs) */
-            for (size_t j = 0; j < g_cache[i].parent_count; j++) free(g_cache[i].parent_paths[j]);
+            for (size_t j = 0; j < g_cache[i].parent_count; j++)
+                free(g_cache[i].parent_paths[j]);
             free(g_cache[i].parent_paths);
             free(g_cache[i].parent_mtimes);
             if (g_cache[i].parent_cfgs)
             {
-                for (size_t j = 0; j < g_cache[i].parent_count; j++) leuko_raw_config_unref(g_cache[i].parent_cfgs[j]);
+                for (size_t j = 0; j < g_cache[i].parent_count; j++)
+                    leuko_raw_config_unref(g_cache[i].parent_cfgs[j]);
                 free(g_cache[i].parent_cfgs);
             }
             g_cache[i].parent_paths = ppaths;
@@ -163,7 +168,8 @@ int leuko_inherit_cache_put(const char *base_path, leuko_raw_config_t **parents,
         inherit_cache_entry_t *n = realloc(g_cache, ncap * sizeof(inherit_cache_entry_t));
         if (!n)
         {
-            for (size_t j = 0; j < parent_count; j++) free(ppaths[j]);
+            for (size_t j = 0; j < parent_count; j++)
+                free(ppaths[j]);
             free(ppaths);
             free(pmt);
             free(canon);
@@ -187,12 +193,14 @@ void leuko_inherit_cache_clear(void)
     for (size_t i = 0; i < g_cache_count; i++)
     {
         free(g_cache[i].base_canon);
-        for (size_t j = 0; j < g_cache[i].parent_count; j++) free(g_cache[i].parent_paths[j]);
+        for (size_t j = 0; j < g_cache[i].parent_count; j++)
+            free(g_cache[i].parent_paths[j]);
         free(g_cache[i].parent_paths);
         free(g_cache[i].parent_mtimes);
         if (g_cache[i].parent_cfgs)
         {
-            for (size_t j = 0; j < g_cache[i].parent_count; j++) leuko_raw_config_unref(g_cache[i].parent_cfgs[j]);
+            for (size_t j = 0; j < g_cache[i].parent_count; j++)
+                leuko_raw_config_unref(g_cache[i].parent_cfgs[j]);
             free(g_cache[i].parent_cfgs);
         }
     }

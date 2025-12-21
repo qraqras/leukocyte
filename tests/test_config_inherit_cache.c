@@ -22,7 +22,8 @@ int main(void)
     char *err = NULL;
     assert(leuko_config_load_file("tests/tmp_cache_child.yml", &base, &err) == 0);
 
-    leuko_raw_config_t **parents = NULL; size_t parent_count = 0;
+    leuko_raw_config_t **parents = NULL;
+    size_t parent_count = 0;
     assert(leuko_config_collect_inherit_chain(base, &parents, &parent_count, &err) == 0);
     assert(parent_count == 1);
     leuko_raw_config_list_free(parents, parent_count);

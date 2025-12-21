@@ -26,6 +26,7 @@ typedef struct cli_options_s
     char **except;
     size_t except_count;
     quick_fix_mode_t quick_fix_mode;
+    int jobs; /* number of worker threads for parallel pipeline (-j) */
 } cli_options_t;
 
 int parse_command_line(int argc, char *argv[], cli_options_t *opts);

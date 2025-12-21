@@ -2,8 +2,9 @@
 #define INCLUDE_CLI_FORMATTER_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
-/// @brief CLI output formatter enum.
+/* CLI output formatter enum. */
 typedef enum
 {
     CLI_FORMATTER_PROGRESS,
@@ -26,5 +27,11 @@ typedef enum
 } cli_formatter_t;
 
 bool cli_formatter_from_string(const char *str, cli_formatter_t *out);
+
+/* Print a single diagnostic using the selected formatter. 'file' may be NULL.
+ * The message string must be owned by caller. The function returns true on
+ * success (printed) or false if formatter suppressed output (e.g., QUIET).
+ */
+bool cli_formatter_print_diagnostic(cli_formatter_t fmt, const char *file, const char *message, int diag_id, uint8_t level);
 
 #endif /* INCLUDE_CLI_FORMATTER_H */

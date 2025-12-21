@@ -34,28 +34,33 @@ int main(void)
        Rather than wiring into a real rule, we'll use the generated apply by directly invoking merged helper and check its content. */
 
     /* Use yaml_merge_rule_mapping_multi directly to inspect merged mapping */
-    extern yaml_document_t *yaml_merge_rule_mapping_multi(yaml_document_t **docs, size_t doc_count, const char *full_name, const char *category_name);
+    extern yaml_document_t *yaml_merge_rule_mapping_multi(yaml_document_t * *docs, size_t doc_count, const char *full_name, const char *category_name);
     leuko_raw_config_t *base = NULL;
     int rc = leuko_config_load_file("tests/tmp_map_child.yml", &base, &err);
     if (rc != 0)
     {
         fprintf(stderr, "leuko_config_load_file failed: %s\n", err ? err : "(no err)");
-        if (err) free(err);
+        if (err)
+            free(err);
         return 1;
     }
-    (void)base; (void)err;
-    leuko_raw_config_t **parents = NULL; size_t parent_count = 0;
+    (void)base;
+    (void)err;
+    leuko_raw_config_t **parents = NULL;
+    size_t parent_count = 0;
     rc = leuko_config_collect_inherit_chain(base, &parents, &parent_count, &err);
     if (rc != 0)
     {
         fprintf(stderr, "collect_inherit_chain failed: %s\n", err ? err : "(no err)");
-        if (err) free(err);
+        if (err)
+            free(err);
         leuko_raw_config_free(base);
         return 1;
     }
     size_t doc_count = parent_count + 1;
     yaml_document_t **docs = calloc(doc_count, sizeof(yaml_document_t *));
-    for (size_t i = 0; i < parent_count; i++) docs[i] = parents[i]->doc;
+    for (size_t i = 0; i < parent_count; i++)
+        docs[i] = parents[i]->doc;
     docs[parent_count] = base->doc;
 
     yaml_document_t *merged = yaml_merge_rule_mapping_multi(docs, doc_count, "Layout/SomeRule", "Layout");

@@ -12,6 +12,7 @@
 #include "rules/rule_manager.h"
 #include "prism/diagnostic.h"
 #include "io/scan.h"
+#include "worker/pipeline.h"
 #include <time.h>
 #include <inttypes.h>
 
@@ -51,6 +52,10 @@ int main(int argc, char *argv[])
 
     init_rules();
 
+    /* Expose formatter to pipeline via extern (simple bridge) */
+    extern int leuko_cli_formatter;
+    leuko_cli_formatter = (int)cli_opts.formatter;
+
     // **** RUBY FILE COLLECTION ****
     char **ruby_files = NULL;
     size_t ruby_files_count = 0;
@@ -73,63 +78,82 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    // **** RUBY FILE PARSING ****
+    /* Parallel pipeline (deterministic ordering) */
     int any_failures = 0;
     double total_parse_ms = 0.0;
     double total_build_ms = 0.0;
     double total_visit_ms = 0.0;
     uint64_t total_handler_ns = 0;
-    for (size_t i = 0; i < ruby_files_count; ++i)
+
+    if (cli_opts.jobs > 1)
     {
-        struct timespec t0, t1;
-        pm_node_t *root_node = NULL;
-        pm_parser_t parser = {0};
-        uint8_t *source = NULL;
-        clock_gettime(CLOCK_MONOTONIC, &t0);
-        if (!leuko_parse_ruby_file(ruby_files[i], &root_node, &parser, &source))
+        /* Use worker pipeline */
+        if (!leuko_run_pipeline(ruby_files, ruby_files_count, &cfg, (size_t)cli_opts.jobs, cli_opts.timings, &any_failures, &total_parse_ms, &total_build_ms, &total_visit_ms, &total_handler_ns, (int)cli_opts.formatter))
         {
-            fprintf(stderr, "Failed to parse Ruby file: %s\n", ruby_files[i]);
-            any_failures = 1;
-            continue;
+            fprintf(stderr, "Failed to run parallel pipeline\n");
+            cli_options_free(&cli_opts);
+            free_config(&cfg);
+            for (size_t i = 0; i < ruby_files_count; ++i)
+                free(ruby_files[i]);
+            free(ruby_files);
+            return EXIT_FAILURE;
         }
-        clock_gettime(CLOCK_MONOTONIC, &t1);
-        double parse_ms = ((t1.tv_sec - t0.tv_sec) * 1000.0) + ((t1.tv_nsec - t0.tv_nsec) / 1e6);
-        total_parse_ms += parse_ms;
-
-        // **** RULE APPLICATION ****
-        clock_gettime(CLOCK_MONOTONIC, &t0);
-        const rules_by_type_t *rules = get_rules_by_type_for_file(&cfg, ruby_files[i]);
-        clock_gettime(CLOCK_MONOTONIC, &t1);
-        double build_ms = ((t1.tv_sec - t0.tv_sec) * 1000.0) + ((t1.tv_nsec - t0.tv_nsec) / 1e6);
-        total_build_ms += build_ms;
-
-        /* Reset handler timing, run visit, then measure handler time separately */
-        rule_manager_reset_timing();
-        clock_gettime(CLOCK_MONOTONIC, &t0);
-        visit_node_with_rules(root_node, &parser, NULL, &cfg, rules);
-        clock_gettime(CLOCK_MONOTONIC, &t1);
-        double visit_ms = ((t1.tv_sec - t0.tv_sec) * 1000.0) + ((t1.tv_nsec - t0.tv_nsec) / 1e6);
-        total_visit_ms += visit_ms;
-
-        uint64_t handler_ns = 0;
-        size_t handler_calls = 0;
-        rule_manager_get_timing(&handler_ns, &handler_calls);
-        total_handler_ns += handler_ns;
-
-        if (cli_opts.timings)
+    }
+    else
+    {
+        /* Sequential fallback (single-threaded behavior preserved) */
+        for (size_t i = 0; i < ruby_files_count; ++i)
         {
-            fprintf(stderr, "[timings] %s parse=%.3fms build_rules=%.3fms visit=%.3fms handler=%.3fms calls=%zu\n",
-                    ruby_files[i], parse_ms, build_ms, visit_ms, handler_ns / 1e6, handler_calls);
-            /* Machine-readable TIMING line for bench scripts */
-            printf("TIMING file=%s parse_ms=%.3f visit_ms=%.3f handlers_ms=%.3f handler_calls=%zu\n",
-                   ruby_files[i], parse_ms, visit_ms, handler_ns / 1e6, handler_calls);
-        }
+            struct timespec t0, t1;
+            pm_node_t *root_node = NULL;
+            pm_parser_t parser = {0};
+            uint8_t *source = NULL;
+            clock_gettime(CLOCK_MONOTONIC, &t0);
+            if (!leuko_parse_ruby_file(ruby_files[i], &root_node, &parser, &source))
+            {
+                fprintf(stderr, "Failed to parse Ruby file: %s\n", ruby_files[i]);
+                any_failures = 1;
+                continue;
+            }
+            clock_gettime(CLOCK_MONOTONIC, &t1);
+            double parse_ms = ((t1.tv_sec - t0.tv_sec) * 1000.0) + ((t1.tv_nsec - t0.tv_nsec) / 1e6);
+            total_parse_ms += parse_ms;
 
-        pm_node_destroy(&parser, root_node);
-        pm_parser_free(&parser);
-        /* End per-parse arena state after parser is freed so tokens remain available during rules */
-        leuko_x_allocator_end();
-        free(source);
+            // **** RULE APPLICATION ****
+            clock_gettime(CLOCK_MONOTONIC, &t0);
+            const rules_by_type_t *rules = get_rules_by_type_for_file(&cfg, ruby_files[i]);
+            clock_gettime(CLOCK_MONOTONIC, &t1);
+            double build_ms = ((t1.tv_sec - t0.tv_sec) * 1000.0) + ((t1.tv_nsec - t0.tv_nsec) / 1e6);
+            total_build_ms += build_ms;
+
+            /* Reset handler timing, run visit, then measure handler time separately */
+            rule_manager_reset_timing();
+            clock_gettime(CLOCK_MONOTONIC, &t0);
+            visit_node_with_rules(root_node, &parser, NULL, &cfg, rules);
+            clock_gettime(CLOCK_MONOTONIC, &t1);
+            double visit_ms = ((t1.tv_sec - t0.tv_sec) * 1000.0) + ((t1.tv_nsec - t0.tv_nsec) / 1e6);
+            total_visit_ms += visit_ms;
+
+            uint64_t handler_ns = 0;
+            size_t handler_calls = 0;
+            rule_manager_get_timing(&handler_ns, &handler_calls);
+            total_handler_ns += handler_ns;
+
+            if (cli_opts.timings)
+            {
+                fprintf(stderr, "[timings] %s parse=%.3fms build_rules=%.3fms visit=%.3fms handler=%.3fms calls=%zu\n",
+                        ruby_files[i], parse_ms, build_ms, visit_ms, handler_ns / 1e6, handler_calls);
+                /* Machine-readable TIMING line for bench scripts */
+                printf("TIMING file=%s parse_ms=%.3f visit_ms=%.3f handlers_ms=%.3f handler_calls=%zu\n",
+                       ruby_files[i], parse_ms, visit_ms, handler_ns / 1e6, handler_calls);
+            }
+
+            pm_node_destroy(&parser, root_node);
+            pm_parser_free(&parser);
+            /* End per-parse arena state after parser is freed so tokens remain available during rules */
+            leuko_x_allocator_end();
+            free(source);
+        }
     }
 
     for (size_t i = 0; i < ruby_files_count; ++i)

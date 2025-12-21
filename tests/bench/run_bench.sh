@@ -72,7 +72,7 @@ for s in "${sizes[@]}"; do
 
   echo "Rubocop runs (3):"
   # Use --only for the cop; suppress output and RuboCop's banners
-  run_times --quiet 3 rubocop --only Layout/IndentationConsistency --format quiet "$f" 2>/dev/null
+  run_times --quiet 3 rubocop --no-cache --only Layout/IndentationConsistency --format quiet "$f" 2>/dev/null
 done
 
 echo "Done."
