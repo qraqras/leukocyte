@@ -1,0 +1,3 @@
+inherit_from:
+  - tests/tmp_inherit_child.yml
+  - tests/tmp_inherit_child2.yml

@@ -63,6 +63,10 @@ set(SOURCES
     src/configs/generated_config.c
     src/configs/yaml_helpers.c
     src/configs/loader.c
+    src/configs/raw_config.c
+    src/configs/inherit.c
+    src/configs/inherit_cache.c
+    src/configs/merge.c
     src/category.c
     src/severity.c
     src/rules/rule_manager.c
@@ -126,6 +130,31 @@ add_test(NAME test_loader_fullname COMMAND test_loader_fullname)
 add_executable(test_config_loader_edgecases tests/test_config_loader_edgecases.c)
 target_link_libraries(test_config_loader_edgecases PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
 add_test(NAME test_config_loader_edgecases COMMAND test_config_loader_edgecases)
+
+# Raw config file loader tests
+add_executable(test_config_raw_loader tests/test_config_raw_loader.c)
+target_link_libraries(test_config_raw_loader PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
+add_test(NAME test_config_raw_loader COMMAND test_config_raw_loader)
+
+# Inherit resolution tests
+add_executable(test_config_inherit tests/test_config_inherit.c)
+target_link_libraries(test_config_inherit PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
+add_test(NAME test_config_inherit COMMAND test_config_inherit)
+
+# Merge behavior tests
+add_executable(test_config_merge tests/test_config_merge.c)
+target_link_libraries(test_config_merge PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
+add_test(NAME test_config_merge COMMAND test_config_merge)
+
+# Map merge tests
+add_executable(test_config_map_merge tests/test_config_map_merge.c)
+target_link_libraries(test_config_map_merge PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
+add_test(NAME test_config_map_merge COMMAND test_config_map_merge)
+
+# Inherit cache tests
+add_executable(test_config_inherit_cache tests/test_config_inherit_cache.c)
+target_link_libraries(test_config_inherit_cache PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
+add_test(NAME test_config_inherit_cache COMMAND test_config_inherit_cache)
 
 # Arena allocator tests
 add_executable(test_arena tests/test_arena.c)

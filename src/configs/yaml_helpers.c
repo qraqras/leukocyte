@@ -323,6 +323,192 @@ bool yaml_get_merged_sequence(const yaml_document_t *doc, yaml_node_t *rule_node
     return true;
 }
 
+/* Multi-document helpers */
+/* Find scalar: search docs from child->parent and return first found (duplicate returned). */
+char *yaml_get_merged_rule_scalar_multi(yaml_document_t **docs, size_t doc_count, const char *full_name, const char *category_name, const char *key)
+{
+    if (!docs || doc_count == 0 || !key)
+        return NULL;
+    for (ssize_t di = (ssize_t)doc_count - 1; di >= 0; di--)
+    {
+        yaml_document_t *doc = docs[di];
+        yaml_node_t *root = yaml_document_get_root_node(doc);
+        if (!root || root->type != YAML_MAPPING_NODE)
+            continue;
+
+        yaml_node_t *rule_node = yaml_get_mapping_node(doc, root, full_name);
+        yaml_node_t *category_node = NULL;
+        if (!rule_node && category_name)
+        {
+            yaml_node_t *cat = yaml_get_mapping_node(doc, root, category_name);
+            if (cat)
+            {
+                category_node = cat;
+                rule_node = yaml_get_mapping_node(doc, cat, full_name ? strrchr(full_name, '/') ? strrchr(full_name, '/') + 1 : full_name : NULL);
+            }
+        }
+
+        /* Check rule, then category, then allcops */
+        char *val = NULL;
+        if (rule_node)
+            val = yaml_get_mapping_scalar_value(doc, rule_node, key);
+        if (!val && category_node)
+            val = yaml_get_mapping_scalar_value(doc, category_node, key);
+        if (!val)
+        {
+            yaml_node_t *allcops = yaml_get_mapping_node(doc, root, ALL_COPS);
+            if (allcops)
+                val = yaml_get_mapping_scalar_value(doc, allcops, key);
+        }
+        if (val)
+        {
+            return strdup(val);
+        }
+    }
+    return NULL;
+}
+
+bool yaml_get_merged_rule_bool_multi(yaml_document_t **docs, size_t doc_count, const char *full_name, const char *category_name, const char *key, bool *out)
+{
+    char *s = yaml_get_merged_rule_scalar_multi(docs, doc_count, full_name, category_name, key);
+    if (!s)
+        return false;
+    bool res = false;
+    if (strcasecmp(s, "true") == 0 || strcmp(s, "1") == 0 || strcasecmp(s, "yes") == 0 || strcasecmp(s, "on") == 0 || strcasecmp(s, "y") == 0)
+        res = true;
+    else if (strcasecmp(s, "false") == 0 || strcmp(s, "0") == 0 || strcasecmp(s, "no") == 0 || strcasecmp(s, "off") == 0 || strcasecmp(s, "n") == 0)
+        res = false;
+    else
+        res = false;
+    *out = res;
+    free(s);
+    return true;
+}
+
+/* Concatenate sequences from docs in parent-first order. For each doc: allcops, category, rule */
+bool yaml_get_merged_rule_sequence_multi(yaml_document_t **docs, size_t doc_count, const char *full_name, const char *category_name, const char *key, char ***out, size_t *count)
+{
+    if (!out || !count)
+        return false;
+    *out = NULL;
+    *count = 0;
+    for (size_t di = 0; di < doc_count; di++)
+    {
+        yaml_document_t *doc = docs[di];
+        yaml_node_t *root = yaml_document_get_root_node(doc);
+        if (!root || root->type != YAML_MAPPING_NODE)
+            continue;
+
+        /* allcops */
+        yaml_node_t *allcops = yaml_get_mapping_node(doc, root, ALL_COPS);
+        if (allcops)
+        {
+            size_t c = 0;
+            char **arr = yaml_get_mapping_sequence_values(doc, allcops, key, &c);
+            if (arr && c > 0)
+            {
+                char **tmp = realloc(*out, (*count + c) * sizeof(char *));
+                if (!tmp)
+                {
+                    for (size_t j = 0; j < c; j++)
+                        free(arr[j]);
+                    free(arr);
+                    for (size_t j = 0; j < *count; j++)
+                        free((*out)[j]);
+                    free(*out);
+                    *out = NULL;
+                    *count = 0;
+                    return false;
+                }
+                *out = tmp;
+                for (size_t j = 0; j < c; j++)
+                {
+                    (*out)[*count + j] = strdup(arr[j]);
+                    free(arr[j]);
+                }
+                *count += c;
+                free(arr);
+            }
+        }
+
+        /* category */
+        yaml_node_t *category_node = NULL;
+        if (category_name)
+        {
+            yaml_node_t *cat = yaml_get_mapping_node(doc, root, category_name);
+            if (cat)
+            {
+                category_node = cat;
+                size_t c = 0;
+                char **arr = yaml_get_mapping_sequence_values(doc, category_node, key, &c);
+                if (arr && c > 0)
+                {
+                    char **tmp = realloc(*out, (*count + c) * sizeof(char *));
+                    if (!tmp)
+                    {
+                        for (size_t j = 0; j < c; j++)
+                            free(arr[j]);
+                        free(arr);
+                        for (size_t j = 0; j < *count; j++)
+                            free((*out)[j]);
+                        free(*out);
+                        *out = NULL;
+                        *count = 0;
+                        return false;
+                    }
+                    *out = tmp;
+                    for (size_t j = 0; j < c; j++)
+                    {
+                        (*out)[*count + j] = strdup(arr[j]);
+                        free(arr[j]);
+                    }
+                    *count += c;
+                    free(arr);
+                }
+            }
+        }
+
+        /* rule */
+        yaml_node_t *rule_node = yaml_get_mapping_node(doc, root, full_name);
+        if (!rule_node && category_name)
+        {
+            yaml_node_t *cat = yaml_get_mapping_node(doc, root, category_name);
+            if (cat)
+                rule_node = yaml_get_mapping_node(doc, cat, full_name ? strrchr(full_name, '/') ? strrchr(full_name, '/') + 1 : full_name : NULL);
+        }
+        if (rule_node)
+        {
+            size_t c = 0;
+            char **arr = yaml_get_mapping_sequence_values(doc, rule_node, key, &c);
+            if (arr && c > 0)
+            {
+                char **tmp = realloc(*out, (*count + c) * sizeof(char *));
+                if (!tmp)
+                {
+                    for (size_t j = 0; j < c; j++)
+                        free(arr[j]);
+                    free(arr);
+                    for (size_t j = 0; j < *count; j++)
+                        free((*out)[j]);
+                    free(*out);
+                    *out = NULL;
+                    *count = 0;
+                    return false;
+                }
+                *out = tmp;
+                for (size_t j = 0; j < c; j++)
+                {
+                    (*out)[*count + j] = strdup(arr[j]);
+                    free(arr[j]);
+                }
+                *count += c;
+                free(arr);
+            }
+        }
+    }
+    return (*count > 0);
+}
+
 /**
  * @brief Get merged Enabled (rule -> category -> allcops).
  * @param doc Pointer to the yaml_document_t structure

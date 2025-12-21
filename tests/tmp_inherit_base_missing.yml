@@ -1,0 +1,1 @@
+inherit_from: tests/no_such_file.yml

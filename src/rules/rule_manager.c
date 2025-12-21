@@ -59,6 +59,9 @@ static void rule_context_pop_ancestor(rule_context_t *ctx)
     ctx->ancestors_count -= 1;
 }
 
+/* Forward declaration for visitor callback used by child traversal */
+bool node_visitor(const pm_node_t *node, void *data);
+
 /**
  * @brief Implementation of node visitor applying rules.
  */

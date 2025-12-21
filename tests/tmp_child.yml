@@ -1,0 +1,6 @@
+inherit_from: tests/tmp_parent.yml
+Layout:
+  IndentationConsistency:
+    Include:
+      - bar
+    Enabled: false

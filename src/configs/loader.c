@@ -8,6 +8,8 @@
 #include "configs/generated_config.h"
 #include "configs/loader.h"
 #include "configs/yaml_helpers.h"
+#include "configs/raw_config.h"
+#include "configs/inherit.h"
 #include "io/file.h"
 #include "rule_registry.h"
 
@@ -18,25 +20,43 @@
  * @param err Pointer to a char buffer for error messages
  * @return true if successful, false otherwise
  */
-bool apply_config(yaml_document_t *doc, config_t *cfg, char **err)
+static bool append_string_array(char ***dest, size_t *dest_count, char **src, size_t src_count)
 {
-    if (!doc || !cfg)
+    if (!src || src_count == 0)
+        return true;
+    if (!dest || !dest_count)
+        return false;
+
+    if (*dest == NULL)
+    {
+        *dest = src;
+        *dest_count = src_count;
+        return true;
+    }
+
+    char **tmp = realloc(*dest, (*dest_count + src_count) * sizeof(char *));
+    if (!tmp)
+    {
+        return false;
+    }
+    *dest = tmp;
+    for (size_t i = 0; i < src_count; i++)
+    {
+        (*dest)[*dest_count + i] = src[i];
+    }
+    *dest_count += src_count;
+    free(src);
+    return true;
+}
+
+static bool apply_config_multi(yaml_document_t **docs, size_t doc_count, config_t *cfg, char **err)
+{
+    if (!docs || doc_count == 0 || !cfg)
     {
         return false;
     }
 
-    yaml_node_t *root = yaml_document_get_root_node((yaml_document_t *)doc);
-    if (!root || root->type != YAML_MAPPING_NODE)
-    {
-        return false;
-    }
-
-    /**
-     * TODO: Handle `inherit_from` directive
-     */
-    yaml_node_t *inherit_from = yaml_get_mapping_node(doc, root, INHERIT_FROM);
-
-    yaml_node_t *allcops = yaml_get_mapping_node(doc, root, ALL_COPS);
+    /* Note: docs are parent-first; merged helpers consult documents appropriately */
 
     const rule_registry_entry_t *registry = leuko_get_rule_registry();
     size_t registry_count = leuko_get_rule_registry_count();
@@ -47,76 +67,100 @@ bool apply_config(yaml_document_t *doc, config_t *cfg, char **err)
         const char *rule_name = entry->rule_name;
         const char *full_name = entry->full_name;
 
-        /* Find the rule node in the YAML document:
-         * 1. Try to find full name in top-level mapping
-         *   Example:
-         *   ```yaml
-         *   Layout/AccessModifierIndentation:
-         *     Enabled: true
-         *   ```
-         * 2. If not found, try to find category name, then rule name within it
-         *  Example:
-         *  ```yaml
-         *  Layout:
-         *   AccessModifierIndentation:
-         *    Enabled: true
-         *  ```
-         */
-        yaml_node_t *rule_node = yaml_get_mapping_node(doc, root, full_name);
-        yaml_node_t *category_node = NULL;
-        if (!rule_node && category_name)
-        {
-            yaml_node_t *cat = yaml_get_mapping_node(doc, root, category_name);
-            if (cat)
-            {
-                category_node = cat;
-                rule_node = yaml_get_mapping_node(doc, cat, rule_name);
-            }
-        }
-
-        /* Get the rule configuration */
         rule_config_t *rcfg = get_rule_config_by_index(cfg, i);
         if (!rcfg)
         {
             continue;
         }
 
-        /* Merge `Enabled` */
+        /* Merge `Enabled` (scalar overwrite across docs) */
         bool merged_enabled = false;
-        if (yaml_get_merged_enabled(doc, rule_node, category_node, allcops, &merged_enabled))
+        if (yaml_get_merged_rule_bool_multi(docs, doc_count, full_name, category_name, CONFIG_KEY_ENABLED, &merged_enabled))
         {
             rcfg->enabled = merged_enabled;
         }
 
-        /* Merge `Severity` */
-        leuko_severity_level_t merged_severity = LEUKO_SEVERITY_CONVENTION;
-        if (yaml_get_merged_severity(doc, rule_node, category_node, allcops, &merged_severity))
+        /* Merge `Severity` (scalar overwrite across docs) */
+        char *sev = yaml_get_merged_rule_scalar_multi(docs, doc_count, full_name, category_name, CONFIG_KEY_SEVERITY);
+        if (sev)
         {
-            rcfg->severity_level = merged_severity;
+            leuko_severity_level_t s;
+            if (leuko_severity_level_from_string(sev, &s))
+            {
+                rcfg->severity_level = s;
+            }
+            free(sev);
         }
 
-        /* Merge `Include` */
+        /* Merge `Include` (array concat: parent first, then child) */
         char **inc = NULL;
         size_t inc_count = 0;
-        if (yaml_get_merged_include(doc, rule_node, category_node, allcops, &inc, &inc_count) && 0 < inc_count)
+        if (yaml_get_merged_rule_sequence_multi(docs, doc_count, full_name, category_name, CONFIG_KEY_INCLUDE, &inc, &inc_count) && 0 < inc_count)
         {
-            rcfg->include = inc;
-            rcfg->include_count = inc_count;
+            if (!append_string_array(&rcfg->include, &rcfg->include_count, inc, inc_count))
+            {
+                if (err)
+                    *err = strdup("allocation failure");
+                return false;
+            }
         }
 
-        /* Merge `Exclude` */
+        /* Merge `Exclude` (array concat) */
         char **exc = NULL;
         size_t exc_count = 0;
-        if (yaml_get_merged_exclude(doc, rule_node, category_node, allcops, &exc, &exc_count) && 0 < exc_count)
+        if (yaml_get_merged_rule_sequence_multi(docs, doc_count, full_name, category_name, CONFIG_KEY_EXCLUDE, &exc, &exc_count) && 0 < exc_count)
         {
-            rcfg->exclude = exc;
-            rcfg->exclude_count = exc_count;
+            if (!append_string_array(&rcfg->exclude, &rcfg->exclude_count, exc, exc_count))
+            {
+                if (err)
+                    *err = strdup("allocation failure");
+                return false;
+            }
         }
 
-        /* Apply specific configuration */
-        if (entry->ops && entry->ops->apply_yaml)
+        /* Apply specific configuration: prefer multi-apply if available */
+        if (entry->ops)
         {
-            entry->ops->apply_yaml(rcfg, doc, rule_node, category_node, allcops, err);
+            if (entry->ops->apply_yaml_multi)
+            {
+                if (!entry->ops->apply_yaml_multi(rcfg, docs, doc_count, full_name, category_name, err))
+                    return false;
+            }
+            else if (entry->ops->apply_yaml)
+            {
+                /* Fallback: build merged mapping document and call single-doc apply on it */
+                yaml_document_t *merged = yaml_merge_rule_mapping_multi(docs, doc_count, full_name, category_name);
+                if (merged)
+                {
+                    yaml_node_t *root = yaml_document_get_root_node(merged);
+                    entry->ops->apply_yaml(rcfg, merged, root, NULL, NULL, err);
+                    yaml_document_delete(merged);
+                    free(merged);
+                    if (err && *err)
+                        return false;
+                }
+                else
+                {
+                    /* No merged mapping; fallback to most specific document */
+                    yaml_document_t *child_doc = docs[doc_count - 1];
+                    yaml_node_t *root = yaml_document_get_root_node(child_doc);
+                    yaml_node_t *rule_node = yaml_get_mapping_node(child_doc, root, full_name);
+                    yaml_node_t *category_node = NULL;
+                    if (!rule_node && category_name)
+                    {
+                        yaml_node_t *cat = yaml_get_mapping_node(child_doc, root, category_name);
+                        if (cat)
+                        {
+                            category_node = cat;
+                            rule_node = yaml_get_mapping_node(child_doc, cat, rule_name);
+                        }
+                    }
+                    yaml_node_t *allcops = yaml_get_mapping_node(child_doc, root, ALL_COPS);
+                    entry->ops->apply_yaml(rcfg, child_doc, rule_node, category_node, allcops, err);
+                    if (err && *err)
+                        return false;
+                }
+            }
         }
     }
 
@@ -137,40 +181,55 @@ bool load_config_file_into(config_t *cfg, const char *path, char **err)
         return false;
     }
 
-    /* Read file */
-    uint8_t *buf = NULL;
-    size_t size = 0;
-    char *read_err = NULL;
-    if (!read_file_to_buffer(path, &buf, &size, &read_err))
+    /* Use leuko_config_load_file to get a parsed raw config and path ownership */
+    leuko_raw_config_t *base = NULL;
+    int rc = leuko_config_load_file(path, &base, err);
+    if (rc != 0)
+    {
+        return false;
+    }
+
+    /* Collect parent chain (parents first) */
+    leuko_raw_config_t **parents = NULL;
+    size_t parent_count = 0;
+    rc = leuko_config_collect_inherit_chain(base, &parents, &parent_count, err);
+    if (rc != 0)
+    {
+        leuko_raw_config_free(base);
+        return false;
+    }
+
+    /* Build array of yaml_document_t* ordered parent-first, then base */
+    size_t doc_count = parent_count + 1;
+    yaml_document_t **docs = calloc(doc_count, sizeof(yaml_document_t *));
+    if (!docs)
     {
         if (err)
-        {
-            *err = read_err;
-        }
-        else
-        {
-            free(read_err);
-        }
+            *err = strdup("allocation failure");
+        leuko_raw_config_list_free(parents, parent_count);
+        leuko_raw_config_free(base);
         return false;
     }
+    for (size_t i = 0; i < parent_count; i++)
+        docs[i] = parents[i]->doc;
+    docs[parent_count] = base->doc;
 
-    /* Parse YAML */
-    yaml_parser_t parser;
-    yaml_document_t doc;
-    yaml_parser_initialize(&parser);
-    yaml_parser_set_input_string(&parser, (const unsigned char *)buf, (size_t)size);
-    if (!yaml_parser_load(&parser, &doc))
-    {
-        yaml_parser_delete(&parser);
-        free(buf);
-        return false;
-    }
+    /* Apply merged configuration across docs */
+    bool ok = apply_config_multi(docs, doc_count, cfg, err);
 
-    /* Apply configuration */
-    bool res = apply_config(&doc, cfg, err);
-
-    yaml_document_delete(&doc);
-    yaml_parser_delete(&parser);
-    free(buf);
-    return res;
+    free(docs);
+    leuko_raw_config_list_free(parents, parent_count);
+    leuko_raw_config_free(base);
+    return ok;
 }
+
+/* Backwards-compatible wrapper for single-document callers */
+bool apply_config(yaml_document_t *doc, config_t *cfg, char **err)
+{
+    if (!doc || !cfg)
+        return false;
+    yaml_document_t *docs[1];
+    docs[0] = doc;
+    return apply_config_multi(docs, 1, cfg, err);
+}
+

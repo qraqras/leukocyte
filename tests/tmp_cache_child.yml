@@ -1,0 +1,4 @@
+inherit_from: tmp_cache_parent.yml
+Layout:
+  SomeRule:
+    Enabled: false
