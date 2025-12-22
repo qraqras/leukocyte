@@ -5,7 +5,7 @@
 #include "configs/discovery/discover.h"
 #include "configs/discovery/raw_config.h"
 /* Access yaml helper helpers used in assertions */
-#include "configs/yaml_helpers.h"
+#include "configs/loader/yaml_helpers.h"
 
 static int write_file(const char *path, const char *content)
 {

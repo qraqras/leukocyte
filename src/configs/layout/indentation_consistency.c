@@ -2,7 +2,7 @@
 #include <yaml.h>
 
 #include "configs/layout/indentation_consistency.h"
-#include "configs/yaml_helpers.h"
+#include "configs/loader/yaml_helpers.h"
 #include "rule_registry.h"
 
 /**

@@ -13,7 +13,7 @@
 #include "configs/discovery/raw_config.h"
 #include "configs/loader/merge.h"
 #include "configs/loader/yaml_helpers.h"
-#include "configs/loader.h"
+#include "configs/loader/loader.h"
 
 static const char *candidates[] = {".rubocop.yml", "rubocop.yml"};
 static const size_t candidates_count = 2;

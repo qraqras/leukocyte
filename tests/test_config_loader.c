@@ -1,7 +1,7 @@
 // Tests for config loader apply_document
 #include <assert.h>
 #include <yaml.h>
-#include "configs/loader.h"
+#include "configs/loader/loader.h"
 #include "configs/rule_config.h"
 #include "configs/config.h"
 

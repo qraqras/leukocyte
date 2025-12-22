@@ -6,7 +6,7 @@
 
 #include "configs/rule_config.h"
 #include "configs/config.h"
-#include "configs/loader.h"
+#include "configs/loader/loader.h"
 #include "configs/loader/yaml_helpers.h"
 #include "configs/discovery/raw_config.h"
 #include "configs/discovery/inherit.h"

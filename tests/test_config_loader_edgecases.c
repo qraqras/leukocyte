@@ -2,7 +2,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <yaml.h>
-#include "configs/loader.h"
+#include "configs/loader/loader.h"
 #include "configs/config.h"
 #include "rule_registry.h"
 #include "configs/layout/indentation_consistency.h"

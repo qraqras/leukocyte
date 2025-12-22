@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <yaml.h>
 
-#include "configs/yaml_helpers.h"
+#include "configs/loader/yaml_helpers.h"
 
 static yaml_document_t *load_doc(const char *input)
 {
