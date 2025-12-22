@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 #include "configs/discovery/inherit.h"
-#include "configs/loader/yaml_helpers.h"
+#include "configs/conversion/yaml_helpers.h"
 #include <sys/stat.h>
 
 /* Helper: join base dir and relative path (allocates returned string) */

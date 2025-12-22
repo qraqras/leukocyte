@@ -2,7 +2,7 @@
 #include <string.h>
 #include <strings.h>
 
-#include "configs/loader/yaml_helpers.h"
+#include "configs/conversion/yaml_helpers.h"
 #include "allocator/prism_xallocator.h"
 #include "severity.h"
 #include "configs/rule_config.h"

@@ -1,6 +1,6 @@
 #include <assert.h>
 #include <yaml.h>
-#include "configs/loader/loader.h"
+#include "configs/conversion/loader.h"
 #include "configs/rule_config.h"
 #include "configs/config.h"
 

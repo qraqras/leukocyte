@@ -59,10 +59,10 @@ set(SOURCES
     src/cli/formatter.c
     src/configs/config.c
     src/configs/layout/indentation_consistency.c
-    src/configs/loader/loader.c
+    src/configs/conversion/loader.c
     src/configs/discovery/raw_config.c
-    src/configs/loader/merge.c
-    src/configs/loader/yaml_helpers.c
+    src/configs/conversion/merge.c
+    src/configs/conversion/yaml_helpers.c
     src/configs/discovery/inherit.c
     src/configs/discovery/inherit_cache.c
     src/configs/discovery/discover.c
