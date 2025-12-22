@@ -83,7 +83,7 @@ yaml_node_t *yaml_get_mapping_node(const yaml_document_t *doc, yaml_node_t *mapp
  *         and it becomes invalid after `yaml_document_delete(&doc)` or when the
  *         document is otherwise destroyed or mutated.
  * @note - If the caller needs an owned copy, duplicate the string (e.g. with
- *         `strdup`) or use `yaml_get_merged_string` which returns an allocated copy.
+ *         `strdup`).
  */
 char *yaml_get_mapping_scalar_value(const yaml_document_t *doc, yaml_node_t *mapping_node, const char *key)
 {
