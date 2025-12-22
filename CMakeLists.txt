@@ -62,11 +62,11 @@ set(SOURCES
     src/configs/generated_config.c
     src/configs/yaml_helpers.c
     src/configs/loader.c
-    src/configs/raw_config.c
-    src/configs/inherit.c
-    src/configs/inherit_cache.c
+    src/configs/discovery/raw_config.c
+    src/configs/discovery/inherit.c
+    src/configs/discovery/inherit_cache.c
     src/configs/merge.c
-    src/configs/discover.c
+    src/configs/discovery/discover.c
     src/worker/jobs.c
     src/worker/pipeline.c
     src/category.c
