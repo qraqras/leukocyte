@@ -15,6 +15,12 @@ void initialize_config(config_t *cfg)
     }
     memset(cfg, 0, sizeof(*cfg));
 
+    /* Initialize AllCops fields */
+    cfg->all_include = NULL;
+    cfg->all_include_count = 0;
+    cfg->all_exclude = NULL;
+    cfg->all_exclude_count = 0;
+
 #define X(field, cat_name, sname, rule_ptr, ops_ptr) \
     do                                               \
     {                                                \
@@ -32,12 +38,12 @@ void initialize_config(config_t *cfg)
 }
 
 /**
- * @brief Get a pointer to a rule_config_t field by its index.
+ * @brief Get a pointer to a leuko_rule_config_t field by its index.
  * @param cfg Pointer to the config_t structure
- * @param idx Index of the rule_config_t field
- * @return Pointer to the rule_config_t field, or NULL if not found
+ * @param idx Index of the leuko_rule_config_t field
+ * @return Pointer to the leuko_rule_config_t field, or NULL if not found
  */
-rule_config_t *get_rule_config_by_index(config_t *cfg, size_t idx)
+leuko_rule_config_t *get_rule_config_by_index(config_t *cfg, size_t idx)
 {
     if (!cfg)
     {
@@ -61,8 +67,8 @@ rule_config_t *get_rule_config_by_index(config_t *cfg, size_t idx)
 }
 
 /**
- * @brief Get the total number of rule_config_t fields in config_t.
- * @return Total number of rule_config_t fields
+ * @brief Get the total number of leuko_rule_config_t fields in config_t.
+ * @return Total number of leuko_rule_config_t fields
  */
 size_t config_count(void)
 {
@@ -70,10 +76,10 @@ size_t config_count(void)
 }
 
 /**
- * @brief Free a rule_config_t structure.
- * @param cfg Pointer to the rule_config_t structure to free
+ * @brief Free a leuko_rule_config_t structure.
+ * @param cfg Pointer to the leuko_rule_config_t structure to free
  */
-static void free_rule_config(rule_config_t *cfg)
+static void free_rule_config(leuko_rule_config_t *cfg)
 {
     if (!cfg)
     {
@@ -121,4 +127,26 @@ void free_config(config_t *cfg)
     } while (0);
     LEUKO_RULES_LIST
 #undef X
+
+    /* Free AllCops lists */
+    if (cfg->all_include)
+    {
+        for (size_t i = 0; i < cfg->all_include_count; i++)
+        {
+            free(cfg->all_include[i]);
+        }
+        free(cfg->all_include);
+        cfg->all_include = NULL;
+        cfg->all_include_count = 0;
+    }
+    if (cfg->all_exclude)
+    {
+        for (size_t i = 0; i < cfg->all_exclude_count; i++)
+        {
+            free(cfg->all_exclude[i]);
+        }
+        free(cfg->all_exclude);
+        cfg->all_exclude = NULL;
+        cfg->all_exclude_count = 0;
+    }
 }

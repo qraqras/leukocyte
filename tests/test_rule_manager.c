@@ -30,7 +30,7 @@ int main(void)
 
     rule_t *expected_rule = reg[idx].rule;
 
-    rule_config_t *rcfg = get_rule_config_by_index(&cfg, idx);
+    leuko_rule_config_t *rcfg = get_rule_config_by_index(&cfg, idx);
     /* Exclude tests/bench files */
     rcfg->exclude = calloc(1, sizeof(char *));
     rcfg->exclude[0] = strdup("tests/bench/*");

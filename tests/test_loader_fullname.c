@@ -31,7 +31,7 @@ int main(void)
     bool ok = apply_config(doc, &cfg, NULL);
     assert(ok);
 
-    rule_config_t *r = get_rule_config_by_index(&cfg, 0);
+    leuko_rule_config_t *r = get_rule_config_by_index(&cfg, 0);
     assert(r);
     assert(r->enabled == false);
 

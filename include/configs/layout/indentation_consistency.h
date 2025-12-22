@@ -2,13 +2,12 @@
 #define LEUKOCYTE_CONFIGS_LAYOUT_INDENTATION_CONSISTENCY_H
 
 #include "configs/config.h"
-#include "configs/config_ops.h"
 
 #define CONFIG_KEY_OF_LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE "EnforcedStyle"
 #define CONFIG_VALUE_OF_LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_NORMAL "normal"
 #define CONFIG_VALUE_OF_LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_INDENTED_INTERNAL_METHODS "indented_internal_methods"
 
-extern struct config_ops layout_indentation_consistency_config_ops;
+extern struct leuko_rule_config_handlers_s layout_indentation_consistency_config_ops;
 
 /// @brief Indentation consistency enforced styles.
 /// @note default: LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_NORMAL
@@ -24,8 +23,10 @@ typedef struct layout_indentation_consistency_config_s
     indentation_consistency_enforced_style_t enforced_style;
 } layout_indentation_consistency_config_t;
 
-rule_config_t *layout_indentation_consistency_initialize(void);
-bool layout_indentation_consistency_apply(rule_config_t *config, const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, char **err);
+leuko_rule_config_t *layout_indentation_consistency_initialize(void);
 void layout_indentation_consistency_config_free(void *config);
+
+/* Multi-document apply only: implemented as layout_indentation_consistency_apply_multi */
+bool layout_indentation_consistency_apply_multi(leuko_rule_config_t *config, yaml_document_t **docs, size_t doc_count, const char *full_name, const char *category_name, const char *rule_name, char **err);
 
 #endif /* LEUKOCYTE_CONFIGS_LAYOUT_INDENTATION_CONSISTENCY_H */

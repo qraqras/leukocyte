@@ -217,6 +217,8 @@ bool leuko_has_glob_metachar(const char *pattern)
  * @param paths_count Input paths count
  * @param out_paths Outtut collected paths
  * @param out_count Output collected paths count
+ * @param excludes Exclude patterns array
+ * @param exclude_count Exclude patterns count
  * @param err Output error message on failure
  * @return true on success, false on failure
  */

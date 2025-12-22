@@ -124,211 +124,13 @@ char **yaml_get_mapping_sequence_values(const yaml_document_t *doc, yaml_node_t 
     return NULL;
 }
 
-/**
- * @brief Get a merged string value from rule, category, and allcops nodes.
- * @param doc Pointer to the yaml_document_t structure
- * @param rule_node Pointer to the rule yaml_node_t structure
- * @param category_node Pointer to the category yaml_node_t structure
- * @param allcops_node Pointer to the allcops yaml_node_t structure
- * @param key The key to search for
- * @param out Pointer to output string buffer
- * @return true if found, false otherwise
- */
-bool yaml_get_merged_string(const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, const char *key, char *out)
-{
-    const char *val = NULL;
-    if (rule_node)
-    {
-        val = yaml_get_mapping_scalar_value(doc, rule_node, key);
-    }
-    if (!val && category_node)
-    {
-        val = yaml_get_mapping_scalar_value(doc, category_node, key);
-    }
-    if (!val && allcops_node)
-    {
-        val = yaml_get_mapping_scalar_value(doc, allcops_node, key);
-    }
-
-    if (!val)
-    {
-        return false;
-    }
-
-    strcpy(out, val);
-    return true;
-}
-
-/**
- * @brief Get a merged boolean value from rule, category, and allcops nodes.
- * @param doc Pointer to the yaml_document_t structure
- * @param rule_node Pointer to the rule yaml_node_t structure
- * @param category_node Pointer to the category yaml_node_t structure
- * @param allcops_node Pointer to the allcops yaml_node_t structure
- * @param key The key to search for
- * @param out Pointer to output boolean variable
- * @return true if found, false otherwise
- */
-bool yaml_get_merged_bool(const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, const char *key, bool *out)
-{
-    const char *s = NULL;
-    if (rule_node)
-    {
-        s = yaml_get_mapping_scalar_value(doc, rule_node, key);
-    }
-    if (!s && category_node)
-    {
-        s = yaml_get_mapping_scalar_value(doc, category_node, key);
-    }
-    if (!s && allcops_node)
-    {
-        s = yaml_get_mapping_scalar_value(doc, allcops_node, key);
-    }
-    if (!s)
-    {
-        return false;
-    }
-    /* RuboCop-compatible: accept common YAML boolean forms case-insensitively.
-     * Accept true:  true, 1, yes, on, y
-     * Accept false: false, 0, no, off, n
-     * If node has YAML_BOOL_TAG it is still handled via the same token mapping.
-     */
-    if (strcasecmp(s, "true") == 0 || strcmp(s, "1") == 0 || strcasecmp(s, "yes") == 0 || strcasecmp(s, "on") == 0 || strcasecmp(s, "y") == 0)
-    {
-        *out = true;
-    }
-    else if (strcasecmp(s, "false") == 0 || strcmp(s, "0") == 0 || strcasecmp(s, "no") == 0 || strcasecmp(s, "off") == 0 || strcasecmp(s, "n") == 0)
-    {
-        *out = false;
-    }
-    else
-    {
-        /* Unknown scalar for boolean: treat as false but report presence */
-        *out = false;
-    }
-    return true;
-}
-
-/**
- * @brief Get a merged sequence of strings from rule, category, and allcops nodes.
- * @param doc Pointer to the yaml_document_t structure
- * @param rule_node Pointer to the rule yaml_node_t structure
- * @param category_node Pointer to the category yaml_node_t structure
- * @param allcops_node Pointer to the allcops yaml_node_t structure
- * @param key The key to search for
- * @param out Pointer to output array of strings
- * @param count Pointer to output count of elements
- * @return true if any scalar elements were merged, false otherwise
- */
-bool yaml_get_merged_sequence(const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, const char *key, char ***out, size_t *count)
-{
-    if (!count || !out)
-    {
-        return false;
-    }
-
-    char **acc = NULL;
-    size_t total = 0;
-
-    size_t cnt = 0;
-    char **arr = NULL;
-    arr = yaml_get_mapping_sequence_values(doc, allcops_node, key, &cnt);
-    if (arr)
-    {
-        size_t new_total = total + cnt;
-        char **tmp = realloc(acc, new_total * sizeof(char *));
-        if (!tmp)
-        {
-            /* cleanup */
-            for (size_t i = 0; i < cnt; i++)
-                free(arr[i]);
-            free(arr);
-            for (size_t i = 0; i < total; i++)
-                free(acc[i]);
-            free(acc);
-            *count = 0;
-            *out = NULL;
-            return false;
-        }
-        acc = tmp;
-        for (size_t i = 0; i < cnt; i++)
-        {
-            acc[total + i] = strdup(arr[i]);
-            free(arr[i]);
-        }
-        total = new_total;
-        free(arr);
-    }
-    arr = yaml_get_mapping_sequence_values(doc, category_node, key, &cnt);
-    if (arr)
-    {
-        size_t new_total = total + cnt;
-        char **tmp = realloc(acc, new_total * sizeof(char *));
-        if (!tmp)
-        {
-            for (size_t i = 0; i < cnt; i++)
-                free(arr[i]);
-            free(arr);
-            for (size_t i = 0; i < total; i++)
-                free(acc[i]);
-            free(acc);
-            *count = 0;
-            *out = NULL;
-            return false;
-        }
-        acc = tmp;
-        for (size_t i = 0; i < cnt; i++)
-        {
-            acc[total + i] = strdup(arr[i]);
-            free(arr[i]);
-        }
-        total = new_total;
-        free(arr);
-    }
-    arr = yaml_get_mapping_sequence_values(doc, rule_node, key, &cnt);
-    if (arr)
-    {
-        size_t new_total = total + cnt;
-        char **tmp = realloc(acc, new_total * sizeof(char *));
-        if (!tmp)
-        {
-            for (size_t i = 0; i < cnt; i++)
-                free(arr[i]);
-            free(arr);
-            for (size_t i = 0; i < total; i++)
-                free(acc[i]);
-            free(acc);
-            *count = 0;
-            *out = NULL;
-            return false;
-        }
-        acc = tmp;
-        for (size_t i = 0; i < cnt; i++)
-        {
-            acc[total + i] = strdup(arr[i]);
-            free(arr[i]);
-        }
-        total = new_total;
-        free(arr);
-    }
-
-    if (!acc)
-    {
-        *count = 0;
-        *out = NULL;
-        return false;
-    }
-    *count = total;
-    *out = acc;
-    return true;
-}
-
 /* Multi-document helpers */
 /* Find scalar: search docs from child->parent and return first found (duplicate returned). */
-char *yaml_get_merged_rule_scalar_multi(yaml_document_t **docs, size_t doc_count, const char *full_name, const char *category_name, const char *key)
+bool yaml_get_merged_rule_scalar_multi(yaml_document_t **docs, size_t doc_count, const char *full_name, const char *category_name, const char *rule_name, const char *key, char **out)
 {
-    if (!docs || doc_count == 0 || !key)
-        return NULL;
+    if (!out || !docs || doc_count == 0 || !key)
+        return false;
+    *out = NULL;
     for (ssize_t di = (ssize_t)doc_count - 1; di >= 0; di--)
     {
         yaml_document_t *doc = docs[di];
@@ -338,13 +140,13 @@ char *yaml_get_merged_rule_scalar_multi(yaml_document_t **docs, size_t doc_count
 
         yaml_node_t *rule_node = yaml_get_mapping_node(doc, root, full_name);
         yaml_node_t *category_node = NULL;
-        if (!rule_node && category_name)
+        if (!rule_node && category_name && rule_name)
         {
             yaml_node_t *cat = yaml_get_mapping_node(doc, root, category_name);
             if (cat)
             {
                 category_node = cat;
-                rule_node = yaml_get_mapping_node(doc, cat, full_name ? strrchr(full_name, '/') ? strrchr(full_name, '/') + 1 : full_name : NULL);
+                rule_node = yaml_get_mapping_node(doc, cat, rule_name);
             }
         }
 
@@ -356,22 +158,23 @@ char *yaml_get_merged_rule_scalar_multi(yaml_document_t **docs, size_t doc_count
             val = yaml_get_mapping_scalar_value(doc, category_node, key);
         if (!val)
         {
-            yaml_node_t *allcops = yaml_get_mapping_node(doc, root, ALL_COPS);
+            yaml_node_t *allcops = yaml_get_mapping_node(doc, root, LEUKO_ALL_COPS);
             if (allcops)
                 val = yaml_get_mapping_scalar_value(doc, allcops, key);
         }
         if (val)
         {
-            return strdup(val);
+            *out = strdup(val);
+            return true;
         }
     }
-    return NULL;
+    return false;
 }
 
-bool yaml_get_merged_rule_bool_multi(yaml_document_t **docs, size_t doc_count, const char *full_name, const char *category_name, const char *key, bool *out)
+bool yaml_get_merged_rule_bool_multi(yaml_document_t **docs, size_t doc_count, const char *full_name, const char *category_name, const char *rule_name, const char *key, bool *out)
 {
-    char *s = yaml_get_merged_rule_scalar_multi(docs, doc_count, full_name, category_name, key);
-    if (!s)
+    char *s = NULL;
+    if (!yaml_get_merged_rule_scalar_multi(docs, doc_count, full_name, category_name, rule_name, key, &s))
         return false;
     bool res = false;
     if (strcasecmp(s, "true") == 0 || strcmp(s, "1") == 0 || strcasecmp(s, "yes") == 0 || strcasecmp(s, "on") == 0 || strcasecmp(s, "y") == 0)
@@ -386,7 +189,7 @@ bool yaml_get_merged_rule_bool_multi(yaml_document_t **docs, size_t doc_count, c
 }
 
 /* Concatenate sequences from docs in parent-first order. For each doc: allcops, category, rule */
-bool yaml_get_merged_rule_sequence_multi(yaml_document_t **docs, size_t doc_count, const char *full_name, const char *category_name, const char *key, char ***out, size_t *count)
+bool yaml_get_merged_rule_sequence_multi(yaml_document_t **docs, size_t doc_count, const char *full_name, const char *category_name, const char *rule_name, const char *key, char ***out, size_t *count)
 {
     if (!out || !count)
         return false;
@@ -400,7 +203,7 @@ bool yaml_get_merged_rule_sequence_multi(yaml_document_t **docs, size_t doc_coun
             continue;
 
         /* allcops */
-        yaml_node_t *allcops = yaml_get_mapping_node(doc, root, ALL_COPS);
+        yaml_node_t *allcops = yaml_get_mapping_node(doc, root, LEUKO_ALL_COPS);
         if (allcops)
         {
             size_t c = 0;
@@ -470,11 +273,11 @@ bool yaml_get_merged_rule_sequence_multi(yaml_document_t **docs, size_t doc_coun
 
         /* rule */
         yaml_node_t *rule_node = yaml_get_mapping_node(doc, root, full_name);
-        if (!rule_node && category_name)
+        if (!rule_node && category_name && rule_name)
         {
             yaml_node_t *cat = yaml_get_mapping_node(doc, root, category_name);
             if (cat)
-                rule_node = yaml_get_mapping_node(doc, cat, full_name ? strrchr(full_name, '/') ? strrchr(full_name, '/') + 1 : full_name : NULL);
+                rule_node = yaml_get_mapping_node(doc, cat, rule_name);
         }
         if (rule_node)
         {
@@ -507,68 +310,4 @@ bool yaml_get_merged_rule_sequence_multi(yaml_document_t **docs, size_t doc_coun
         }
     }
     return (*count > 0);
-}
-
-/**
- * @brief Get merged Enabled (rule -> category -> allcops).
- * @param doc Pointer to the yaml_document_t structure
- * @param rule_node Pointer to the rule yaml_node_t structure
- * @param category_node Pointer to the category yaml_node_t structure
- * @param allcops_node Pointer to the allcops yaml_node_t structure
- * @param out Pointer to a bool to store the result
- * @return true if a boolean was successfully retrieved, false otherwise
- */
-bool yaml_get_merged_enabled(const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, bool *out)
-{
-    return yaml_get_merged_bool(doc, rule_node, category_node, allcops_node, CONFIG_KEY_ENABLED, out);
-}
-
-/**
- * @brief Get merged Severity (rule -> category -> allcops).
- * @param doc Pointer to the yaml_document_t structure
- * @param rule_node Pointer to the rule yaml_node_t structure
- * @param category_node Pointer to the category yaml_node_t structure
- * @param allcops_node Pointer to the allcops yaml_node_t structure
- * @param out Pointer to a leuko_severity_level_t to store the result
- * @return true if a severity level was successfully retrieved, false otherwise
- */
-bool yaml_get_merged_severity(const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, leuko_severity_level_t *out)
-{
-    // First get the string value
-    char buf[64];
-    if (!yaml_get_merged_string(doc, rule_node, category_node, allcops_node, CONFIG_KEY_SEVERITY, buf))
-    {
-        return false;
-    }
-    return leuko_severity_level_from_string(buf, out);
-}
-
-/**
- * @brief Get merged Include (rule -> category -> allcops).
- * @param doc Pointer to the yaml_document_t structure
- * @param rule_node Pointer to the rule yaml_node_t structure
- * @param category_node Pointer to the category yaml_node_t structure
- * @param allcops_node Pointer to the allcops yaml_node_t structure
- * @param out Pointer to a char** to store the result
- * @param count Pointer to a size_t to store the count
- * @return true if a sequence was successfully retrieved, false otherwise
- */
-bool yaml_get_merged_include(const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, char ***out, size_t *count)
-{
-    return yaml_get_merged_sequence(doc, rule_node, category_node, allcops_node, CONFIG_KEY_INCLUDE, out, count);
-}
-
-/**
- * @brief Get merged Exclude (rule -> category -> allcops).
- * @param doc Pointer to the yaml_document_t structure
- * @param rule_node Pointer to the rule yaml_node_t structure
- * @param category_node Pointer to the category yaml_node_t structure
- * @param allcops_node Pointer to the allcops yaml_node_t structure
- * @param out Pointer to a char** to store the result
- * @param count Pointer to a size_t to store the count
- * @return true if a sequence was successfully retrieved, false otherwise
- */
-bool yaml_get_merged_exclude(const yaml_document_t *doc, yaml_node_t *rule_node, yaml_node_t *category_node, yaml_node_t *allcops_node, char ***out, size_t *count)
-{
-    return yaml_get_merged_sequence(doc, rule_node, category_node, allcops_node, CONFIG_KEY_EXCLUDE, out, count);
 }

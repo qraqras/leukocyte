@@ -29,7 +29,7 @@ bool check_def(pm_node_t *node, const rule_context_t *ctx)
         return true; // No body to check
     }
 
-    const rule_config_t *indentation_consistency_cfg = cfg->layout_indentation_consistency->specific_config;
+    const leuko_rule_config_t *indentation_consistency_cfg = cfg->layout_indentation_consistency->specific_config;
 
     if (PM_NODE_TYPE_P(body, PM_STATEMENTS_NODE))
     {

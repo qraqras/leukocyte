@@ -3,20 +3,25 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <yaml.h>
 
+#include "prism.h"
 #include "severity.h"
 
-/* Configs */
+/* Config Keys */
 /* clang-format off */
-#define ALL_COPS            "AllCops"
-#define INHERIT_FROM        "inherit_from"
-#define CONFIG_KEY_ENABLED  "Enabled"
-#define CONFIG_KEY_SEVERITY "Severity"
-#define CONFIG_KEY_INCLUDE  "Include"
-#define CONFIG_KEY_EXCLUDE  "Exclude"
+#define LEUKO_ALL_COPS            "AllCops"
+#define LEUKO_INHERIT_FROM        "inherit_from"
+#define LEUKO_CONFIG_KEY_ENABLED  "Enabled"
+#define LEUKO_CONFIG_KEY_SEVERITY "Severity"
+#define LEUKO_CONFIG_KEY_INCLUDE  "Include"
+#define LEUKO_CONFIG_KEY_EXCLUDE  "Exclude"
 /* clang-format on */
 
-typedef struct rule_config_s
+/**
+ * @brief Rule configuration structure.
+ */
+typedef struct leuko_rule_config_s
 {
     bool enabled;
     leuko_severity_level_t severity_level;
@@ -26,6 +31,15 @@ typedef struct rule_config_s
     size_t exclude_count;
     void *specific_config;
     void (*specific_config_free)(void *);
-} rule_config_t;
+} leuko_rule_config_t;
+
+/**
+ * @brief Rule configuration handlers structure.
+ */
+typedef struct leuko_rule_config_handlers_s
+{
+    leuko_rule_config_t *(*initialize)(void);
+    bool (*apply_yaml)(leuko_rule_config_t *config, yaml_document_t **docs, size_t doc_count, const char *full_name, const char *category_name, const char *rule_name, char **err);
+} leuko_rule_config_handlers_t;
 
 #endif /* LEUKOCYTE_CONFIGS_CONFIG_H */

@@ -34,7 +34,7 @@ int main(void)
     assert(ok);
 
     // check indentation rule (index 0)
-    rule_config_t *r = get_rule_config_by_index(&cfg, 0);
+    leuko_rule_config_t *r = get_rule_config_by_index(&cfg, 0);
     assert(r);
     // Enabled set to false
     assert(r->enabled == false);

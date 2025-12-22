@@ -33,7 +33,7 @@ int main(void)
     bool ok = load_config_file_into(&cfg, "tests/tmp_child.yml", &err);
     assert(ok);
 
-    rule_config_t *r = get_rule_config_by_index(&cfg, 0);
+    leuko_rule_config_t *r = get_rule_config_by_index(&cfg, 0);
     assert(r);
     /* Enabled should be child value (false) */
     assert(r->enabled == false);

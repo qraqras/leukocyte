@@ -29,11 +29,15 @@ int main(void)
     yaml_node_t *root1 = yaml_document_get_root_node(doc1);
 
     char buf[64];
-    bool found = yaml_get_merged_string(doc1, NULL, NULL, root1, "SomeKey", buf);
-    assert(found == true && strcmp(buf, "value") == 0);
+    yaml_document_t *docs1[1] = {doc1};
+    char *s = NULL;
+    bool found = yaml_get_merged_rule_scalar_multi(docs1, 1, "SomeKey", NULL, "SomeKey", "SomeKey", &s);
+    assert(found == true && s && strcmp(s, "value") == 0);
+    free(s);
 
-    found = yaml_get_merged_string(doc1, NULL, NULL, root1, "somekey", buf);
-    assert(found == false);
+    char *s2 = NULL;
+    found = yaml_get_merged_rule_scalar_multi(docs1, 1, "SomeKey", NULL, "SomeKey", "somekey", &s2);
+    assert(found == false && s2 == NULL);
 
     yaml_document_delete(doc1);
     free(doc1);
@@ -42,10 +46,10 @@ int main(void)
     const char *yaml2 = "Enabled: True\n";
     yaml_document_t *doc2 = load_doc(yaml2);
     assert(doc2);
-    yaml_node_t *root2 = yaml_document_get_root_node(doc2);
+    yaml_document_t *docs2[1] = {doc2};
 
     bool out = false;
-    bool ok = yaml_get_merged_bool(doc2, NULL, NULL, root2, "Enabled", &out);
+    bool ok = yaml_get_merged_rule_bool_multi(docs2, 1, "SomeRule", NULL, "SomeRule", "Enabled", &out);
     /* 'True' should be parsed as true under RuboCop semantics */
     assert(ok == true);
     assert(out == true);
@@ -54,22 +58,10 @@ int main(void)
     const char *yaml3 = "AllCops:\n  Enabled: true\n";
     yaml_document_t *doc3 = load_doc(yaml3);
     assert(doc3);
-    yaml_node_t *root3 = yaml_document_get_root_node(doc3);
-    // find AllCops mapping under root3
-    yaml_node_t *allcops_node = NULL;
-    if (root3->type == YAML_MAPPING_NODE)
-    {
-        for (yaml_node_pair_t *p = root3->data.mapping.pairs.start; p < root3->data.mapping.pairs.top; p++)
-        {
-            yaml_node_t *k = yaml_document_get_node(doc3, p->key);
-            yaml_node_t *v = yaml_document_get_node(doc3, p->value);
-            if (k && k->type == YAML_SCALAR_NODE && strcmp((char *)k->data.scalar.value, "AllCops") == 0)
-                allcops_node = v;
-        }
-    }
-    assert(allcops_node);
+    yaml_document_t *docs3[1] = {doc3};
+
     out = false;
-    ok = yaml_get_merged_bool(doc3, NULL, NULL, allcops_node, "Enabled", &out);
+    ok = yaml_get_merged_rule_bool_multi(docs3, 1, "SomeRule", NULL, "SomeRule", "Enabled", &out);
     assert(ok == true);
     assert(out == true);
 

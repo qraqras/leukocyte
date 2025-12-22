@@ -55,16 +55,12 @@ int main(int argc, char *argv[])
 
     init_rules();
 
-    /* Expose formatter to pipeline via extern (simple bridge) */
-    extern int leuko_cli_formatter;
-    leuko_cli_formatter = (int)cli_opts.formatter;
-
     // **** RUBY FILE COLLECTION ****
     char **ruby_files = NULL;
     size_t ruby_files_count = 0;
     char *scan_err = NULL;
-    bool res = leuko_collect_ruby_files(cli_opts.paths, cli_opts.paths_count, &ruby_files, &ruby_files_count, &scan_err);
-    if (!res)
+
+    if (!leuko_collect_ruby_files(cli_opts.paths, cli_opts.paths_count, &ruby_files, &ruby_files_count, &scan_err))
     {
         fprintf(stderr, "Error collecting Ruby files: %s\n", scan_err ? scan_err : "unknown");
         free(scan_err);

@@ -46,32 +46,26 @@ int main(void)
     }
     assert(indent);
 
-    char val[128];
-    bool ok = yaml_get_merged_string(doc, indent, layout, root, "EnforcedStyle", val);
-    assert(ok == true && strcmp(val, "indented_internal_methods") == 0);
+    /* Use multi helpers (single doc in docs array) */
+    yaml_document_t *docs1[1] = {doc};
 
-    bool b = false;
-    ok = yaml_get_merged_bool(doc, indent, layout, root, "NotExist", &b);
-    assert(ok == false);
+    char *sval = NULL;
+    bool ok = yaml_get_merged_rule_scalar_multi(docs1, 1, "Layout/IndentationConsistency", "Layout", "IndentationConsistency", "EnforcedStyle", &sval);
+    assert(ok == true && sval && strcmp(sval, "indented_internal_methods") == 0);
+    free(sval);
+
+    char *snot = NULL;
+    ok = yaml_get_merged_rule_scalar_multi(docs1, 1, "Layout/IndentationConsistency", "Layout", "IndentationConsistency", "NotExist", &snot);
+    assert(ok == false && snot == NULL);
 
     /* Additional boolean parsing checks */
     const char *yaml_bool = "AllCops:\n  Enabled: false\n";
     yaml_document_t *doc_bool = load_doc(yaml_bool);
     assert(doc_bool);
-    yaml_node_t *root_bool = yaml_document_get_root_node(doc_bool);
-    // find AllCops mapping under root_bool
-    yaml_node_t *allcops_bool = NULL;
-    for (yaml_node_pair_t *p = root_bool->data.mapping.pairs.start; p < root_bool->data.mapping.pairs.top; p++)
-    {
-        yaml_node_t *k = yaml_document_get_node(doc_bool, p->key);
-        yaml_node_t *v = yaml_document_get_node(doc_bool, p->value);
-        if (k && k->type == YAML_SCALAR_NODE && strcmp((char *)k->data.scalar.value, "AllCops") == 0)
-            allcops_bool = v;
-    }
-    assert(allcops_bool);
 
+    yaml_document_t *docs2[1] = {doc_bool};
     bool out = true;
-    ok = yaml_get_merged_bool(doc_bool, NULL, NULL, allcops_bool, "Enabled", &out);
+    ok = yaml_get_merged_rule_bool_multi(docs2, 1, "Layout/IndentationConsistency", "Layout", "IndentationConsistency", "Enabled", &out);
     assert(ok == true && out == false);
 
     /* various accepted true/false tokens (case-insensitive) */
@@ -80,9 +74,9 @@ int main(void)
     {
         yaml_document_t *d = load_doc(yaml_true_variants[i]);
         assert(d);
-        yaml_node_t *r = yaml_document_get_root_node(d);
+        yaml_document_t *docs3[1] = {d};
         bool val = false;
-        ok = yaml_get_merged_bool(d, NULL, NULL, r, "Enabled", &val);
+        ok = yaml_get_merged_rule_bool_multi(docs3, 1, "Layout/IndentationConsistency", "Layout", "IndentationConsistency", "Enabled", &val);
         assert(ok == true && val == true);
         yaml_document_delete(d);
         free(d);
@@ -93,9 +87,9 @@ int main(void)
     {
         yaml_document_t *d = load_doc(yaml_false_variants[i]);
         assert(d);
-        yaml_node_t *r = yaml_document_get_root_node(d);
+        yaml_document_t *docs4[1] = {d};
         bool val = true;
-        ok = yaml_get_merged_bool(d, NULL, NULL, r, "Enabled", &val);
+        ok = yaml_get_merged_rule_bool_multi(docs4, 1, "Layout/IndentationConsistency", "Layout", "IndentationConsistency", "Enabled", &val);
         assert(ok == true && val == false);
         yaml_document_delete(d);
         free(d);
@@ -105,10 +99,8 @@ int main(void)
     free(doc_bool);
 
     size_t count = 0;
-    fprintf(stderr, "debug: about to get sequence\n");
     char **arr = NULL;
-    ok = yaml_get_merged_sequence(doc, indent, layout, root, "Include", &arr, &count);
-    fprintf(stderr, "debug: got sequence ok=%d count=%zu arr=%p\n", ok, count, (void *)arr);
+    ok = yaml_get_merged_rule_sequence_multi(docs1, 1, "Layout/IndentationConsistency", "Layout", "IndentationConsistency", "Include", &arr, &count);
     assert(ok == true && arr && count == 2);
     free(arr[0]);
     free(arr[1]);

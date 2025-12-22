@@ -283,7 +283,7 @@ bool build_rules_by_type_for_file(const config_t *cfg, const char *file_path, ru
     {
         const rule_registry_entry_t *entry = &registry[i];
         rule_t *r = entry->rule;
-        rule_config_t *rcfg = get_rule_config_by_index((config_t *)cfg, i);
+        leuko_rule_config_t *rcfg = get_rule_config_by_index((config_t *)cfg, i);
 
         /* If no config or disabled, skip */
         if (!rcfg || !rcfg->enabled)
