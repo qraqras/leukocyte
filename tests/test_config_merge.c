@@ -3,7 +3,7 @@
 #include <string.h>
 #include "configs/rule_config.h"
 #include "configs/loader.h"
-#include "configs/raw_config.h"
+#include "configs/discovery/raw_config.h"
 
 static int write_file(const char *path, const char *content)
 {
