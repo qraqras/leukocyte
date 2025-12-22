@@ -13,6 +13,15 @@
  */
 int leuko_config_discover_for_file(const char *file_path, const char *cli_config_path, leuko_raw_config_t **out_raw, char **err);
 
+/*
+ * Collect parent-first array of raw configs for a given config file path.
+ * - On success returns 0 and sets *out_raws (caller must free the array and its elements via
+ *   `leuko_raw_config_list_free(*out_raws, *out_raw_count)`) and sets *out_raw_count.
+ * - The caller can derive the corresponding `yaml_document_t*` array by selecting
+ *   `raws[i]->doc` for each returned raw.
+ */
+int leuko_config_collect_parent_docs_for_file(const char *path, leuko_raw_config_t ***out_raws, size_t *out_raw_count, char **err);
+
 /* Get a runtime `leuko_config_t` for `file_path` using discovery with caching.
  * - If a config is found, *out_cfg will be set to a pointer owned by the cache and
  *   valid until `leuko_config_clear_cache()` is called. If no config is found, *out_cfg

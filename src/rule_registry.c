@@ -4,7 +4,7 @@
 
 /* Build static registry from X-macro */
 #define X(field, cat_name, sname, rule_ptr, ops_ptr) \
-    {.category_name = cat_name, .rule_name = sname, .full_name = LEUKO_FULLNAME(cat_name, sname), .rule = rule_ptr, .ops = ops_ptr},
+    {.category_name = cat_name, .rule_name = sname, .full_name = LEUKO_FULLNAME(cat_name, sname), .rule = rule_ptr, .handlers = ops_ptr},
 static const rule_registry_entry_t rule_registry[] = {LEUKO_RULES_LIST};
 #undef X
 

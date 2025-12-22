@@ -57,10 +57,10 @@ static bool apply_config_multi(config_t *cfg, yaml_document_t **docs, size_t doc
         char *sev = NULL;
         if (yaml_get_merged_rule_scalar_multi(docs, doc_count, full_name, category_name, rule_name, LEUKO_CONFIG_KEY_SEVERITY, &sev))
         {
-            leuko_severity_level_t s;
+            leuko_severity_t s;
             if (leuko_severity_level_from_string(sev, &s))
             {
-                rcfg->severity_level = s;
+                rcfg->severity = s;
             }
             free(sev);
         }
@@ -92,9 +92,9 @@ static bool apply_config_multi(config_t *cfg, yaml_document_t **docs, size_t doc
         }
 
         /* Apply specific configuration via multi-document apply */
-        if (entry->ops && entry->ops->apply_yaml)
+        if (entry->handlers && entry->handlers->apply_yaml)
         {
-            if (!entry->ops->apply_yaml(rcfg, docs, doc_count, full_name, category_name, rule_name, err))
+            if (!entry->handlers->apply_yaml(rcfg, docs, doc_count, full_name, category_name, rule_name, err))
             {
                 if (!(err && *err))
                 {
@@ -122,43 +122,23 @@ bool config_apply_file(config_t *cfg, const char *path, char **err)
         return false;
     }
 
-    /* Use leuko_config_load_file to get a parsed raw config and path ownership */
-    leuko_raw_config_t *base = NULL;
-    int rc = leuko_config_load_file(path, &base, err);
+    /* Delegate discovery to discovery module: get parent-first raws and docs; raws[last] is base */
+    leuko_raw_config_t **raws = NULL;
+    size_t raw_count = 0;
+    yaml_document_t **docs = NULL;
+    size_t doc_count = 0;
+    int rc = leuko_config_collect_parent_docs_for_file(path, &raws, &raw_count, err);
     if (rc != 0)
     {
         return false;
     }
-
-    /* Collect parent chain (parents first) */
-    leuko_raw_config_t **parents = NULL;
-    size_t parent_count = 0;
-    rc = leuko_config_collect_inherit_chain(base, &parents, &parent_count, err);
-    if (rc != 0)
-    {
-        leuko_raw_config_free(base);
-        return false;
-    }
-
-    /* Build array of yaml_document_t* ordered parent-first, then base */
-    size_t doc_count = parent_count + 1;
-    yaml_document_t **docs = calloc(doc_count, sizeof(yaml_document_t *));
-    if (!docs)
-    {
-        if (err)
-            *err = strdup("allocation failure");
-        leuko_raw_config_list_free(parents, parent_count);
-        leuko_raw_config_free(base);
-        return false;
-    }
-    for (size_t i = 0; i < parent_count; i++)
-        docs[i] = parents[i]->doc;
-    docs[parent_count] = base->doc;
+    /* Do not allocate docs yet; iterate raws directly for AllCops extraction */
+    (void)docs; (void)doc_count;
 
     /* Extract AllCops Include/Exclude sequences in parent-first order into cfg->all_* */
-    for (size_t di = 0; di < doc_count; di++)
+    for (size_t di = 0; di < raw_count; di++)
     {
-        yaml_document_t *doc = docs[di];
+        yaml_document_t *doc = raws[di]->doc;
         yaml_node_t *root = yaml_document_get_root_node(doc);
         if (!root || root->type != YAML_MAPPING_NODE)
             continue;
@@ -174,8 +154,7 @@ bool config_apply_file(config_t *cfg, const char *path, char **err)
                 if (err)
                     *err = strdup("allocation failure");
                 free(docs);
-                leuko_raw_config_list_free(parents, parent_count);
-                leuko_raw_config_free(base);
+                leuko_raw_config_list_free(raws, raw_count);
                 return false;
             }
         }
@@ -188,19 +167,34 @@ bool config_apply_file(config_t *cfg, const char *path, char **err)
                 if (err)
                     *err = strdup("allocation failure");
                 free(docs);
-                leuko_raw_config_list_free(parents, parent_count);
-                leuko_raw_config_free(base);
+                leuko_raw_config_list_free(raws, raw_count);
                 return false;
             }
         }
     }
 
-    /* Apply merged configuration across docs */
+    /* Allocate docs array only when invoking apply */
+    if (raw_count == 0)
+    {
+        return true;
+    }
+
+    docs = calloc(raw_count, sizeof(yaml_document_t *));
+    if (!docs)
+    {
+        leuko_raw_config_list_free(raws, raw_count);
+        if (err)
+            *err = strdup("allocation failure");
+        return false;
+    }
+    for (size_t i = 0; i < raw_count; i++)
+        docs[i] = raws[i]->doc;
+    doc_count = raw_count;
+
     bool ok = apply_config_multi(cfg, docs, doc_count, err);
 
     free(docs);
-    leuko_raw_config_list_free(parents, parent_count);
-    leuko_raw_config_free(base);
+    leuko_raw_config_list_free(raws, raw_count);
     return ok;
 }
 

@@ -15,7 +15,7 @@
 /**
  * @brief Severity level enumeration.
  */
-typedef enum leuko_severity_level_e
+typedef enum leuko_severity_e
 {
     LEUKO_SEVERITY_INFO,
     LEUKO_SEVERITY_REFACTOR,
@@ -23,8 +23,8 @@ typedef enum leuko_severity_level_e
     LEUKO_SEVERITY_WARNING,
     LEUKO_SEVERITY_ERROR,
     LEUKO_SEVERITY_FATAL,
-} leuko_severity_level_t;
+} leuko_severity_t;
 
-bool leuko_severity_level_from_string(const char *s, leuko_severity_level_t *out);
+bool leuko_severity_level_from_string(const char *s, leuko_severity_t *out);
 
 #endif /* LEUKOCYTE_CONFIGS_SEVERITY_H */

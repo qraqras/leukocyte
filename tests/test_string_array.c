@@ -73,7 +73,7 @@ int main(void)
     /* src NULL/empty is no-op */
     printf("test: src NULL no-op\n");
     fflush(stdout);
-{
+    {
         bool ok = leuko_string_array_concat(&dest, &dest_count, NULL, 0);
         if (!ok)
         {
@@ -85,7 +85,7 @@ int main(void)
     /* invalid arguments */
     printf("test: invalid args\n");
     fflush(stdout);
-{
+    {
         /* All-NULL with src_count 0 is a no-op and should return true */
         bool ok = leuko_string_array_concat(NULL, NULL, NULL, 0);
         if (!ok)
@@ -112,4 +112,3 @@ int main(void)
     fflush(stdout);
     return 0;
 }
-

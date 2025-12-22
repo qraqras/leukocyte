@@ -16,11 +16,11 @@ typedef struct rule_s rule_t;
  */
 typedef struct rule_registry_entry_s
 {
-    const char *category_name;                      /* e.g., "Layout" */
-    const char *rule_name;                          /* e.g., "AccessModifierIndentation" */
-    const char *full_name;                          /* e.g., "Layout/AccessModifierIndentation" */
-    rule_t *rule;                                   /* Pointer to the rule instance */
-    const struct leuko_rule_config_handlers_s *ops; /* Pointer to the config operations */
+    const char *category_name;                           /* e.g., "Layout" */
+    const char *rule_name;                               /* e.g., "AccessModifierIndentation" */
+    const char *full_name;                               /* e.g., "Layout/AccessModifierIndentation" */
+    rule_t *rule;                                        /* Pointer to the rule instance */
+    const struct leuko_rule_config_handlers_s *handlers; /* Pointer to the config operations */
 } rule_registry_entry_t;
 
 const rule_registry_entry_t *leuko_get_rule_registry(void);

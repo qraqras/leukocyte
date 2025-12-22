@@ -48,7 +48,7 @@ int main(void)
     size_t idx = find_rule_index("Layout/IndentationConsistency");
     assert(idx != (size_t)-1);
     leuko_rule_config_t *cfgp = leuko_rule_config_get_by_index(&cfg, idx);
-    assert(cfgp->severity_level == LEUKO_SEVERITY_WARNING);
+    assert(cfgp->severity == LEUKO_SEVERITY_WARNING);
     yaml_document_delete(d1);
     free(d1);
     leuko_config_free(&cfg);
@@ -63,7 +63,7 @@ int main(void)
     assert(leuko_config_apply_docs(&cfg2, docs2, 1, NULL));
     leuko_rule_config_t *cfgp2 = leuko_rule_config_get_by_index(&cfg2, idx);
     // category should take precedence
-    assert(cfgp2->severity_level == LEUKO_SEVERITY_ERROR);
+    assert(cfgp2->severity == LEUKO_SEVERITY_ERROR);
     // enforced style from rule node
     layout_indentation_consistency_config_t *sc = (layout_indentation_consistency_config_t *)cfgp2->specific_config;
     assert(sc->enforced_style == LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_INDENTED_INTERNAL_METHODS);
@@ -99,7 +99,7 @@ int main(void)
     assert(leuko_config_apply_docs(&cfg4, docs4, 1, &err));
     leuko_rule_config_t *cfgp4 = leuko_rule_config_get_by_index(&cfg4, idx);
     // Because rule-level Severity is not scalar, merged string lookup should fall back to category/allcops -> warning
-    assert(cfgp4->severity_level == LEUKO_SEVERITY_WARNING);
+    assert(cfgp4->severity == LEUKO_SEVERITY_WARNING);
     // diagnostics should NOT have an entry (we do not emit diagnostics for non-scalar Severity)
     const char *msg = err;
     assert(msg == NULL);
@@ -117,7 +117,7 @@ int main(void)
     yaml_document_t *docs_refactor[1] = {d_refactor};
     assert(leuko_config_apply_docs(&cfg_refactor, docs_refactor, 1, NULL));
     leuko_rule_config_t *cfgp_refactor = leuko_rule_config_get_by_index(&cfg_refactor, idx);
-    assert(cfgp_refactor->severity_level == LEUKO_SEVERITY_REFACTOR);
+    assert(cfgp_refactor->severity == LEUKO_SEVERITY_REFACTOR);
     yaml_document_delete(d_refactor);
     free(d_refactor);
     leuko_config_free(&cfg_refactor);
@@ -131,7 +131,7 @@ int main(void)
     yaml_document_t *docs_fatal[1] = {d_fatal};
     assert(leuko_config_apply_docs(&cfg_fatal, docs_fatal, 1, NULL));
     leuko_rule_config_t *cfgp_fatal = leuko_rule_config_get_by_index(&cfg_fatal, idx);
-    assert(cfgp_fatal->severity_level == LEUKO_SEVERITY_FATAL);
+    assert(cfgp_fatal->severity == LEUKO_SEVERITY_FATAL);
     yaml_document_delete(d_fatal);
     free(d_fatal);
     leuko_config_free(&cfg_fatal);

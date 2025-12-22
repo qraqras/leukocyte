@@ -2,10 +2,11 @@
 #include <string.h>
 #include <strings.h>
 
-#include "configs/conversion/yaml_helpers.h"
 #include "allocator/prism_xallocator.h"
 #include "severity.h"
 #include "configs/rule_config.h"
+#include "configs/conversion/yaml_helpers.h"
+#include "configs/discovery/raw_config.h"
 
 /**
  * @brief Convert a YAML sequence node to an array of strings.

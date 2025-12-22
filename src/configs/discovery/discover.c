@@ -11,6 +11,7 @@
 
 #include "configs/discovery/discover.h"
 #include "configs/discovery/raw_config.h"
+#include "configs/discovery/inherit.h"
 #include "configs/conversion/merge.h"
 #include "configs/conversion/yaml_helpers.h"
 #include "configs/conversion/loader.h"
@@ -243,16 +244,70 @@ merge_and_return:
     return 0;
 }
 
+/*
+ * Collect parent-first docs for an explicit config file path. The caller is
+ * responsible for freeing the returned docs array (free()), freeing the
+ * base via leuko_raw_config_free(), and freeing parents via
+ * leuko_raw_config_list_free().
+ */
+int leuko_config_collect_parent_docs_for_file(const char *path, leuko_raw_config_t ***out_raws, size_t *out_raw_count, char **err)
+{
+    if (!path || !out_raws || !out_raw_count)
+    {
+        if (err)
+            *err = strdup("invalid arguments");
+        return 1;
+    }
+
+    leuko_raw_config_t *base = NULL;
+    int rc = leuko_config_load_file(path, &base, err);
+    if (rc != 0)
+        return rc;
+
+    leuko_raw_config_t **parents = NULL;
+    size_t parent_count = 0;
+    rc = leuko_config_collect_inherit_chain(base, &parents, &parent_count, err);
+    if (rc != 0)
+    {
+        leuko_raw_config_free(base);
+        return rc;
+    }
+
+    /* Combine parents and base into a single parent-first raws array where the last element is base */
+    size_t raw_count = parent_count + 1;
+    leuko_raw_config_t **raws = calloc(raw_count, sizeof(leuko_raw_config_t *));
+    if (!raws)
+    {
+        if (parents)
+            free(parents); /* parents elements are freed below if necessary */
+        leuko_raw_config_free(base);
+        if (err)
+            *err = strdup("allocation failure");
+        return 1;
+    }
+    for (size_t i = 0; i < parent_count; i++)
+        raws[i] = parents[i];
+    raws[parent_count] = base;
+
+    /* Free the parents array container (we transferred ownership of elements into raws) */
+    if (parents)
+        free(parents);
+
+    *out_raws = raws;
+    *out_raw_count = raw_count;
+    return 0;
+}
+
 /* ---- Simple runtime cache for per-directory leuko_config_t derived from discovery ---- */
 
 #include <pthread.h>
 
 typedef struct
 {
-    char *start_dir;   /* starting directory used for discovery */
-    char *config_path; /* path to nearest config file used */
-    time_t mtime;      /* mtime of config_path when cached */
-    leuko_config_t cfg;      /* runtime config (initialized via apply_config) */
+    char *start_dir;    /* starting directory used for discovery */
+    char *config_path;  /* path to nearest config file used */
+    time_t mtime;       /* mtime of config_path when cached */
+    leuko_config_t cfg; /* runtime config (initialized via apply_config) */
 } cfg_cache_entry_t;
 
 static cfg_cache_entry_t *cfg_cache = NULL;

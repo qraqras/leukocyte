@@ -24,7 +24,7 @@
 typedef struct leuko_rule_config_s
 {
     bool enabled;
-    leuko_severity_level_t severity_level;
+    leuko_severity_t severity;
     char **include;
     size_t include_count;
     char **exclude;
