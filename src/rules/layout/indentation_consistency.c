@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #include "prism/ast.h"
-#include "configs/generated_config.h"
+#include "configs/config.h"
 #include "configs/layout/indentation_consistency.h"
 #include "rules/layout/indentation_consistency.h"
 #include "rules/rule.h"

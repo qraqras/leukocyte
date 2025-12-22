@@ -7,7 +7,7 @@
 #include "rules/rule.h"
 #include "rule_registry.h"
 #include "rules/rule_manager.h"
-#include "configs/generated_config.h"
+#include "configs/config.h"
 
 typedef struct
 {

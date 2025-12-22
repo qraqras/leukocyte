@@ -4,7 +4,7 @@
 #include <stddef.h>
 
 #include "category.h"
-#include "configs/config.h"
+#include "configs/rule_config.h"
 
 /**
  * @brief Rule structure forward declaration.

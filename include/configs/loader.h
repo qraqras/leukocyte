@@ -3,8 +3,8 @@
 
 #include <stdbool.h>
 #include <yaml.h>
+#include "configs/rule_config.h"
 #include "configs/config.h"
-#include "configs/generated_config.h"
 #include "prism.h"
 
 bool load_config_file_into(config_t *cfg, const char *path, char **err);

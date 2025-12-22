@@ -6,7 +6,7 @@
 
 #include "configs/yaml_helpers.h"
 #include "configs/merge.h"
-#include "configs/config.h"
+#include "configs/rule_config.h"
 
 /* Simple merged-node representation */
 typedef enum

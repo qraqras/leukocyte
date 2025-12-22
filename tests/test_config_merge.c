@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "configs/config.h"
+#include "configs/rule_config.h"
 #include "configs/loader.h"
 #include "configs/raw_config.h"
 

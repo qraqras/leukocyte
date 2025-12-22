@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "configs/generated_config.h"
+#include "configs/config.h"
 
 int main(void)
 {

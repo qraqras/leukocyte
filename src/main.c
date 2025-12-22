@@ -10,7 +10,7 @@
 #include "parse.h"
 #include "leukocyte.h"
 #include "prism_xallocator.h"
-#include "configs/generated_config.h"
+#include "configs/config.h"
 #include "configs/loader.h"
 #include "rules/rule_manager.h"
 #include "prism/diagnostic.h"

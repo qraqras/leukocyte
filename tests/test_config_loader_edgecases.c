@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <yaml.h>
 #include "configs/loader.h"
-#include "configs/generated_config.h"
+#include "configs/config.h"
 #include "rule_registry.h"
 #include "configs/layout/indentation_consistency.h"
 

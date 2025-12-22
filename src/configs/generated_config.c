@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
-#include "configs/generated_config.h"
+#include "configs/config.h"
 #include "rule_registry.h"
 
 /**

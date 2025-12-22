@@ -6,7 +6,7 @@
 #include <unistd.h>
 
 #include "configs/discover.h"
-#include "configs/generated_config.h"
+#include "configs/config.h"
 
 int main(void)
 {

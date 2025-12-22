@@ -5,7 +5,7 @@
 #include "configs/yaml_helpers.h"
 #include "allocator/prism_xallocator.h"
 #include "severity.h"
-#include "configs/config.h"
+#include "configs/rule_config.h"
 
 /**
  * @brief Convert a YAML sequence node to an array of strings.
