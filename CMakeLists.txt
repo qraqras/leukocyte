@@ -63,6 +63,7 @@ set(SOURCES
     src/configs/discovery/raw_config.c
     src/configs/conversion/merge.c
     src/configs/conversion/yaml_helpers.c
+    src/util/string_array.c
     src/configs/discovery/inherit.c
     src/configs/discovery/inherit_cache.c
     src/configs/discovery/discover.c
@@ -102,6 +103,11 @@ add_test(NAME test_generated_config COMMAND test_generated_config)
 add_executable(test_yaml_helpers tests/test_yaml_helpers.c)
 target_link_libraries(test_yaml_helpers PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
 add_test(NAME test_yaml_helpers COMMAND test_yaml_helpers)
+
+# String array tests
+add_executable(test_string_array tests/test_string_array.c)
+target_link_libraries(test_string_array PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
+add_test(NAME test_string_array COMMAND test_string_array)
 
 # Rule registry test
 add_executable(test_rule_registry tests/test_rule_registry.c)

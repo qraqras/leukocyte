@@ -12,6 +12,7 @@
 #include "configs/discovery/inherit.h"
 #include "io/file.h"
 #include "rule_registry.h"
+#include "util/string_array.h"
 
 /**
  * @brief Apply a YAML document to a config_t structure.
@@ -20,36 +21,8 @@
  * @param err Pointer to a char buffer for error messages
  * @return true if successful, false otherwise
  */
-static bool append_string_array(char ***dest, size_t *dest_count, char **src, size_t src_count)
-{
-    if (!src || src_count == 0)
-        return true;
-    if (!dest || !dest_count)
-        return false;
 
-    if (*dest == NULL)
-    {
-        *dest = src;
-        *dest_count = src_count;
-        return true;
-    }
-
-    char **tmp = realloc(*dest, (*dest_count + src_count) * sizeof(char *));
-    if (!tmp)
-    {
-        return false;
-    }
-    *dest = tmp;
-    for (size_t i = 0; i < src_count; i++)
-    {
-        (*dest)[*dest_count + i] = src[i];
-    }
-    *dest_count += src_count;
-    free(src);
-    return true;
-}
-
-static bool apply_config_multi(yaml_document_t **docs, size_t doc_count, config_t *cfg, char **err)
+bool config_apply_docs(config_t *cfg, yaml_document_t **docs, size_t doc_count, char **err)
 {
     if (!docs || doc_count == 0 || !cfg)
     {
@@ -97,7 +70,7 @@ static bool apply_config_multi(yaml_document_t **docs, size_t doc_count, config_
         size_t inc_count = 0;
         if (yaml_get_merged_rule_sequence_multi(docs, doc_count, full_name, category_name, rule_name, LEUKO_CONFIG_KEY_INCLUDE, &inc, &inc_count) && 0 < inc_count)
         {
-            if (!append_string_array(&rcfg->include, &rcfg->include_count, inc, inc_count))
+            if (!leuko_string_array_concat(&rcfg->include, &rcfg->include_count, inc, inc_count))
             {
                 if (err)
                     *err = strdup("allocation failure");
@@ -110,7 +83,7 @@ static bool apply_config_multi(yaml_document_t **docs, size_t doc_count, config_
         size_t exc_count = 0;
         if (yaml_get_merged_rule_sequence_multi(docs, doc_count, full_name, category_name, rule_name, LEUKO_CONFIG_KEY_EXCLUDE, &exc, &exc_count) && 0 < exc_count)
         {
-            if (!append_string_array(&rcfg->exclude, &rcfg->exclude_count, exc, exc_count))
+            if (!leuko_string_array_concat(&rcfg->exclude, &rcfg->exclude_count, exc, exc_count))
             {
                 if (err)
                     *err = strdup("allocation failure");
@@ -196,7 +169,7 @@ bool config_apply_file(config_t *cfg, const char *path, char **err)
         size_t inc_count = 0;
         if ((inc = yaml_get_mapping_sequence_values(doc, allcops, LEUKO_CONFIG_KEY_INCLUDE, &inc_count)) && inc_count > 0)
         {
-            if (!append_string_array(&cfg->all_include, &cfg->all_include_count, inc, inc_count))
+            if (!leuko_string_array_concat(&cfg->all_include, &cfg->all_include_count, inc, inc_count))
             {
                 if (err)
                     *err = strdup("allocation failure");
@@ -210,7 +183,7 @@ bool config_apply_file(config_t *cfg, const char *path, char **err)
         size_t exc_count = 0;
         if ((exc = yaml_get_mapping_sequence_values(doc, allcops, LEUKO_CONFIG_KEY_EXCLUDE, &exc_count)) && exc_count > 0)
         {
-            if (!append_string_array(&cfg->all_exclude, &cfg->all_exclude_count, exc, exc_count))
+            if (!leuko_string_array_concat(&cfg->all_exclude, &cfg->all_exclude_count, exc, exc_count))
             {
                 if (err)
                     *err = strdup("allocation failure");
@@ -222,8 +195,8 @@ bool config_apply_file(config_t *cfg, const char *path, char **err)
         }
     }
 
-    /* Apply merged configuration across docs */
-    bool ok = apply_config_multi(docs, doc_count, cfg, err);
+    /* Apply merged configuration across docs via public API */
+    bool ok = config_apply_docs(cfg, docs, doc_count, err);
 
     free(docs);
     leuko_raw_config_list_free(parents, parent_count);
