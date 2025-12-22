@@ -158,6 +158,11 @@ add_executable(test_config_merge tests/test_config_merge.c)
 target_link_libraries(test_config_merge PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
 add_test(NAME test_config_merge COMMAND test_config_merge)
 
+# Merge type-conflict tests
+add_executable(test_merge_type_conflict tests/test_merge_type_conflict.c)
+target_link_libraries(test_merge_type_conflict PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
+add_test(NAME test_merge_type_conflict COMMAND test_merge_type_conflict)
+
 
 # Inherit cache tests
 add_executable(test_config_inherit_cache tests/test_config_inherit_cache.c)
