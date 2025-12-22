@@ -30,7 +30,7 @@ int main(void)
     leuko_config_t cfg = {0};
     leuko_config_initialize(&cfg);
     char *err = NULL;
-    bool ok = load_config_file_into(&cfg, "tests/tmp_child.yml", &err);
+    bool ok = leuko_config_apply_file(&cfg, "tests/tmp_child.yml", &err);
     assert(ok);
 
     leuko_rule_config_t *r = leuko_rule_config_get_by_index(&cfg, 0);

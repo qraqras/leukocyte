@@ -46,9 +46,9 @@ int main(int argc, char *argv[])
     if (cli_opts.config_path)
     {
         char *cfg_err = NULL;
-        if (!load_config_file_into(&cfg, cli_opts.config_path, &cfg_err))
+        if (!leuko_config_apply_file(&cfg, cli_opts.config_path, &cfg_err))
         {
-            fprintf(stderr, "Failed to load config file: %s\n", cfg_err ? cfg_err : cli_opts.config_path);
+            fprintf(stderr, "Failed to apply config file: %s\n", cfg_err ? cfg_err : cli_opts.config_path);
         }
         free(cfg_err);
     }

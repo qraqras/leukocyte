@@ -142,7 +142,7 @@ static bool apply_config_multi(yaml_document_t **docs, size_t doc_count, leuko_c
  * @param err Pointer to a char buffer for error messages
  * @return true if successful, false otherwise
  */
-bool load_config_file_into(leuko_config_t *cfg, const char *path, char **err)
+bool leuko_config_apply_file(leuko_config_t *cfg, const char *path, char **err)
 {
     if (!cfg || !path)
     {
@@ -237,7 +237,3 @@ bool leuko_config_apply_docs(leuko_config_t *cfg, yaml_document_t **docs, size_t
     return apply_config_multi(docs, doc_count, cfg, err);
 }
 
-bool leuko_config_apply_file(leuko_config_t *cfg, const char *path, char **err)
-{
-    return load_config_file_into(cfg, path, err);
-}

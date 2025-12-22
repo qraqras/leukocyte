@@ -142,7 +142,7 @@ static bool apply_config_multi(yaml_document_t **docs, size_t doc_count, config_
  * @param err Pointer to a char buffer for error messages
  * @return true if successful, false otherwise
  */
-bool load_config_file_into(config_t *cfg, const char *path, char **err)
+bool config_apply_file(config_t *cfg, const char *path, char **err)
 {
     if (!cfg || !path)
     {
@@ -239,5 +239,6 @@ bool config_apply_docs(config_t *cfg, yaml_document_t **docs, size_t doc_count, 
 
 bool config_apply_file(config_t *cfg, const char *path, char **err)
 {
-    return load_config_file_into(cfg, path, err);
+    /* Implementation is provided by config_apply_file (defined in loader.c). */
+    return config_apply_file(cfg, path, err);
 }

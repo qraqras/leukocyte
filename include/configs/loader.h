@@ -7,7 +7,8 @@
 #include "configs/config.h"
 #include "prism.h"
 
-bool load_config_file_into(config_t *cfg, const char *path, char **err);
+/* Load/apply a config file into `cfg` (reads and resolves parents internally). */
+bool config_apply_file(config_t *cfg, const char *path, char **err);
 /* New API: Apply a configuration file to `cfg` (reads+resolves parents internally). */
 bool config_apply_file(config_t *cfg, const char *path, char **err);
 /* New API: Apply an array of YAML documents (parent-first) to `cfg`. */
