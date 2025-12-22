@@ -1,5 +1,5 @@
-#ifndef LEUKOCYTE_CONFIGS_CONFIG_H
-#define LEUKOCYTE_CONFIGS_CONFIG_H
+#ifndef LEUKOCYTE_CONFIGS_RULE_CONFIG_H
+#define LEUKOCYTE_CONFIGS_RULE_CONFIG_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -42,4 +42,4 @@ typedef struct leuko_rule_config_handlers_s
     bool (*apply_yaml)(leuko_rule_config_t *config, yaml_document_t **docs, size_t doc_count, const char *full_name, const char *category_name, const char *rule_name, char **err);
 } leuko_rule_config_handlers_t;
 
-#endif /* LEUKOCYTE_CONFIGS_CONFIG_H */
+#endif /* LEUKOCYTE_CONFIGS_RULE_CONFIG_H */
