@@ -13,20 +13,20 @@
  */
 int leuko_config_discover_for_file(const char *file_path, const char *cli_config_path, leuko_raw_config_t **out_raw, char **err);
 
-/* Get a runtime `config_t` for `file_path` using discovery with caching.
+/* Get a runtime `leuko_config_t` for `file_path` using discovery with caching.
  * - If a config is found, *out_cfg will be set to a pointer owned by the cache and
  *   valid until `leuko_config_clear_cache()` is called. If no config is found, *out_cfg
  *   will be set to NULL and 0 is returned. On fatal error, non-zero is returned and
  *   *err may be set to a message.
  */
-int leuko_config_get_cached_config_for_file(const char *file_path, const config_t **out_cfg, char **err);
+int leuko_config_get_cached_config_for_file(const char *file_path, const leuko_config_t **out_cfg, char **err);
 
 /* Read-only cache lookup for worker threads. This will NOT perform discovery or insert into the cache.
  * If a valid cached config is found, *out_cfg is set to a pointer owned by the cache and 0 is returned.
  * If no valid cached config exists, *out_cfg is set to NULL and 0 is returned (no error).
  * On invalid arguments, a non-zero value is returned.
  */
-int leuko_config_get_cached_config_for_file_ro(const char *file_path, const config_t **out_cfg);
+int leuko_config_get_cached_config_for_file_ro(const char *file_path, const leuko_config_t **out_cfg);
 
 /* Clear the runtime config cache, freeing stored configs. */
 void leuko_config_clear_cache(void);

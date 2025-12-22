@@ -41,8 +41,8 @@ int main(int argc, char *argv[])
     }
 
     // **** CONFIGURATION LOADING ****
-    config_t cfg = {0};
-    initialize_config(&cfg);
+    leuko_config_t cfg = {0};
+    leuko_config_initialize(&cfg);
     if (cli_opts.config_path)
     {
         char *cfg_err = NULL;
@@ -65,14 +65,14 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Error collecting Ruby files: %s\n", scan_err ? scan_err : "unknown");
         free(scan_err);
         cli_options_free(&cli_opts);
-        free_config(&cfg);
+        leuko_config_free(&cfg);
         return EXIT_FAILURE;
     }
     if (ruby_files_count == 0)
     {
         fprintf(stderr, "Usage: %s [options] <ruby_file>\n", argv[0]);
         cli_options_free(&cli_opts);
-        free_config(&cfg);
+        leuko_config_free(&cfg);
         free(ruby_files);
         return EXIT_FAILURE;
     }
@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
             free(warm_err);
             /* Treat warm failure as fatal to guarantee worker-only read-only access to cache */
             cli_options_free(&cli_opts);
-            free_config(&cfg);
+            leuko_config_free(&cfg);
             for (size_t i = 0; i < ruby_files_count; ++i)
                 free(ruby_files[i]);
             free(ruby_files);
@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
         {
             fprintf(stderr, "Failed to run parallel pipeline\n");
             cli_options_free(&cli_opts);
-            free_config(&cfg);
+            leuko_config_free(&cfg);
             for (size_t i = 0; i < ruby_files_count; ++i)
                 free(ruby_files[i]);
             free(ruby_files);
@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
 
             // **** RULE APPLICATION ****
             /* Prefer warmed per-file config if available */
-            const config_t *file_cfg = NULL;
+            const leuko_config_t *file_cfg = NULL;
             char *cerr = NULL;
             if (leuko_config_get_cached_config_for_file(ruby_files[i], &file_cfg, &cerr) != 0)
             {
@@ -141,12 +141,12 @@ int main(int argc, char *argv[])
                 }
                 file_cfg = NULL;
             }
-            const config_t *used_cfg = file_cfg ? file_cfg : &cfg;
+            const leuko_config_t *used_cfg = file_cfg ? file_cfg : &cfg;
 
             const rules_by_type_t *rules = get_rules_by_type_for_file(used_cfg, ruby_files[i]);
 
             /* visit using used_cfg (cast away const for API) */
-            visit_node_with_rules(root_node, &parser, NULL, (config_t *)used_cfg, rules);
+            visit_node_with_rules(root_node, &parser, NULL, (leuko_config_t *)used_cfg, rules);
 
             pm_node_destroy(&parser, root_node);
             pm_parser_free(&parser);
@@ -169,7 +169,7 @@ int main(int argc, char *argv[])
     // TODO: Apply rules and perform analysis on root_node
 
     cli_options_free(&cli_opts);
-    free_config(&cfg);
+    leuko_config_free(&cfg);
 
     return EXIT_SUCCESS;
 }

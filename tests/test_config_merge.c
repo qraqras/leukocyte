@@ -27,13 +27,13 @@ int main(void)
                                       "bar"
                                       "\n    Enabled: false\n");
 
-    config_t cfg = {0};
-    initialize_config(&cfg);
+    leuko_config_t cfg = {0};
+    leuko_config_initialize(&cfg);
     char *err = NULL;
     bool ok = load_config_file_into(&cfg, "tests/tmp_child.yml", &err);
     assert(ok);
 
-    leuko_rule_config_t *r = get_rule_config_by_index(&cfg, 0);
+    leuko_rule_config_t *r = leuko_rule_config_get_by_index(&cfg, 0);
     assert(r);
     /* Enabled should be child value (false) */
     assert(r->enabled == false);
@@ -42,6 +42,6 @@ int main(void)
     assert(strcmp(r->include[0], "foo") == 0);
     assert(strcmp(r->include[1], "bar") == 0);
 
-    free_config(&cfg);
+    leuko_config_free(&cfg);
     return 0;
 }

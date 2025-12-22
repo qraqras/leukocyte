@@ -5,7 +5,7 @@
 #include "prism.h"
 #include "rule_registry.h"
 // Forward-declare config type to avoid circular include
-typedef struct config_s config_t;
+typedef struct leuko_config_s leuko_config_t;
 
 // Define the number of node types (Prism doesn't define PM_NODE_TYPE_COUNT, so we use a large number)
 #define PM_NODE_TYPE_COUNT 256

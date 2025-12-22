@@ -52,8 +52,8 @@ int main(void)
     printf("warm succeeded\n");
 
     /* both should return same cached config pointer */
-    const config_t *c1 = NULL;
-    const config_t *c2 = NULL;
+    const leuko_config_t *c1 = NULL;
+    const leuko_config_t *c2 = NULL;
     /* Debug: call discover directly to see what happens */
     leuko_raw_config_t *raw = NULL;
     char *derr = NULL;

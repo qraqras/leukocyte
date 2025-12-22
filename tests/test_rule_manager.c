@@ -10,8 +10,8 @@
 
 int main(void)
 {
-    config_t cfg = {0};
-    initialize_config(&cfg);
+    leuko_config_t cfg = {0};
+    leuko_config_initialize(&cfg);
 
     const rule_registry_entry_t *reg = leuko_get_rule_registry();
     size_t count = leuko_get_rule_registry_count();
@@ -30,7 +30,7 @@ int main(void)
 
     rule_t *expected_rule = reg[idx].rule;
 
-    leuko_rule_config_t *rcfg = get_rule_config_by_index(&cfg, idx);
+    leuko_rule_config_t *rcfg = leuko_rule_config_get_by_index(&cfg, idx);
     /* Exclude tests/bench files */
     rcfg->exclude = calloc(1, sizeof(char *));
     rcfg->exclude[0] = strdup("tests/bench/*");
@@ -61,6 +61,6 @@ int main(void)
     const rules_by_type_t *p3 = get_rules_by_type_for_file(&cfg, "tests/bench/bench_5000.rb");
     assert(p3 != NULL && "After cache clear, expected a non-NULL rules set");
 
-    free_config(&cfg);
+    leuko_config_free(&cfg);
     return 0;
 }

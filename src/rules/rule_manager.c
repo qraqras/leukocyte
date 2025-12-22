@@ -161,7 +161,7 @@ bool node_visitor(const pm_node_t *node, void *data)
  * @param cfg Pointer to the configuration
  * @return true on success, false on failure
  */
-bool visit_node(pm_node_t *node, pm_parser_t *parser, pm_list_t *diagnostics, config_t *cfg)
+bool visit_node(pm_node_t *node, pm_parser_t *parser, pm_list_t *diagnostics, leuko_config_t *cfg)
 {
     pm_list_t local_list = {0};
     pm_list_t *diag = diagnostics ? diagnostics : &local_list;
@@ -195,7 +195,7 @@ bool visit_node(pm_node_t *node, pm_parser_t *parser, pm_list_t *diagnostics, co
 }
 
 /* Visit with an explicit per-file rules set */
-bool visit_node_with_rules(pm_node_t *node, pm_parser_t *parser, pm_list_t *diagnostics, config_t *cfg, const rules_by_type_t *rules)
+bool visit_node_with_rules(pm_node_t *node, pm_parser_t *parser, pm_list_t *diagnostics, leuko_config_t *cfg, const rules_by_type_t *rules)
 {
     pm_list_t local_list = {0};
     pm_list_t *diag = diagnostics ? diagnostics : &local_list;
@@ -267,7 +267,7 @@ static bool file_matches_patterns(const char *file_path, char **patterns, size_t
 }
 
 /* Build rules_by_type for a specific file based on configuration. */
-bool build_rules_by_type_for_file(const config_t *cfg, const char *file_path, rules_by_type_t *out)
+bool build_rules_by_type_for_file(const leuko_config_t *cfg, const char *file_path, rules_by_type_t *out)
 {
     if (!cfg || !file_path || !out)
     {
@@ -283,7 +283,7 @@ bool build_rules_by_type_for_file(const config_t *cfg, const char *file_path, ru
     {
         const rule_registry_entry_t *entry = &registry[i];
         rule_t *r = entry->rule;
-        leuko_rule_config_t *rcfg = get_rule_config_by_index((config_t *)cfg, i);
+        leuko_rule_config_t *rcfg = leuko_rule_config_get_by_index((leuko_config_t *)cfg, i);
 
         /* If no config or disabled, skip */
         if (!rcfg || !rcfg->enabled)
@@ -345,7 +345,7 @@ void free_rules_by_type(rules_by_type_t *rb)
 typedef struct
 {
     char *file_path;
-    const config_t *cfg;
+    const leuko_config_t *cfg;
     rules_by_type_t rules;
 } rules_cache_entry_t;
 
@@ -356,7 +356,7 @@ static size_t rules_cache_cap = 0;
 /* Mutex protecting the rules cache for thread-safe access */
 static pthread_mutex_t rules_cache_lock = PTHREAD_MUTEX_INITIALIZER;
 
-const rules_by_type_t *get_rules_by_type_for_file(const config_t *cfg, const char *file_path)
+const rules_by_type_t *get_rules_by_type_for_file(const leuko_config_t *cfg, const char *file_path)
 {
     if (!cfg || !file_path)
     {

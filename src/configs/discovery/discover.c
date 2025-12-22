@@ -243,7 +243,7 @@ merge_and_return:
     return 0;
 }
 
-/* ---- Simple runtime cache for per-directory config_t derived from discovery ---- */
+/* ---- Simple runtime cache for per-directory leuko_config_t derived from discovery ---- */
 
 #include <pthread.h>
 
@@ -252,7 +252,7 @@ typedef struct
     char *start_dir;   /* starting directory used for discovery */
     char *config_path; /* path to nearest config file used */
     time_t mtime;      /* mtime of config_path when cached */
-    config_t cfg;      /* runtime config (initialized via apply_config) */
+    leuko_config_t cfg;      /* runtime config (initialized via apply_config) */
 } cfg_cache_entry_t;
 
 static cfg_cache_entry_t *cfg_cache = NULL;
@@ -286,7 +286,7 @@ static int get_start_dir_for_file(const char *file_path, char *out, size_t outle
     return 0;
 }
 
-int leuko_config_get_cached_config_for_file(const char *file_path, const config_t **out_cfg, char **err)
+int leuko_config_get_cached_config_for_file(const char *file_path, const leuko_config_t **out_cfg, char **err)
 {
     if (!out_cfg)
     {
@@ -325,7 +325,7 @@ int leuko_config_get_cached_config_for_file(const char *file_path, const config_
                 /* fprintf(stderr, "[leuko-debug] invalidating cache for %s\n", start_dir); */
                 free(cfg_cache[i].start_dir);
                 free(cfg_cache[i].config_path);
-                free_config(&cfg_cache[i].cfg);
+                leuko_config_free(&cfg_cache[i].cfg);
                 /* shift remaining entries down */
                 for (size_t j = i + 1; j < cfg_cache_count; j++)
                     cfg_cache[j - 1] = cfg_cache[j];
@@ -379,14 +379,16 @@ int leuko_config_get_cached_config_for_file(const char *file_path, const config_
     /* debug: stat ok */
     (void)st;
 
-    /* Convert merged YAML document to runtime config_t */
-    config_t tmp = {0};
-    initialize_config(&tmp);
-    if (!apply_config(raw->doc, &tmp, &lerr))
+    /* Convert merged YAML document to runtime leuko_config_t */
+    leuko_config_t tmp = {0};
+    leuko_config_initialize(&tmp);
+    yaml_document_t *docs_arr[1];
+    docs_arr[0] = raw->doc;
+    if (!apply_config_docs(docs_arr, 1, &tmp, &lerr))
     {
-        /* debug: apply_config failed */
+        /* debug: apply_config_docs failed */
         leuko_raw_config_free(raw);
-        free_config(&tmp);
+        leuko_config_free(&tmp);
         if (lerr)
         {
             if (err)
@@ -396,11 +398,11 @@ int leuko_config_get_cached_config_for_file(const char *file_path, const config_
         else
         {
             if (err)
-                *err = strdup("apply_config failed");
+                *err = strdup("apply_config_docs failed");
         }
         return 1;
     }
-    /* apply_config succeeded */
+    /* apply_config_docs succeeded */
 
     /* Insert into cache under lock; but first re-check another thread didn't insert it */
     pthread_mutex_lock(&cfg_cache_lock);
@@ -412,7 +414,7 @@ int leuko_config_get_cached_config_for_file(const char *file_path, const config_
             *out_cfg = &cfg_cache[i].cfg;
             pthread_mutex_unlock(&cfg_cache_lock);
             leuko_raw_config_free(raw);
-            free_config(&tmp);
+            leuko_config_free(&tmp);
             return 0;
         }
     }
@@ -425,7 +427,7 @@ int leuko_config_get_cached_config_for_file(const char *file_path, const config_
         {
             pthread_mutex_unlock(&cfg_cache_lock);
             leuko_raw_config_free(raw);
-            free_config(&tmp);
+            leuko_config_free(&tmp);
             if (err)
                 *err = strdup("allocation failure");
             return 1;
@@ -450,7 +452,7 @@ int leuko_config_get_cached_config_for_file(const char *file_path, const config_
 /* Read-only cache lookup for worker threads. Does not perform discovery or insert.
  * Returns 0 on success; on success *out_cfg is set to the cached config pointer or NULL if not found.
  * Returns non-zero on invalid arguments. */
-int leuko_config_get_cached_config_for_file_ro(const char *file_path, const config_t **out_cfg)
+int leuko_config_get_cached_config_for_file_ro(const char *file_path, const leuko_config_t **out_cfg)
 {
     if (!out_cfg)
         return 1;
@@ -485,7 +487,7 @@ void leuko_config_clear_cache(void)
     {
         free(cfg_cache[i].start_dir);
         free(cfg_cache[i].config_path);
-        free_config(&cfg_cache[i].cfg);
+        leuko_config_free(&cfg_cache[i].cfg);
     }
     free(cfg_cache);
     cfg_cache = NULL;
@@ -521,7 +523,7 @@ static void *leuko_config_warm_worker(void *v)
         pthread_mutex_unlock(w->idx_lock);
 
         char *d = w->dirs[i];
-        const config_t *cfg = NULL;
+        const leuko_config_t *cfg = NULL;
         char *lerr = NULL;
         int rc = leuko_config_get_cached_config_for_file(d, &cfg, &lerr);
         if (rc != 0 && lerr)

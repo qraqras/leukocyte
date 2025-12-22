@@ -19,7 +19,7 @@ bool check_def(pm_node_t *node, const rule_context_t *ctx)
 {
     pm_parser_t *parser = ctx->parser;
     pm_list_t *diagnostics = ctx->diagnostics;
-    const config_t *cfg = ctx->cfg;
+    const leuko_config_t *cfg = ctx->cfg;
 
     pm_def_node_t *def_node = (pm_def_node_t *)node;
     pm_node_t *body = def_node->body;

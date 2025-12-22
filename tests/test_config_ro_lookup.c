@@ -37,7 +37,7 @@ int main(void)
     leuko_config_clear_cache();
 
     /* RO lookup before warm: should return NULL and 0 */
-    const config_t *c = NULL;
+    const leuko_config_t *c = NULL;
     int rc = leuko_config_get_cached_config_for_file_ro(a, &c);
     if (rc != 0)
     {

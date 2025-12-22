@@ -11,7 +11,7 @@
 
 typedef struct
 {
-    const config_t *cfg;
+    const leuko_config_t *cfg;
     const char *file;
     const rules_by_type_t *result;
 } thread_arg_t;
@@ -25,8 +25,8 @@ static void *thread_func(void *v)
 
 int main(void)
 {
-    config_t cfg = {0};
-    initialize_config(&cfg);
+    leuko_config_t cfg = {0};
+    leuko_config_initialize(&cfg);
     init_rules();
 
     const char *file = "tests/bench/bench_5000.rb";
@@ -57,6 +57,6 @@ int main(void)
     }
 
     rule_manager_clear_cache();
-    free_config(&cfg);
+    leuko_config_free(&cfg);
     return 0;
 }

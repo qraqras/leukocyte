@@ -25,8 +25,8 @@ int main(void)
         return 1;
     fclose(f);
 
-    config_t cfg = {0};
-    initialize_config(&cfg);
+    leuko_config_t cfg = {0};
+    leuko_config_initialize(&cfg);
 
     char *files[] = {a, b};
     int failures = 0;
@@ -36,6 +36,6 @@ int main(void)
     unlink(a);
     unlink(b);
     rmdir(dir);
-    free_config(&cfg);
+    leuko_config_free(&cfg);
     return 0;
 }

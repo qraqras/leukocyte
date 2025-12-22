@@ -6,11 +6,11 @@
 #include "io/processed_source.h"
 
 /* Forward-declare config type to avoid circular include */
-typedef struct config_s config_t; // Forward-declare rules_by_type to avoid include cycle with rule_manager
+typedef struct leuko_config_s leuko_config_t; // Forward-declare rules_by_type to avoid include cycle with rule_manager
 typedef struct rules_by_type_s rules_by_type_t;
 typedef struct rule_context_s
 {
-    const config_t *cfg;          /* Rule configuration (read-only) */
+    const leuko_config_t *cfg;    /* Rule configuration (read-only) */
     const rules_by_type_t *rules; /* Optional per-file rule set (may be NULL) */
     leuko_processed_source_t *ps; /* Optional processed source (may be NULL); non-const so handlers can use cache */
     pm_parser_t *parser;          /* Parser pointer */

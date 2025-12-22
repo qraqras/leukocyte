@@ -22,21 +22,22 @@ static yaml_document_t *load_doc(const char *input)
 
 int main(void)
 {
-    config_t cfg = {0};
-    initialize_config(&cfg);
+    leuko_config_t cfg = {0};
+    leuko_config_initialize(&cfg);
 
     const char *yaml = "Layout/IndentationConsistency:\n  Enabled: false\n";
     yaml_document_t *doc = load_doc(yaml);
     assert(doc);
-    bool ok = apply_config(doc, &cfg, NULL);
+    yaml_document_t *docs[1] = {doc};
+    bool ok = apply_config_docs(docs, 1, &cfg, NULL);
     assert(ok);
 
-    leuko_rule_config_t *r = get_rule_config_by_index(&cfg, 0);
+    leuko_rule_config_t *r = leuko_rule_config_get_by_index(&cfg, 0);
     assert(r);
     assert(r->enabled == false);
 
     yaml_document_delete(doc);
     free(doc);
-    free_config(&cfg);
+    leuko_config_free(&cfg);
     return 0;
 }

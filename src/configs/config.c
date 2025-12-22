@@ -1,13 +1,14 @@
 #include <stdlib.h>
 #include <string.h>
+
 #include "configs/config.h"
 #include "rule_registry.h"
 
 /**
- * @brief Initialize a config_t structure.
- * @param cfg Pointer to the config_t structure to initialize
+ * @brief Initialize a leuko_config_t structure.
+ * @param cfg Pointer to the leuko_config_t structure to initialize
  */
-void initialize_config(config_t *cfg)
+void leuko_config_initialize(leuko_config_t *cfg)
 {
     if (!cfg)
     {
@@ -39,11 +40,11 @@ void initialize_config(config_t *cfg)
 
 /**
  * @brief Get a pointer to a leuko_rule_config_t field by its index.
- * @param cfg Pointer to the config_t structure
+ * @param cfg Pointer to the leuko_config_t structure
  * @param idx Index of the leuko_rule_config_t field
  * @return Pointer to the leuko_rule_config_t field, or NULL if not found
  */
-leuko_rule_config_t *get_rule_config_by_index(config_t *cfg, size_t idx)
+leuko_rule_config_t *leuko_rule_config_get_by_index(leuko_config_t *cfg, size_t idx)
 {
     if (!cfg)
     {
@@ -67,10 +68,10 @@ leuko_rule_config_t *get_rule_config_by_index(config_t *cfg, size_t idx)
 }
 
 /**
- * @brief Get the total number of leuko_rule_config_t fields in config_t.
+ * @brief Get the total number of leuko_rule_config_t fields in leuko_config_t.
  * @return Total number of leuko_rule_config_t fields
  */
-size_t config_count(void)
+size_t leuko_config_count(void)
 {
     return leuko_get_rule_registry_count();
 }
@@ -79,7 +80,7 @@ size_t config_count(void)
  * @brief Free a leuko_rule_config_t structure.
  * @param cfg Pointer to the leuko_rule_config_t structure to free
  */
-static void free_rule_config(leuko_rule_config_t *cfg)
+static void leuko_rule_config_free(leuko_rule_config_t *cfg)
 {
     if (!cfg)
     {
@@ -109,10 +110,10 @@ static void free_rule_config(leuko_rule_config_t *cfg)
 }
 
 /**
- * @brief Free a config_t structure.
- * @param cfg Pointer to the config_t structure to free
+ * @brief Free a leuko_config_t structure.
+ * @param cfg Pointer to the leuko_config_t structure to free
  */
-void free_config(config_t *cfg)
+void leuko_config_free(leuko_config_t *cfg)
 {
     if (!cfg)
     {
@@ -122,7 +123,7 @@ void free_config(config_t *cfg)
 #define X(field, cat_name, sname, rule_ptr, ops_ptr) \
     do                                               \
     {                                                \
-        free_rule_config(cfg->field);                \
+        leuko_rule_config_free(cfg->field);          \
         cfg->field = NULL;                           \
     } while (0);
     LEUKO_RULES_LIST

@@ -6,17 +6,17 @@
 
 #include "configs/rule_config.h"
 #include "configs/config.h"
-#include "configs/conversion/loader.h"
-#include "configs/conversion/yaml_helpers.h"
+#include "configs/loader/loader.h"
+#include "configs/loader/yaml_helpers.h"
 #include "configs/discovery/raw_config.h"
 #include "configs/discovery/inherit.h"
 #include "io/file.h"
 #include "rule_registry.h"
 
 /**
- * @brief Apply a YAML document to a leuko_config_t structure.
+ * @brief Apply a YAML document to a config_t structure.
  * @param doc Pointer to the yaml_document_t structure
- * @param cfg Pointer to the leuko_config_t structure
+ * @param cfg Pointer to the config_t structure
  * @param err Pointer to a char buffer for error messages
  * @return true if successful, false otherwise
  */
@@ -49,7 +49,7 @@ static bool append_string_array(char ***dest, size_t *dest_count, char **src, si
     return true;
 }
 
-static bool apply_config_multi(yaml_document_t **docs, size_t doc_count, leuko_config_t *cfg, char **err)
+static bool apply_config_multi(yaml_document_t **docs, size_t doc_count, config_t *cfg, char **err)
 {
     if (!docs || doc_count == 0 || !cfg)
     {
@@ -67,7 +67,7 @@ static bool apply_config_multi(yaml_document_t **docs, size_t doc_count, leuko_c
         const char *rule_name = entry->rule_name;
         const char *full_name = entry->full_name;
 
-        leuko_rule_config_t *rcfg = leuko_rule_config_get_by_index(cfg, i);
+        leuko_rule_config_t *rcfg = get_rule_config_by_index(cfg, i);
         if (!rcfg)
         {
             continue;
@@ -136,13 +136,13 @@ static bool apply_config_multi(yaml_document_t **docs, size_t doc_count, leuko_c
 }
 
 /**
- * @brief Load a configuration file into a leuko_config_t structure.
- * @param cfg Pointer to the leuko_config_t structure
+ * @brief Load a configuration file into a config_t structure.
+ * @param cfg Pointer to the config_t structure
  * @param path Path to the configuration file
  * @param err Pointer to a char buffer for error messages
  * @return true if successful, false otherwise
  */
-bool load_config_file_into(leuko_config_t *cfg, const char *path, char **err)
+bool load_config_file_into(config_t *cfg, const char *path, char **err)
 {
     if (!cfg || !path)
     {
@@ -232,7 +232,7 @@ bool load_config_file_into(leuko_config_t *cfg, const char *path, char **err)
 }
 
 /* Public wrapper that accepts multiple YAML documents (parent-first). */
-bool apply_config_docs(yaml_document_t **docs, size_t doc_count, leuko_config_t *cfg, char **err)
+bool apply_config_docs(yaml_document_t **docs, size_t doc_count, config_t *cfg, char **err)
 {
     return apply_config_multi(docs, doc_count, cfg, err);
 }

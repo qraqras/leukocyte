@@ -156,7 +156,7 @@ typedef struct leuko_worker_ctx_s
 {
     leuko_task_queue_t *q;
     leuko_result_t *results;
-    config_t *cfg;
+    leuko_config_t *cfg;
 } leuko_worker_ctx_t;
 
 /**
@@ -183,7 +183,7 @@ static void *leuko_worker_thread(void *v)
         }
 
         /* Build rules (cached) using per-file config discovery (read-only lookup for workers) */
-        const config_t *file_cfg = NULL;
+        const leuko_config_t *file_cfg = NULL;
         if (leuko_config_get_cached_config_for_file_ro(task.file, &file_cfg) != 0)
         {
             /* unexpected error: treat as no cached config */
@@ -233,7 +233,7 @@ static void *leuko_worker_thread(void *v)
     }
     return NULL;
 }
-bool leuko_run_pipeline(char **files, size_t files_count, config_t *cfg, size_t workers_count, int *any_failures, int formatter)
+bool leuko_run_pipeline(char **files, size_t files_count, leuko_config_t *cfg, size_t workers_count, int *any_failures, int formatter)
 {
     if (!files || files_count == 0 || !cfg || workers_count == 0)
     {
