@@ -2,7 +2,7 @@
 #define LEUKOCYTE_CONFIGS_DISCOVER_H
 
 #include "configs/raw_config.h"
-#include "configs/generated_config.h"
+#include "configs/config.h"
 
 /*
  * Discover configuration for a file (or directory). If cli_config_path is

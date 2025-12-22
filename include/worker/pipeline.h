@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "configs/generated_config.h"
+#include "configs/config.h"
 
 /* Run processing pipeline across files using a worker pool.
  * - files: array of file paths
