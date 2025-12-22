@@ -384,9 +384,9 @@ int leuko_config_get_cached_config_for_file(const char *file_path, const leuko_c
     leuko_config_initialize(&tmp);
     yaml_document_t *docs_arr[1];
     docs_arr[0] = raw->doc;
-    if (!apply_config_docs(docs_arr, 1, &tmp, &lerr))
+    if (!leuko_config_apply_docs(&tmp, docs_arr, 1, &lerr))
     {
-        /* debug: apply_config_docs failed */
+        /* debug: leuko_config_apply_docs failed */
         leuko_raw_config_free(raw);
         leuko_config_free(&tmp);
         if (lerr)
@@ -398,11 +398,11 @@ int leuko_config_get_cached_config_for_file(const char *file_path, const leuko_c
         else
         {
             if (err)
-                *err = strdup("apply_config_docs failed");
+                *err = strdup("leuko_config_apply_docs failed");
         }
         return 1;
     }
-    /* apply_config_docs succeeded */
+    /* leuko_config_apply_docs succeeded */
 
     /* Insert into cache under lock; but first re-check another thread didn't insert it */
     pthread_mutex_lock(&cfg_cache_lock);

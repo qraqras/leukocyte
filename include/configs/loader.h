@@ -8,7 +8,9 @@
 #include "prism.h"
 
 bool load_config_file_into(config_t *cfg, const char *path, char **err);
-/* Apply an array of YAML documents (parent-first) to a config_t. */
-bool apply_config_docs(yaml_document_t **docs, size_t doc_count, config_t *cfg, char **err);
+/* New API: Apply a configuration file to `cfg` (reads+resolves parents internally). */
+bool config_apply_file(config_t *cfg, const char *path, char **err);
+/* New API: Apply an array of YAML documents (parent-first) to `cfg`. */
+bool config_apply_docs(config_t *cfg, yaml_document_t **docs, size_t doc_count, char **err);
 
 #endif // LEUKOCYTE_CONFIGS_LOADER_H

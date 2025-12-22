@@ -29,7 +29,7 @@ int main(void)
     yaml_document_t *doc = load_doc(yaml);
     assert(doc);
     yaml_document_t *docs[1] = {doc};
-    bool ok = apply_config_docs(docs, 1, &cfg, NULL);
+    bool ok = leuko_config_apply_docs(&cfg, docs, 1, NULL);
     assert(ok);
 
     leuko_rule_config_t *r = leuko_rule_config_get_by_index(&cfg, 0);

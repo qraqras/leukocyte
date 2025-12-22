@@ -230,9 +230,3 @@ bool load_config_file_into(config_t *cfg, const char *path, char **err)
     leuko_raw_config_free(base);
     return ok;
 }
-
-/* Public wrapper that accepts multiple YAML documents (parent-first). */
-bool apply_config_docs(yaml_document_t **docs, size_t doc_count, config_t *cfg, char **err)
-{
-    return apply_config_multi(docs, doc_count, cfg, err);
-}

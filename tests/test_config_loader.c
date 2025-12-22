@@ -31,7 +31,7 @@ int main(void)
     yaml_document_t *doc = load_doc(yaml);
     assert(doc);
     yaml_document_t *docs[1] = {doc};
-    bool ok = apply_config_docs(docs, 1, &cfg, NULL);
+    bool ok = leuko_config_apply_docs(&cfg, docs, 1, NULL);
     assert(ok);
 
     // check indentation rule (index 0)

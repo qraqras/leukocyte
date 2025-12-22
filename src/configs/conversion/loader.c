@@ -231,8 +231,13 @@ bool load_config_file_into(leuko_config_t *cfg, const char *path, char **err)
     return ok;
 }
 
-/* Public wrapper that accepts multiple YAML documents (parent-first). */
-bool apply_config_docs(yaml_document_t **docs, size_t doc_count, leuko_config_t *cfg, char **err)
+/* New: cfg-first public API wrappers for clearer and consistent naming */
+bool leuko_config_apply_docs(leuko_config_t *cfg, yaml_document_t **docs, size_t doc_count, char **err)
 {
     return apply_config_multi(docs, doc_count, cfg, err);
+}
+
+bool leuko_config_apply_file(leuko_config_t *cfg, const char *path, char **err)
+{
+    return load_config_file_into(cfg, path, err);
 }

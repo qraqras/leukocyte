@@ -44,7 +44,7 @@ int main(void)
     yaml_document_t *d1 = load_doc(yaml1);
     assert(d1);
     yaml_document_t *docs1[1] = {d1};
-    assert(apply_config_docs(docs1, 1, &cfg, NULL));
+    assert(leuko_config_apply_docs(&cfg, docs1, 1, NULL));
     size_t idx = find_rule_index("Layout/IndentationConsistency");
     assert(idx != (size_t)-1);
     leuko_rule_config_t *cfgp = leuko_rule_config_get_by_index(&cfg, idx);
@@ -60,7 +60,7 @@ int main(void)
     yaml_document_t *d2 = load_doc(yaml2);
     assert(d2);
     yaml_document_t *docs2[1] = {d2};
-    assert(apply_config_docs(docs2, 1, &cfg2, NULL));
+    assert(leuko_config_apply_docs(&cfg2, docs2, 1, NULL));
     leuko_rule_config_t *cfgp2 = leuko_rule_config_get_by_index(&cfg2, idx);
     // category should take precedence
     assert(cfgp2->severity_level == LEUKO_SEVERITY_ERROR);
@@ -78,7 +78,7 @@ int main(void)
     yaml_document_t *d3 = load_doc(yaml3);
     assert(d3);
     yaml_document_t *docs3[1] = {d3};
-    assert(apply_config_docs(docs3, 1, &cfg3, NULL));
+    assert(leuko_config_apply_docs(&cfg3, docs3, 1, NULL));
     leuko_rule_config_t *cfgp3 = leuko_rule_config_get_by_index(&cfg3, idx);
     assert(cfgp3->include_count == 3);
     assert(strcmp(cfgp3->include[0], "a") == 0);
@@ -96,7 +96,7 @@ int main(void)
     assert(d4);
     char *err = NULL;
     yaml_document_t *docs4[1] = {d4};
-    assert(apply_config_docs(docs4, 1, &cfg4, &err));
+    assert(leuko_config_apply_docs(&cfg4, docs4, 1, &err));
     leuko_rule_config_t *cfgp4 = leuko_rule_config_get_by_index(&cfg4, idx);
     // Because rule-level Severity is not scalar, merged string lookup should fall back to category/allcops -> warning
     assert(cfgp4->severity_level == LEUKO_SEVERITY_WARNING);
@@ -115,7 +115,7 @@ int main(void)
     yaml_document_t *d_refactor = load_doc(yaml_refactor);
     assert(d_refactor);
     yaml_document_t *docs_refactor[1] = {d_refactor};
-    assert(apply_config_docs(docs_refactor, 1, &cfg_refactor, NULL));
+    assert(leuko_config_apply_docs(&cfg_refactor, docs_refactor, 1, NULL));
     leuko_rule_config_t *cfgp_refactor = leuko_rule_config_get_by_index(&cfg_refactor, idx);
     assert(cfgp_refactor->severity_level == LEUKO_SEVERITY_REFACTOR);
     yaml_document_delete(d_refactor);
@@ -129,7 +129,7 @@ int main(void)
     yaml_document_t *d_fatal = load_doc(yaml_fatal);
     assert(d_fatal);
     yaml_document_t *docs_fatal[1] = {d_fatal};
-    assert(apply_config_docs(docs_fatal, 1, &cfg_fatal, NULL));
+    assert(leuko_config_apply_docs(&cfg_fatal, docs_fatal, 1, NULL));
     leuko_rule_config_t *cfgp_fatal = leuko_rule_config_get_by_index(&cfg_fatal, idx);
     assert(cfgp_fatal->severity_level == LEUKO_SEVERITY_FATAL);
     yaml_document_delete(d_fatal);
@@ -143,7 +143,7 @@ int main(void)
     yaml_document_t *d5 = load_doc(yaml5);
     assert(d5);
     yaml_document_t *docs5[1] = {d5};
-    assert(apply_config_docs(docs5, 1, &cfg5, NULL));
+    assert(leuko_config_apply_docs(&cfg5, docs5, 1, NULL));
     leuko_rule_config_t *cfgp5 = leuko_rule_config_get_by_index(&cfg5, idx);
     assert(cfgp5->enabled == false);
     yaml_document_delete(d5);
