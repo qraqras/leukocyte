@@ -60,9 +60,10 @@ set(SOURCES
     src/configs/config.c
     src/configs/layout/indentation_consistency.c
     src/configs/generated_config.c
-    src/configs/yaml_helpers.c
-    src/configs/loader.c
+    src/configs/loader/loader.c
     src/configs/discovery/raw_config.c
+    src/configs/loader/merge.c
+    src/configs/loader/yaml_helpers.c
     src/configs/discovery/inherit.c
     src/configs/discovery/inherit_cache.c
     src/configs/merge.c

@@ -11,8 +11,8 @@
 
 #include "configs/discovery/discover.h"
 #include "configs/discovery/raw_config.h"
-#include "configs/merge.h"
-#include "configs/yaml_helpers.h"
+#include "configs/loader/merge.h"
+#include "configs/loader/yaml_helpers.h"
 #include "configs/loader.h"
 
 static const char *candidates[] = {".rubocop.yml", "rubocop.yml"};

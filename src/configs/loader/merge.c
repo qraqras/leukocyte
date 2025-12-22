@@ -4,8 +4,8 @@
 #include <string.h>
 #include <yaml.h>
 
-#include "configs/yaml_helpers.h"
-#include "configs/merge.h"
+#include "configs/loader/yaml_helpers.h"
+#include "configs/loader/merge.h"
 #include "configs/rule_config.h"
 
 /* Simple merged-node representation */
