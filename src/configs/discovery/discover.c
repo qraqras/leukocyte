@@ -9,8 +9,8 @@
 #include <sys/stat.h>
 #include <limits.h>
 
-#include "configs/discover.h"
-#include "configs/raw_config.h"
+#include "configs/discovery/discover.h"
+#include "configs/discovery/raw_config.h"
 #include "configs/merge.h"
 #include "configs/yaml_helpers.h"
 #include "configs/loader.h"

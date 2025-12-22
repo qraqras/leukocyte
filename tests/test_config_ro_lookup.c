@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-#include "configs/discover.h"
+#include "configs/discovery/discover.h"
 #include "configs/config.h"
 
 int main(void)

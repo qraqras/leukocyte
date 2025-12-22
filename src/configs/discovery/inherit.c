@@ -8,7 +8,7 @@
 #include <glob.h>
 #include <stdio.h>
 
-#include "configs/inherit.h"
+#include "configs/discovery/inherit.h"
 #include "configs/yaml_helpers.h"
 #include <sys/stat.h>
 

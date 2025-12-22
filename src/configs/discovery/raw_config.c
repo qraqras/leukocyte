@@ -8,7 +8,7 @@
 
 #include <yaml.h>
 
-#include "configs/raw_config.h"
+#include "configs/discovery/raw_config.h"
 
 /* Read entire file into buffer (caller frees buffer) */
 static char *read_file_to_buffer(const char *path, size_t *out_len)

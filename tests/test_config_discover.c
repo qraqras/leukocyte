@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
-#include "configs/discover.h"
-#include "configs/raw_config.h"
+#include "configs/discovery/discover.h"
+#include "configs/discovery/raw_config.h"
 /* Access yaml helper helpers used in assertions */
 #include "configs/yaml_helpers.h"
 

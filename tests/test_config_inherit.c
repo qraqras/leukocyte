@@ -1,8 +1,8 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "configs/raw_config.h"
-#include "configs/inherit.h"
+#include "configs/discovery/raw_config.h"
+#include "configs/discovery/inherit.h"
 
 static int write_file(const char *path, const char *content)
 {

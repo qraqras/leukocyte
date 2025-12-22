@@ -7,7 +7,7 @@
 
 #include "worker/pipeline.h"
 #include "parse.h"
-#include "configs/discover.h"
+#include "configs/discovery/discover.h"
 #include "rules/rule_manager.h"
 #include "allocator/prism_xallocator.h"
 #include "prism/diagnostic.h"

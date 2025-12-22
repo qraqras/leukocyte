@@ -2,7 +2,7 @@
 #define LEUKOCYTE_CONFIGS_INHERIT_H
 
 #include <stddef.h>
-#include "configs/raw_config.h"
+#include "configs/discovery/raw_config.h"
 
 /*
  * Resolve `inherit_from` entries from a parsed raw config.

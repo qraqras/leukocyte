@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
-#include "configs/inherit.h"
+#include "configs/discovery/inherit.h"
 
 /* Simple mtime-based cache: maps base canonical path -> list of parent canonical paths + mtimes */
 typedef struct

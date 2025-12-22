@@ -1,7 +1,7 @@
 #ifndef LEUKOCYTE_CONFIGS_DISCOVER_H
 #define LEUKOCYTE_CONFIGS_DISCOVER_H
 
-#include "configs/raw_config.h"
+#include "configs/discovery/raw_config.h"
 #include "configs/config.h"
 
 /*

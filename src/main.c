@@ -17,7 +17,7 @@
 #include "io/scan.h"
 #include "worker/pipeline.h"
 #include "worker/jobs.h"
-#include "configs/discover.h"
+#include "configs/discovery/discover.h"
 
 /**
  * @brief Main entry point for Leuko application.
