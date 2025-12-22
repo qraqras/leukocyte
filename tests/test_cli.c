@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "cli/cli.h"
+#include "worker/jobs.h"
 
 static int test_only_basic(void)
 {
@@ -121,11 +122,44 @@ static int test_x_and_only_merge(void)
     return rv;
 }
 
+static int test_parallel_sets_jobs(void)
+{
+    char *argv[] = {"prog", "--parallel", NULL};
+    cli_options_t opts;
+    optind = 1;
+    int rc = parse_command_line(2, argv, &opts);
+    if (rc != 0)
+    {
+        fprintf(stderr, "parse_command_line rc=%d\n", rc);
+        return 1;
+    }
+    int rv = 0;
+    if (!opts.parallel)
+    {
+        fprintf(stderr, "expected opts.parallel to be true\n");
+        rv = 1;
+    }
+    else
+    {
+        long n = sysconf(_SC_NPROCESSORS_ONLN);
+        if (n < 1)
+            n = 1;
+        if (leuko_num_workers() != (size_t)n)
+        {
+            fprintf(stderr, "leuko_num_workers mismatch: got=%zu expected=%ld\n", leuko_num_workers(), n);
+            rv = 1;
+        }
+    }
+    cli_options_free(&opts);
+    return rv;
+}
+
 int main(void)
 {
     int failures = 0;
     failures += test_only_basic();
     failures += test_except_leading_empty();
+    failures += test_parallel_sets_jobs();
     if (failures)
     {
         fprintf(stderr, "%d tests failed\n", failures);

@@ -124,7 +124,13 @@ static bool apply_config_multi(yaml_document_t **docs, size_t doc_count, config_
             if (entry->ops->apply_yaml_multi)
             {
                 if (!entry->ops->apply_yaml_multi(rcfg, docs, doc_count, full_name, category_name, err))
+                {
+                    if (!(err && *err))
+                    {
+                        /* apply_yaml_multi failed without an error message */
+                    }
                     return false;
+                }
             }
             else if (entry->ops->apply_yaml)
             {

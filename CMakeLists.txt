@@ -55,7 +55,6 @@ add_subdirectory(vendor/libyaml)
 
 # Source files
 set(SOURCES
-    src/main.c
     src/cli/cli.c
     src/cli/formatter.c
     src/configs/config.c
@@ -68,6 +67,7 @@ set(SOURCES
     src/configs/inherit_cache.c
     src/configs/merge.c
     src/configs/discover.c
+    src/worker/jobs.c
     src/worker/pipeline.c
     src/category.c
     src/severity.c
@@ -167,6 +167,16 @@ add_test(NAME test_config_inherit_cache COMMAND test_config_inherit_cache)
 add_executable(test_config_discover tests/test_config_discover.c)
 target_link_libraries(test_config_discover PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml)
 add_test(NAME test_config_discover COMMAND test_config_discover)
+
+# Warm cache tests
+add_executable(test_config_warm_cache tests/test_config_warm_cache.c)
+target_link_libraries(test_config_warm_cache PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml pthread)
+add_test(NAME test_config_warm_cache COMMAND test_config_warm_cache)
+
+# Read-only cache lookup tests
+add_executable(test_config_ro_lookup tests/test_config_ro_lookup.c)
+target_link_libraries(test_config_ro_lookup PRIVATE -Wl,--start-group prism_static leuko_lib leuko_prism_helpers -Wl,--end-group yaml pthread)
+add_test(NAME test_config_ro_lookup COMMAND test_config_ro_lookup)
 
 # Arena allocator tests
 add_executable(test_arena tests/test_arena.c)

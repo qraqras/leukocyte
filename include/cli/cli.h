@@ -5,7 +5,9 @@
 #include <stdbool.h>
 #include "cli/formatter.h"
 
-/// @brief Quick fix mode enum.
+/**
+ * @brief Quick fix mode enum.
+ */
 typedef enum quick_fix_mode_e
 {
     QUICK_FIX_MODE_OFF,
@@ -13,20 +15,21 @@ typedef enum quick_fix_mode_e
     QUICK_FIX_MODE_UNSAFE,
 } quick_fix_mode_t;
 
-/// @brief CLI options structure.
+/**
+ * @brief Command line options structure.
+ */
 typedef struct cli_options_s
 {
     char **paths;
     size_t paths_count;
     char *config_path;
     cli_formatter_t formatter;
-    bool timings;
     char **only;
     size_t only_count;
     char **except;
     size_t except_count;
     quick_fix_mode_t quick_fix_mode;
-    int jobs; /* number of worker threads for parallel pipeline (-j) */
+    bool parallel;
 } cli_options_t;
 
 int parse_command_line(int argc, char *argv[], cli_options_t *opts);

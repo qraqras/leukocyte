@@ -4,53 +4,61 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <string.h>
-#include <time.h>
 
 #include "worker/pipeline.h"
 #include "parse.h"
+#include "configs/discover.h"
 #include "rules/rule_manager.h"
 #include "allocator/prism_xallocator.h"
 #include "prism/diagnostic.h"
 #include "cli/formatter.h"
 
+/**
+ * @brief Task structure representing a file to process.
+ */
 typedef struct
 {
     char *file;
     size_t idx;
-} task_t;
+} leuko_task_t;
 
+/**
+ * @brief Result structure representing the outcome of processing a file.
+ */
 typedef struct
 {
     bool done;
     bool success;
-    double parse_ms;
-    double build_ms;
-    double visit_ms;
-    uint64_t handler_ns;
-    size_t handler_calls;
     /* Serialized diagnostics copied out of thread-local pm_list_t (heap owned) */
     struct
     {
         pm_diagnostic_id_t diag_id;
-        char *message; /* strdup'd */
+        char *message;
         uint8_t level;
     } *diags;
     size_t diags_count;
-} result_t;
+} leuko_result_t;
 
-/* Simple FIFO queue */
+/**
+ * @brief Thread-safe task queue.
+ */
 typedef struct
 {
-    task_t *tasks;
+    leuko_task_t *tasks;
     size_t head;
     size_t tail;
     size_t cap;
     pthread_mutex_t lock;
     pthread_cond_t cond;
     bool closed;
-} task_queue_t;
+} leuko_task_queue_t;
 
-static bool tq_init(task_queue_t *q)
+/**
+ * @brief Initialize the task queue.
+ * @param q Pointer to the task queue
+ * @return true on success, false on failure
+ */
+static bool leuko_tq_init(leuko_task_queue_t *q)
 {
     q->tasks = NULL;
     q->head = q->tail = 0;
@@ -61,14 +69,25 @@ static bool tq_init(task_queue_t *q)
     return true;
 }
 
-static void tq_destroy(task_queue_t *q)
+/**
+ * @brief Destroy the task queue.
+ * @param q Pointer to the task queue
+ */
+static void leuko_tq_destroy(leuko_task_queue_t *q)
 {
     free(q->tasks);
     pthread_mutex_destroy(&q->lock);
     pthread_cond_destroy(&q->cond);
 }
 
-static bool tq_push(task_queue_t *q, const char *file, size_t idx)
+/**
+ * @brief Push a task onto the queue.
+ * @param q Pointer to the task queue
+ * @param file File path to process
+ * @param idx Index of the task
+ * @return true on success, false on failure
+ */
+static bool leuko_tq_push(leuko_task_queue_t *q, const char *file, size_t idx)
 {
     pthread_mutex_lock(&q->lock);
     if (q->closed)
@@ -80,7 +99,7 @@ static bool tq_push(task_queue_t *q, const char *file, size_t idx)
     if (len + 1 >= q->cap)
     {
         size_t newcap = q->cap == 0 ? 16 : q->cap * 2;
-        task_t *n = realloc(q->tasks, newcap * sizeof(task_t));
+        leuko_task_t *n = realloc(q->tasks, newcap * sizeof(leuko_task_t));
         if (!n)
         {
             pthread_mutex_unlock(&q->lock);
@@ -89,13 +108,19 @@ static bool tq_push(task_queue_t *q, const char *file, size_t idx)
         q->tasks = n;
         q->cap = newcap;
     }
-    q->tasks[q->tail++ % q->cap] = (task_t){strdup(file), idx};
+    q->tasks[q->tail++ % q->cap] = (leuko_task_t){strdup(file), idx};
     pthread_cond_signal(&q->cond);
     pthread_mutex_unlock(&q->lock);
     return true;
 }
 
-static bool tq_pop(task_queue_t *q, task_t *out)
+/**
+ * @brief Pop a task from the queue.
+ * @param q Pointer to the task queue
+ * @param out Pointer to store the popped task
+ * @return true on success, false if the queue is closed and empty
+ */
+static bool leuko_tq_pop(leuko_task_queue_t *q, leuko_task_t *out)
 {
     pthread_mutex_lock(&q->lock);
     while (q->head == q->tail && !q->closed)
@@ -112,7 +137,11 @@ static bool tq_pop(task_queue_t *q, task_t *out)
     return true;
 }
 
-static void tq_close(task_queue_t *q)
+/**
+ * @brief Close the task queue.
+ * @param q Pointer to the task queue
+ */
+static void leuko_tq_close(leuko_task_queue_t *q)
 {
     pthread_mutex_lock(&q->lock);
     q->closed = true;
@@ -120,36 +149,31 @@ static void tq_close(task_queue_t *q)
     pthread_mutex_unlock(&q->lock);
 }
 
-typedef struct worker_ctx_s
+/**
+ * @brief Worker context structure.
+ */
+typedef struct leuko_worker_ctx_s
 {
-    task_queue_t *q;
-    result_t *results;
+    leuko_task_queue_t *q;
+    leuko_result_t *results;
     config_t *cfg;
-    bool timings;
-} worker_ctx_t;
+} leuko_worker_ctx_t;
 
-static inline double timespec_to_ms(const struct timespec *a, const struct timespec *b)
+/**
+ * @brief Worker thread entrypoint.
+ */
+static void *leuko_worker_thread(void *v)
 {
-    double ms = (b->tv_sec - a->tv_sec) * 1000.0 + (b->tv_nsec - a->tv_nsec) / 1e6;
-    return ms;
-}
-
-static void *worker_thread(void *v)
-{
-    worker_ctx_t *ctx = v;
-    task_t task;
-    while (tq_pop(ctx->q, &task))
+    leuko_worker_ctx_t *ctx = v;
+    leuko_task_t task;
+    while (leuko_tq_pop(ctx->q, &task))
     {
-        result_t res = {0};
+        leuko_result_t res = {0};
         pm_node_t *root = NULL;
         pm_parser_t parser = {0};
         uint8_t *source = NULL;
 
-        struct timespec t0, t1;
-        clock_gettime(CLOCK_MONOTONIC, &t0);
         bool parsed = leuko_parse_ruby_file(task.file, &root, &parser, &source);
-        clock_gettime(CLOCK_MONOTONIC, &t1);
-        res.parse_ms = timespec_to_ms(&t0, &t1);
         if (!parsed)
         {
             res.success = false;
@@ -158,20 +182,18 @@ static void *worker_thread(void *v)
             continue;
         }
 
-        /* Build rules (cached) */
-        clock_gettime(CLOCK_MONOTONIC, &t0);
-        const rules_by_type_t *rules = get_rules_by_type_for_file(ctx->cfg, task.file);
-        clock_gettime(CLOCK_MONOTONIC, &t1);
-        res.build_ms = timespec_to_ms(&t0, &t1);
+        /* Build rules (cached) using per-file config discovery (read-only lookup for workers) */
+        const config_t *file_cfg = NULL;
+        if (leuko_config_get_cached_config_for_file_ro(task.file, &file_cfg) != 0)
+        {
+            /* unexpected error: treat as no cached config */
+            file_cfg = NULL;
+        }
+        const rules_by_type_t *rules = get_rules_by_type_for_file(file_cfg ? file_cfg : ctx->cfg, task.file);
 
-        /* Visit and measure handler time using thread-local counters; collect diagnostics */
+        /* Visit and collect diagnostics */
         pm_list_t local_diag = {0};
-        rule_manager_reset_timing();
-        clock_gettime(CLOCK_MONOTONIC, &t0);
         visit_node_with_rules(root, &parser, &local_diag, ctx->cfg, rules);
-        clock_gettime(CLOCK_MONOTONIC, &t1);
-        res.visit_ms = timespec_to_ms(&t0, &t1);
-        rule_manager_get_timing(&res.handler_ns, &res.handler_calls);
 
         /* Serialize diagnostics into heap-owned array so they survive arena teardown */
         pm_diagnostic_t *d = (pm_diagnostic_t *)local_diag.head;
@@ -211,60 +233,51 @@ static void *worker_thread(void *v)
     }
     return NULL;
 }
-
-bool leuko_run_pipeline(char **files, size_t files_count, config_t *cfg, size_t workers, bool timings, int *any_failures, double *total_parse_ms, double *total_build_ms, double *total_visit_ms, uint64_t *total_handler_ns, int formatter)
+bool leuko_run_pipeline(char **files, size_t files_count, config_t *cfg, size_t workers_count, int *any_failures, int formatter)
 {
-    if (!files || files_count == 0 || !cfg || workers == 0)
+    if (!files || files_count == 0 || !cfg || workers_count == 0)
+    {
         return false;
+    }
 
-    task_queue_t q;
-    tq_init(&q);
+    leuko_task_queue_t q;
+    leuko_tq_init(&q);
 
-    result_t *results = calloc(files_count, sizeof(result_t));
+    leuko_result_t *results = calloc(files_count, sizeof(leuko_result_t));
     if (!results)
     {
-        tq_destroy(&q);
+        leuko_tq_destroy(&q);
         return false;
     }
 
     /* Spawn workers */
-    pthread_t *ths = calloc(workers, sizeof(pthread_t));
-    worker_ctx_t ctx = {.q = &q, .results = results, .cfg = cfg, .timings = timings};
-    for (size_t i = 0; i < workers; i++)
+    pthread_t *ths = calloc(workers_count, sizeof(pthread_t));
+    leuko_worker_ctx_t ctx = {.q = &q, .results = results, .cfg = cfg};
+    for (size_t i = 0; i < workers_count; i++)
     {
-        pthread_create(&ths[i], NULL, worker_thread, &ctx);
+        pthread_create(&ths[i], NULL, leuko_worker_thread, &ctx);
     }
 
     /* Enqueue tasks preserving input order */
     for (size_t i = 0; i < files_count; i++)
     {
-        tq_push(&q, files[i], i);
+        leuko_tq_push(&q, files[i], i);
     }
 
     /* Close the queue and wait for workers */
-    tq_close(&q);
-    for (size_t i = 0; i < workers; i++)
+    leuko_tq_close(&q);
+    for (size_t i = 0; i < workers_count; i++)
     {
         pthread_join(ths[i], NULL);
     }
 
-    /* Aggregate results and print in order deterministically */
+    /* Aggregate results and print diagnostics in input order deterministically */
     int failures = 0;
-    double tp = 0.0, tb = 0.0, tv = 0.0;
-    uint64_t th_ns = 0;
     for (size_t i = 0; i < files_count; i++)
     {
-        result_t *r = &results[i];
+        leuko_result_t *r = &results[i];
         if (!r->success)
             failures++;
-        tp += r->parse_ms;
-        tb += r->build_ms;
-        tv += r->visit_ms;
-        th_ns += r->handler_ns;
-        if (timings)
-        {
-            printf("TIMING file=%s parse_ms=%.3f visit_ms=%.3f handlers_ms=%.3f handler_calls=%zu\n", files[i], r->parse_ms, r->visit_ms, r->handler_ns / 1e6, r->handler_calls);
-        }
         /* Print diagnostics deterministically in file order */
         for (size_t di = 0; di < r->diags_count; di++)
         {
@@ -278,19 +291,11 @@ bool leuko_run_pipeline(char **files, size_t files_count, config_t *cfg, size_t 
         free(r->diags);
     }
 
-    if (total_parse_ms)
-        *total_parse_ms = tp;
-    if (total_build_ms)
-        *total_build_ms = tb;
-    if (total_visit_ms)
-        *total_visit_ms = tv;
-    if (total_handler_ns)
-        *total_handler_ns = th_ns;
     if (any_failures)
         *any_failures = failures;
 
     free(ths);
     free(results);
-    tq_destroy(&q);
+    leuko_tq_destroy(&q);
     return true;
 }

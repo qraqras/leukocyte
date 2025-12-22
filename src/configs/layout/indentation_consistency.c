@@ -54,7 +54,7 @@ bool layout_indentation_consistency_apply(rule_config_t *config, const yaml_docu
     layout_indentation_consistency_config_t *sc = (layout_indentation_consistency_config_t *)config->specific_config;
     char *enforced_style_value = yaml_get_mapping_scalar_value(doc, rule_node, CONFIG_KEY_OF_LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE);
     if (!enforced_style_value)
-        return false;
+        return true; /* Nothing to set, not an error */
     if (strcmp(enforced_style_value, CONFIG_VALUE_OF_LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_INDENTED_INTERNAL_METHODS) == 0)
         sc->enforced_style = LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_INDENTED_INTERNAL_METHODS;
     else
@@ -72,7 +72,7 @@ bool layout_indentation_consistency_apply_multi(rule_config_t *config, yaml_docu
     layout_indentation_consistency_config_t *sc = (layout_indentation_consistency_config_t *)config->specific_config;
     char *val = yaml_get_merged_rule_scalar_multi(docs, doc_count, full_name, category_name, CONFIG_KEY_OF_LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE);
     if (!val)
-        return false;
+        return true; /* nothing to override */
     if (strcmp(val, CONFIG_VALUE_OF_LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_INDENTED_INTERNAL_METHODS) == 0)
         sc->enforced_style = LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_INDENTED_INTERNAL_METHODS;
     else

@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
+#include <inttypes.h>
+#include <limits.h>
 
 #include "cli/cli.h"
 #include "parse.h"
@@ -13,8 +16,8 @@
 #include "prism/diagnostic.h"
 #include "io/scan.h"
 #include "worker/pipeline.h"
-#include <time.h>
-#include <inttypes.h>
+#include "worker/jobs.h"
+#include "configs/discover.h"
 
 /**
  * @brief Main entry point for Leuko application.
@@ -80,15 +83,30 @@ int main(int argc, char *argv[])
 
     /* Parallel pipeline (deterministic ordering) */
     int any_failures = 0;
-    double total_parse_ms = 0.0;
-    double total_build_ms = 0.0;
-    double total_visit_ms = 0.0;
-    uint64_t total_handler_ns = 0;
 
-    if (cli_opts.jobs > 1)
+    /* Warm runtime config cache for discovered files to avoid per-file apply_config work. */
+    {
+        char *warm_err = NULL;
+        size_t warm_workers = cli_opts.parallel ? leuko_num_workers() : 1;
+        int wrc = leuko_config_warm_cache_for_files(ruby_files, ruby_files_count, warm_workers, &warm_err);
+        if (wrc != 0)
+        {
+            fprintf(stderr, "Error: config warm failed: %s\n", warm_err ? warm_err : "unknown");
+            free(warm_err);
+            /* Treat warm failure as fatal to guarantee worker-only read-only access to cache */
+            cli_options_free(&cli_opts);
+            free_config(&cfg);
+            for (size_t i = 0; i < ruby_files_count; ++i)
+                free(ruby_files[i]);
+            free(ruby_files);
+            return EXIT_FAILURE;
+        }
+    }
+
+    if (cli_opts.parallel)
     {
         /* Use worker pipeline */
-        if (!leuko_run_pipeline(ruby_files, ruby_files_count, &cfg, (size_t)cli_opts.jobs, cli_opts.timings, &any_failures, &total_parse_ms, &total_build_ms, &total_visit_ms, &total_handler_ns, (int)cli_opts.formatter))
+        if (!leuko_run_pipeline(ruby_files, ruby_files_count, &cfg, leuko_num_workers(), &any_failures, (int)cli_opts.formatter))
         {
             fprintf(stderr, "Failed to run parallel pipeline\n");
             cli_options_free(&cli_opts);
@@ -104,49 +122,35 @@ int main(int argc, char *argv[])
         /* Sequential fallback (single-threaded behavior preserved) */
         for (size_t i = 0; i < ruby_files_count; ++i)
         {
-            struct timespec t0, t1;
             pm_node_t *root_node = NULL;
             pm_parser_t parser = {0};
             uint8_t *source = NULL;
-            clock_gettime(CLOCK_MONOTONIC, &t0);
             if (!leuko_parse_ruby_file(ruby_files[i], &root_node, &parser, &source))
             {
                 fprintf(stderr, "Failed to parse Ruby file: %s\n", ruby_files[i]);
                 any_failures = 1;
                 continue;
             }
-            clock_gettime(CLOCK_MONOTONIC, &t1);
-            double parse_ms = ((t1.tv_sec - t0.tv_sec) * 1000.0) + ((t1.tv_nsec - t0.tv_nsec) / 1e6);
-            total_parse_ms += parse_ms;
 
             // **** RULE APPLICATION ****
-            clock_gettime(CLOCK_MONOTONIC, &t0);
-            const rules_by_type_t *rules = get_rules_by_type_for_file(&cfg, ruby_files[i]);
-            clock_gettime(CLOCK_MONOTONIC, &t1);
-            double build_ms = ((t1.tv_sec - t0.tv_sec) * 1000.0) + ((t1.tv_nsec - t0.tv_nsec) / 1e6);
-            total_build_ms += build_ms;
-
-            /* Reset handler timing, run visit, then measure handler time separately */
-            rule_manager_reset_timing();
-            clock_gettime(CLOCK_MONOTONIC, &t0);
-            visit_node_with_rules(root_node, &parser, NULL, &cfg, rules);
-            clock_gettime(CLOCK_MONOTONIC, &t1);
-            double visit_ms = ((t1.tv_sec - t0.tv_sec) * 1000.0) + ((t1.tv_nsec - t0.tv_nsec) / 1e6);
-            total_visit_ms += visit_ms;
-
-            uint64_t handler_ns = 0;
-            size_t handler_calls = 0;
-            rule_manager_get_timing(&handler_ns, &handler_calls);
-            total_handler_ns += handler_ns;
-
-            if (cli_opts.timings)
+            /* Prefer warmed per-file config if available */
+            const config_t *file_cfg = NULL;
+            char *cerr = NULL;
+            if (leuko_config_get_cached_config_for_file(ruby_files[i], &file_cfg, &cerr) != 0)
             {
-                fprintf(stderr, "[timings] %s parse=%.3fms build_rules=%.3fms visit=%.3fms handler=%.3fms calls=%zu\n",
-                        ruby_files[i], parse_ms, build_ms, visit_ms, handler_ns / 1e6, handler_calls);
-                /* Machine-readable TIMING line for bench scripts */
-                printf("TIMING file=%s parse_ms=%.3f visit_ms=%.3f handlers_ms=%.3f handler_calls=%zu\n",
-                       ruby_files[i], parse_ms, visit_ms, handler_ns / 1e6, handler_calls);
+                if (cerr)
+                {
+                    fprintf(stderr, "Warning: config discovery failed for %s: %s\n", ruby_files[i], cerr);
+                    free(cerr);
+                }
+                file_cfg = NULL;
             }
+            const config_t *used_cfg = file_cfg ? file_cfg : &cfg;
+
+            const rules_by_type_t *rules = get_rules_by_type_for_file(used_cfg, ruby_files[i]);
+
+            /* visit using used_cfg (cast away const for API) */
+            visit_node_with_rules(root_node, &parser, NULL, (config_t *)used_cfg, rules);
 
             pm_node_destroy(&parser, root_node);
             pm_parser_free(&parser);
@@ -161,16 +165,6 @@ int main(int argc, char *argv[])
         free(ruby_files[i]);
     }
     free(ruby_files);
-
-    if (cli_opts.timings)
-    {
-        double total_parse = total_parse_ms;
-        double total_build = total_build_ms;
-        double total_visit = total_visit_ms;
-        double total_handler_ms = total_handler_ns / 1e6;
-        fprintf(stderr, "[timings] totals parse=%.3fms build_rules=%.3fms visit=%.3fms handler=%.3fms\n",
-                total_parse, total_build, total_visit, total_handler_ms);
-    }
 
     /* debug: print number of freed diagnostics to verify pm_diagnostic_list_free behavior */
     extern size_t g_diag_freed;

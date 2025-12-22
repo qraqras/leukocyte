@@ -30,9 +30,7 @@ int main(void)
 
     char *files[] = {a, b};
     int failures = 0;
-    double tp = 0, tb = 0, tv = 0;
-    uint64_t th = 0;
-    bool ok = leuko_run_pipeline(files, 2, &cfg, 2, true, &failures, &tp, &tb, &tv, &th, 0);
+    bool ok = leuko_run_pipeline(files, 2, &cfg, 2, &failures, 0);
     assert(ok && failures == 0);
 
     unlink(a);

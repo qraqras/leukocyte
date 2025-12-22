@@ -31,7 +31,7 @@ int parse_command_line(int argc, char *argv[], cli_options_t *opts)
     }
     memset(opts, 0, sizeof(*opts));
     opts->formatter = CLI_FORMATTER_PROGRESS;
-    opts->jobs = 1;
+    opts->parallel = false;
 
     static struct option long_options[] = {
         {"auto-correct", no_argument, 0, 'a'},
@@ -43,8 +43,7 @@ int parse_command_line(int argc, char *argv[], cli_options_t *opts)
         {"help", no_argument, 0, 'h'},
         {"only", required_argument, 0, 0},
         {"version", no_argument, 0, 'v'},
-        {"timings", no_argument, 0, 0},
-        {"jobs", required_argument, 0, 'j'},
+        {"parallel", no_argument, 0, 0},
         {0, 0, 0, 0}};
 
     for (;;)
@@ -93,11 +92,6 @@ int parse_command_line(int argc, char *argv[], cli_options_t *opts)
         case 'f':
             cli_formatter_from_string(optarg, &opts->formatter);
             break;
-        case 'j':
-            opts->jobs = atoi(optarg);
-            if (opts->jobs < 1)
-                opts->jobs = 1;
-            break;
         case 'c':
             opts->config_path = strdup(optarg);
             break;
@@ -126,9 +120,9 @@ int parse_command_line(int argc, char *argv[], cli_options_t *opts)
                 if (merge_string_lists(&opts->only, &opts->only_count, tmp, tmp_count) != 0)
                     return -1;
             }
-            if (strcmp(long_options[option_index].name, "timings") == 0)
+            if (strcmp(long_options[option_index].name, "parallel") == 0)
             {
-                opts->timings = true;
+                opts->parallel = true;
             }
             break;
         case '?':
@@ -286,8 +280,7 @@ static void print_help(void)
     printf("  -f, --format <format>       Specify output format (text, json)\n");
     printf("  -h, --help                  Show this help message\n");
     printf("  -v, --version               Show version information\n");
-    printf("      --timings               Print per-file phase timings (parse, build_rules, visit, handler)\n");
-    printf("      -j, --jobs <n>           Number of worker threads for parallel processing\n");
+    printf("      --parallel              Enable automatic parallel execution (set jobs to CPU count)\n");
     printf("      --only <rule1,rule2>    Only include specific rules\n");
 }
 
