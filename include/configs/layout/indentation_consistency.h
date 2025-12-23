@@ -25,8 +25,6 @@ typedef struct layout_indentation_consistency_config_s
 
 leuko_rule_config_t *layout_indentation_consistency_initialize(void);
 void layout_indentation_consistency_config_free(void *config);
-
-/* Multi-document apply only: implemented as layout_indentation_consistency_apply_multi */
-bool layout_indentation_consistency_apply_multi(leuko_rule_config_t *config, yaml_document_t **docs, size_t doc_count, const char *full_name, const char *category_name, const char *rule_name, char **err);
+bool layout_indentation_consistency_apply(leuko_rule_config_t *config, yaml_document_t **docs, size_t doc_count, const char *full_name, const char *category_name, const char *rule_name, char **err);
 
 #endif /* LEUKOCYTE_CONFIGS_LAYOUT_INDENTATION_CONSISTENCY_H */

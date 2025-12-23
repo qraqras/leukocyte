@@ -2,9 +2,8 @@
 #define LEUKOCYTE_CONFIGS_CONFIG_H
 
 #include <stddef.h>
-
-#include "configs/common/rule_config.h"
 #include "common/registry/list.h"
+#include "configs/common/rule_config.h"
 
 /**
  * @brief Main configuration structure containing all rule configurations.

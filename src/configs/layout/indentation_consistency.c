@@ -1,5 +1,6 @@
 #include <string.h>
 #include <yaml.h>
+#include "configs/common/rule_config.h"
 #include "configs/layout/indentation_consistency.h"
 #include "common/registry/registry.h"
 
@@ -18,25 +19,19 @@ leuko_rule_config_t *layout_indentation_consistency_initialize(void)
     specific_cfg->enforced_style = LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_NORMAL;
 
     /* Rule configuration */
-    leuko_rule_config_t *cfg = calloc(1, sizeof(*cfg));
+    leuko_rule_config_t *cfg = leuko_rule_config_initialize();
     if (!cfg)
     {
         free(specific_cfg);
         return NULL;
     }
-    cfg->enabled = true;
-    cfg->severity = LEUKO_SEVERITY_CONVENTION;
-    cfg->include = NULL;
-    cfg->include_count = 0;
-    cfg->exclude = NULL;
-    cfg->exclude_count = 0;
     cfg->specific_config = specific_cfg;
     cfg->specific_config_free = layout_indentation_consistency_config_free;
     return cfg;
 }
 
 /* Multi-document apply for indentation rule */
-bool layout_indentation_consistency_apply_multi(leuko_rule_config_t *config, yaml_document_t **docs, size_t doc_count, const char *full_name, const char *category_name, const char *rule_name, char **err)
+bool layout_indentation_consistency_apply(leuko_rule_config_t *config, yaml_document_t **docs, size_t doc_count, const char *full_name, const char *category_name, const char *rule_name, char **err)
 {
     // if (err)
     //     *err = NULL;
@@ -72,5 +67,5 @@ void layout_indentation_consistency_config_free(void *config)
  */
 struct leuko_rule_config_handlers_s layout_indentation_consistency_config_ops = {
     .initialize = layout_indentation_consistency_initialize,
-    .apply_yaml = layout_indentation_consistency_apply_multi,
+    .apply_yaml = layout_indentation_consistency_apply,
 };
