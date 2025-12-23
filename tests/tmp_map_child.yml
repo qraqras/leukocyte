@@ -1,6 +1,0 @@
-inherit_from: tmp_map_parent.yml
-Layout:
-  SomeRule:
-    Nested:
-      B: 2
-      C: child

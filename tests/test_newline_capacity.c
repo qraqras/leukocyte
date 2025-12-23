@@ -12,9 +12,11 @@ int main(void)
     size_t lines = 10000;
     size_t buflen = lines * 3 + 10; /* e.g., "x\n" repeated */
     char *buf = malloc(buflen + 1);
-    if (!buf) return 2;
+    if (!buf)
+        return 2;
     char *cur = buf;
-    for (size_t i = 0; i < lines; i++) {
+    for (size_t i = 0; i < lines; i++)
+    {
         *cur++ = 'x';
         *cur++ = '\n';
         *cur++ = 'a';

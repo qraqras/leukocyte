@@ -1,5 +1,0 @@
-Layout:
-  IndentationConsistency:
-    Include:
-      - foo
-    Enabled: true

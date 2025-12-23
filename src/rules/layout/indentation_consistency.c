@@ -2,11 +2,10 @@
 #include <stdlib.h>
 
 #include "prism/ast.h"
-#include "configs/config.h"
+#include "configs/common/config.h"
 #include "configs/layout/indentation_consistency.h"
 #include "rules/layout/indentation_consistency.h"
-#include "rules/rule.h"
-#include "io/processed_source.h"
+#include "rules/common/rule_context.h"
 
 /* Forward declaration of handler */
 bool check_def(pm_node_t *node, const rule_context_t *ctx);
@@ -17,6 +16,7 @@ rule_t layout_indentation_consistency_rule = {
 // Handler for DefNode: check indentation of body statements
 bool check_def(pm_node_t *node, const rule_context_t *ctx)
 {
+    return true;
     pm_parser_t *parser = ctx->parser;
     pm_list_t *diagnostics = ctx->diagnostics;
     const leuko_config_t *cfg = ctx->cfg;

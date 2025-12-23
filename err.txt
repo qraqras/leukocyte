@@ -1,5 +1,0 @@
-unexpected glob results (out2_count=1):
-  /tmp/leuko_scan_N7xtfV/a.rb
-test_scan_dir failed
-r1=1 r2=0 r3=0 failures=1
-1 tests failed

@@ -1,5 +1,0 @@
-Layout:
-  SomeRule:
-    Nested:
-      A: 1
-      C: parent

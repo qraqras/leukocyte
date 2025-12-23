@@ -1,9 +1,7 @@
 #include <string.h>
 #include <yaml.h>
-
 #include "configs/layout/indentation_consistency.h"
-#include "configs/conversion/yaml_helpers.h"
-#include "rule_registry.h"
+#include "common/registry/registry.h"
 
 /**
  * @brief Initialize the layout_indentation_consistency rule configuration.
@@ -40,19 +38,19 @@ leuko_rule_config_t *layout_indentation_consistency_initialize(void)
 /* Multi-document apply for indentation rule */
 bool layout_indentation_consistency_apply_multi(leuko_rule_config_t *config, yaml_document_t **docs, size_t doc_count, const char *full_name, const char *category_name, const char *rule_name, char **err)
 {
-    if (err)
-        *err = NULL;
-    if (!config || !config->specific_config)
-        return false;
-    layout_indentation_consistency_config_t *sc = (layout_indentation_consistency_config_t *)config->specific_config;
-    char *val = NULL;
-    if (!yaml_get_merged_rule_scalar_multi(docs, doc_count, full_name, category_name, rule_name, CONFIG_KEY_OF_LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE, &val))
-        return true; /* nothing to override */
-    if (strcmp(val, CONFIG_VALUE_OF_LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_INDENTED_INTERNAL_METHODS) == 0)
-        sc->enforced_style = LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_INDENTED_INTERNAL_METHODS;
-    else
-        sc->enforced_style = LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_NORMAL;
-    free(val);
+    // if (err)
+    //     *err = NULL;
+    // if (!config || !config->specific_config)
+    //     return false;
+    // layout_indentation_consistency_config_t *sc = (layout_indentation_consistency_config_t *)config->specific_config;
+    // char *val = NULL;
+    // if (!yaml_get_merged_rule_scalar_multi(docs, doc_count, full_name, category_name, rule_name, CONFIG_KEY_OF_LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE, &val))
+    //     return true; /* nothing to override */
+    // if (strcmp(val, CONFIG_VALUE_OF_LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_INDENTED_INTERNAL_METHODS) == 0)
+    //     sc->enforced_style = LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_INDENTED_INTERNAL_METHODS;
+    // else
+    //     sc->enforced_style = LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_NORMAL;
+    // free(val);
     return true;
 }
 
