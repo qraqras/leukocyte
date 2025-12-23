@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "configs/config.h"
-#include "common/rule_registry.h"
+#include "configs/common/config.h"
+#include "common/registry/registry.h"
 
 /**
  * @brief Initialize a leuko_config_t structure.

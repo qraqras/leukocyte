@@ -1,5 +1,6 @@
 #include "cli/exit_code.h"
 #include "cli/parser.h"
+#include "configs/common/config.h"
 
 /**
  * @brief Entry point for CLI application.
@@ -21,6 +22,13 @@ int main(int argc, char *argv[])
         return LEUKO_EXIT_INVALID;
     default:
         return LEUKO_EXIT_INVALID;
+    }
+
+    /* If config path is provided, initialize configuration */
+    leuko_config_t conf = {0};
+    leuko_config_initialize(&conf);
+    if (cli_opts.config_path)
+    {
     }
 
     leuko_cli_options_free(&cli_opts);

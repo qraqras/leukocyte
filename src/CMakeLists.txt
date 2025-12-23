@@ -13,6 +13,7 @@ endforeach()
 # Include optional helpers
 include(Prism OPTIONAL)
 include(LibYAML OPTIONAL)
+include(LibUV OPTIONAL)
 
 # Automatically collect .c sources under src/
 file(GLOB_RECURSE LEUKO_SOURCES_REL "${CMAKE_SOURCE_DIR}/src/*.c")
@@ -53,6 +54,11 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/src/main.c)
     endif()
 endif()
 
+# If libuv is being built via ExternalProject, ensure library target depends on it
+if(TARGET libuv_ep)
+    add_dependencies(leuko_lib libuv_ep)
+endif()
+
 # Link libraries for library target (conditionally add prism/yaml)
 if(TARGET prism_static)
     if(TARGET yaml)
@@ -65,6 +71,22 @@ else()
         target_link_libraries(leuko_lib PRIVATE leuko_prism_helpers yaml)
     else()
         target_link_libraries(leuko_lib PRIVATE leuko_prism_helpers)
+    endif()
+endif()
+
+# Link libuv if available
+if(TARGET libuv::libuv)
+    # Check that the imported target actually has a valid IMPORTED_LOCATION. When using
+    # ExternalProject the installed artifacts may not exist at configure time and CMake
+    # can create an imported target without a real location which causes generated Makefiles
+    # to include a dependency like "libuv::libuv-NOTFOUND" and break the build. Defer
+    # linking until the imported location is present.
+    get_target_property(_libuv_loc libuv::libuv IMPORTED_LOCATION)
+    if(_libuv_loc)
+        target_link_libraries(leuko_lib PRIVATE libuv::libuv)
+        target_compile_definitions(leuko_lib PRIVATE LEUKO_HAVE_LIBUV=1)
+    else()
+        message(STATUS "libuv imported target present but no IMPORTED_LOCATION yet; deferring linking until build-time (ExternalProject)")
     endif()
 endif()
 

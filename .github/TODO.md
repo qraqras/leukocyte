@@ -1,27 +1,5 @@
-# 推奨ディレクトリ構成 (高レベル)
-
-/src
-  /cli/                ← CLI 実装・コマンドライン処理
-  /common/             ← 共有コンポーネント（ルールレジストリ等）
-  /configs/            ← 設定
-    /common/           ← 設定共通ヘルパ
-    /layout/
-    /lint/
-  /rules/              ← ルール実装（カテゴリ別フォルダ）
-    /common/           ← ルール共通ヘルパ
-    /layout/
-    /lint/
-  /sources/            ← ソース読み取り・収集の責務 (旧 `files`)
-    /ruby/             ← Ruby ソースの収集・スキャン
-    /yaml/             ← YAML の読み込み / merge / inherit 解決
-  /util/               ← 汎用ユーティリティ
-    /allocator/
-
-include/
-  (モジュール毎の公開ヘッダを整理: include/ruby, include/yaml, include/configs, ...)
-vendor/
-test/
-  /unit/
-  /integration/
-bench/
-cmake/                 ← CMake helper, モジュール用 CMake 設定
+- CLIでconfigの指定がある場合は、そのconfigファイルで確定するのでパース&マージ
+- 全Rubyファイルを収集(configの指定があれば、Include/Excludeを考慮する)
+- conifgの指定がない場合、各Rubyファイルに対応するYAMLを収集する
+- YAMLを一意にして並列でパース&マージ(並列)
+- 各Rubyファイルについて、対応するconifgから有効なルールを収集、適用(並列)

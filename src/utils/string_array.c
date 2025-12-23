@@ -126,8 +126,6 @@ bool leuko_str_arr_split(const char *str, const char *delimiter, char ***out, si
     size_t idx = 0;
     const char *start = str;
     const char *match = NULL;
-    /* Helper: trim in-place leading/trailing whitespace; returns trimmed length */
-    auto trim_inplace = (size_t (*)(char *))NULL; /* placeholder for clarity */
 
     /* Process tokens and trim */
     while ((match = strstr(start, delimiter)) != NULL)
