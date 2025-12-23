@@ -24,3 +24,9 @@ option(ENABLE_GPROF "Enable gprof profiling for leukocyte target" OFF)
 
 # Defer the rest of the build into the `src/` subdirectory for clarity
 add_subdirectory(src)
+
+# Tests directory (top-level)
+enable_testing()
+if(EXISTS ${CMAKE_SOURCE_DIR}/tests/CMakeLists.txt)
+    add_subdirectory(tests)
+endif()

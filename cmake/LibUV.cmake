@@ -1,6 +1,6 @@
-# LibUV helper: optionally use system libuv or build vendor/libuv
-# Option to enable libuv support (disabled by default)
-option(BUILD_LIBUV "Enable libuv support (use system libuv or vendor/libuv)" OFF)
+# LibUV helper: use system libuv or build vendor/libuv
+# Option to enable libuv support (enabled by default and required)
+option(BUILD_LIBUV "Enable libuv support (use system libuv or vendor/libuv)" ON)
 
 if(BUILD_LIBUV)
     # Try pkg-config first
@@ -30,6 +30,8 @@ if(BUILD_LIBUV)
         message(STATUS "Attempting to download and build libuv via ExternalProject")
         include(ExternalProject)
         set(_libuv_install_dir ${CMAKE_BINARY_DIR}/vendor/libuv/install)
+        # Expose install dir so other CMakeLists can add include dirs and depend on the ExternalProject
+        set(LEUKO_LIBUV_INSTALL_DIR ${_libuv_install_dir} CACHE PATH "libuv install dir")
         ExternalProject_Add(libuv_ep
             GIT_REPOSITORY https://github.com/libuv/libuv.git
             GIT_TAG v1.46.0
@@ -52,6 +54,10 @@ if(BUILD_LIBUV)
         # Note: include dir will be available after install; linking target depends on external project
         set(LEUKO_HAVE_LIBUV TRUE)
     endif()
+
+    if(NOT DEFINED LEUKO_HAVE_LIBUV)
+        message(FATAL_ERROR "libuv support is required (BUILD_LIBUV=ON) but libuv was not found or could not be configured")
+    endif()
 else()
-    message(STATUS "BUILD_LIBUV is OFF or libuv not available; skipping libuv support")
+    message(FATAL_ERROR "libuv support is required for this project. Set BUILD_LIBUV=ON to enable it.")
 endif()
