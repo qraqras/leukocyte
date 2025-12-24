@@ -1,0 +1,6 @@
+inherit_from:
+  - .rubocop3.yml
+
+AllCops:
+  Exclude:
+    - aaaa/**/*.rb

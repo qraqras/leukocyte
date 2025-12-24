@@ -16,13 +16,15 @@
  */
 typedef struct leuko_config_s
 {
-#define X(field, cat_name, sname, rule_ptr, ops_ptr) leuko_rule_config_t *field;
-    LEUKO_RULES_LIST
-#undef X
+    /* Global AllCops include/exclude (used when rules_config absent) */
     char **all_include;
     size_t all_include_count;
     char **all_exclude;
     size_t all_exclude_count;
+
+#define X(field, cat_name, sname, rule_ptr, ops_ptr) leuko_rule_config_t *field;
+    LEUKO_RULES_LIST
+#undef X
 } leuko_config_t;
 
 void leuko_config_initialize(leuko_config_t *cfg);

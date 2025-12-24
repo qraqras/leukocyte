@@ -1,0 +1,7 @@
+Layout:
+  Exclude:
+    - "vendor/**/*"
+  IndentationConsistency:
+    EnforcedStyle: indented_internal_methods
+  UnknownRule:
+    SomeKey: true

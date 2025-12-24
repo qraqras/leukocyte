@@ -29,13 +29,20 @@ typedef struct leuko_rule_config_s
     void (*specific_config_free)(void *);
 } leuko_rule_config_t;
 
+/* Forward declare merged node type to avoid heavy includes */
+typedef struct leuko_yaml_node_s leuko_yaml_node_t;
+
 /**
  * @brief Rule configuration handlers structure.
  */
 typedef struct leuko_rule_config_handlers_s
 {
     leuko_rule_config_t *(*initialize)(void);
+    /* Legacy: apply using raw yaml_document_t array (deprecated)
+     * New: apply using merged leuko_yaml_node_t for simpler rule logic
+     */
     bool (*apply_yaml)(leuko_rule_config_t *config, yaml_document_t **docs, size_t doc_count, const char *full_name, const char *category_name, const char *rule_name, char **err);
+    bool (*apply_merged)(leuko_rule_config_t *config, leuko_yaml_node_t *merged, const char *full_name, const char *category_name, const char *rule_name, char **err);
 } leuko_rule_config_handlers_t;
 
 leuko_rule_config_t *leuko_rule_config_initialize(void);

@@ -16,6 +16,11 @@
 #include "utils/allocator/arena.h"
 #include "utils/string_array.h"
 #include "leuko_debug.h"
+#include "sources/yaml/merge.h"
+#include "common/registry/registry.h"
+
+/* Forward declare document-based materializer */
+static leuko_config_t *materialize_rules_from_document(struct leuko_arena *a, yaml_document_t *doc);
 
 /* Simple FNV-1a 64bit for fingerprinting */
 static uint64_t
@@ -59,7 +64,7 @@ build_merged_doc_from_files(struct leuko_arena *a, char **files, size_t count)
             return NULL;
         }
         yaml_parser_set_input_file(&parser, fh);
-        yaml_document_t *local_doc = malloc(sizeof(yaml_document_t));
+        yaml_document_t *local_doc = calloc(1, sizeof(yaml_document_t));
         if (!local_doc)
         {
             yaml_parser_delete(&parser);
@@ -98,136 +103,107 @@ build_merged_doc_from_files(struct leuko_arena *a, char **files, size_t count)
 static leuko_config_t *
 materialize_rules_from_files(struct leuko_arena *a, char **files, size_t count)
 {
+    /* Legacy entrypoint kept for compatibility: build merged doc and forward to document-based materializer */
     if (!files || count == 0)
+        return NULL;
+    yaml_document_t *doc = build_merged_doc_from_files(a, files, count);
+    if (!doc)
+        return NULL;
+    leuko_config_t *cfg = materialize_rules_from_document(a, doc);
+    yaml_document_delete(doc);
+    free(doc);
+    return cfg;
+}
+
+/* Materialize rules from a merged yaml_document_t by invoking per-rule handlers */
+static leuko_config_t *
+materialize_rules_from_document(struct leuko_arena *a, yaml_document_t *doc)
+{
+    if (!doc)
         return NULL;
     leuko_config_t *cfg = leuko_arena_alloc(a, sizeof(leuko_config_t));
     if (!cfg)
         return NULL;
     leuko_config_initialize(cfg);
 
-    /* Very small line-oriented parser for prototype: find 'AllCops' mapping and then
-     * collect subsequent '- "pattern"' lines for Include/Exclude blocks.
+    /* Populate AllCops Include/Exclude by inspecting yaml_document_t directly (safe path)
+     * Note: we avoid using the leuko_yaml_node conversion here until its crash is resolved.
      */
-    size_t i;
-    for (i = 0; i < count; i++)
+    yaml_node_t *root = yaml_document_get_root_node(doc);
+    if (root && root->type == YAML_MAPPING_NODE)
     {
-        FILE *fh = fopen(files[i], "r");
-        if (!fh)
-            continue;
-        char line[1024];
-        int in_allcops = 0;
-        int in_block = 0; /* 1=Include,2=Exclude */
-        size_t include_cap = 4;
-        size_t exclude_cap = 4;
-        size_t include_count = 0;
-        size_t exclude_count = 0;
-        char **includes = leuko_arena_alloc(a, sizeof(char *) * include_cap);
-        char **excludes = leuko_arena_alloc(a, sizeof(char *) * exclude_cap);
-        while (fgets(line, sizeof(line), fh))
+        yaml_node_t *allcops = NULL;
+        size_t root_pairs = 0;
+        if (root->data.mapping.pairs.start && root->data.mapping.pairs.top)
+            root_pairs = (size_t)(root->data.mapping.pairs.top - root->data.mapping.pairs.start);
+        for (size_t j = 0; j < root_pairs; j++)
         {
-            /* trim */
-            char *p = line;
-            while (*p && (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r'))
-                p++;
-            if (*p == '#')
+            yaml_node_pair_t p2 = root->data.mapping.pairs.start[j];
+            yaml_node_t *k2 = yaml_document_get_node(doc, p2.key);
+            yaml_node_t *v2 = yaml_document_get_node(doc, p2.value);
+            if (!k2 || k2->type != YAML_SCALAR_NODE)
                 continue;
-            if (strncmp(p, "AllCops:", 8) == 0)
+            if (strcmp((char *)k2->data.scalar.value, "AllCops") == 0)
             {
-                in_allcops = 1;
-                in_block = 0;
-                continue;
+                allcops = v2;
+                break;
             }
-            if (!in_allcops)
-                continue;
-            if (strncmp(p, "Include:", 8) == 0 || strncmp(p, "Includes:", 9) == 0)
+        }
+        if (allcops && allcops->type == YAML_MAPPING_NODE)
+        {
+            fprintf(stderr, "[compiled_config] allcops=%p type=%d pairs.top=%ld\n", (void *)allcops, allcops->type, (long)allcops->data.mapping.pairs.top);
+            yaml_node_t *inc = leuko_yaml_find_mapping_value(doc, allcops, LEUKO_CONFIG_KEY_INCLUDE);
+            if (inc && inc->type == YAML_SEQUENCE_NODE)
             {
-                in_block = 1;
-                continue;
-            }
-            if (strncmp(p, "Exclude:", 8) == 0 || strncmp(p, "Excludes:", 9) == 0)
-            {
-                in_block = 2;
-                continue;
-            }
-            if (in_block && p[0] == '-')
-            {
-                /* parse pattern between quotes or after - */
-                char *q = strchr(p, '"');
-                char buf[512];
-                if (q)
+                size_t n = 0;
+                if (inc->data.sequence.items.start && inc->data.sequence.items.top)
+                    n = (size_t)(inc->data.sequence.items.top - inc->data.sequence.items.start);
+                if (n > 0)
                 {
-                    q++;
-                    char *end = strchr(q, '"');
-                    if (end)
+                    cfg->all_include = leuko_arena_alloc(a, sizeof(char *) * n);
+                    cfg->all_include_count = n;
+                    for (size_t i = 0; i < n; i++)
                     {
-                        size_t len = end - q;
-                        if (len >= sizeof(buf))
-                            len = sizeof(buf) - 1;
-                        memcpy(buf, q, len);
-                        buf[len] = '\0';
-                    }
-                    else
-                    {
-                        continue;
+                        yaml_node_t *it = yaml_document_get_node(doc, inc->data.sequence.items.start[i]);
+                        const char *s = (it && it->type == YAML_SCALAR_NODE) ? (const char *)it->data.scalar.value : "";
+                        cfg->all_include[i] = leuko_arena_strdup(a, s);
                     }
                 }
-                else
+            }
+            yaml_node_t *exc = leuko_yaml_find_mapping_value(doc, allcops, LEUKO_CONFIG_KEY_EXCLUDE);
+            if (exc && exc->type == YAML_SEQUENCE_NODE)
+            {
+                size_t n = 0;
+                if (exc->data.sequence.items.start && exc->data.sequence.items.top)
+                    n = (size_t)(exc->data.sequence.items.top - exc->data.sequence.items.start);
+                if (n > 0)
                 {
-                    /* after '- ' */
-                    q = p + 1;
-                    while (*q && (*q == ' ' || *q == '\t'))
-                        q++;
-                    char *end = q;
-                    while (*end && *end != '\n' && *end != '\r')
-                        end++;
-                    size_t len = end - q;
-                    if (len >= sizeof(buf))
-                        len = sizeof(buf) - 1;
-                    memcpy(buf, q, len);
-                    buf[len] = '\0';
-                }
-                if (in_block == 1)
-                {
-                    if (include_count >= include_cap)
+                    cfg->all_exclude = leuko_arena_alloc(a, sizeof(char *) * n);
+                    cfg->all_exclude_count = n;
+                    for (size_t i = 0; i < n; i++)
                     {
-                        /* grow */
-                        size_t nc = include_cap * 2;
-                        char **narr = leuko_arena_alloc(a, sizeof(char *) * nc);
-                        memcpy(narr, includes, sizeof(char *) * include_cap);
-                        includes = narr;
-                        include_cap = nc;
+                        yaml_node_t *it = yaml_document_get_node(doc, exc->data.sequence.items.start[i]);
+                        const char *s = (it && it->type == YAML_SCALAR_NODE) ? (const char *)it->data.scalar.value : "";
+                        cfg->all_exclude[i] = leuko_arena_strdup(a, s);
                     }
-                    includes[include_count++] = leuko_arena_strdup(a, buf);
-                }
-                else if (in_block == 2)
-                {
-                    if (exclude_count >= exclude_cap)
-                    {
-                        size_t nc = exclude_cap * 2;
-                        char **narr = leuko_arena_alloc(a, sizeof(char *) * nc);
-                        memcpy(narr, excludes, sizeof(char *) * exclude_cap);
-                        excludes = narr;
-                        exclude_cap = nc;
-                    }
-                    excludes[exclude_count++] = leuko_arena_strdup(a, buf);
                 }
             }
         }
-        fclose(fh);
-        if (include_count > 0)
-        {
-            cfg->all_include = includes;
-            cfg->all_include_count = include_count;
-        }
-        if (exclude_count > 0)
-        {
-            cfg->all_exclude = excludes;
-            cfg->all_exclude_count = exclude_count;
-        }
-        /* mark that rules_config memory is arena-owned */
-        cfg->all_include = cfg->all_include;
     }
 
+    /* Normalize rule keys in the merged document and (future) apply per-rule handlers.
+     * For now we perform normalization so downstream code sees a consistent view where
+     * rule-specific nested mappings are also visible as full-name keys (Category/Rule).
+     */
+    leuko_yaml_node_t *merged = leuko_yaml_node_from_document(doc);
+    if (merged)
+    {
+        leuko_yaml_normalize_rule_keys(merged);
+        /* TODO: call per-rule apply_merged handlers on `merged` to populate cfg. */
+        leuko_yaml_node_free(merged);
+    }
+
+    /* For now, do not call per-rule handlers via apply_merged to avoid triggering the conversion crash. */
     return cfg;
 }
 
@@ -268,12 +244,14 @@ leuko_compiled_config_build(const char *dir, const leuko_compiled_config_t *pare
         }
 
         fprintf(stderr, "[compiled_config] materialize_rules_from_files start\n");
-        c->rules_config = materialize_rules_from_files(c->arena, c->source_files, c->source_files_count);
+        /* Build leuko_yaml_node merged tree and materialize rules from it */
+        fprintf(stderr, "[compiled_config] materialize: about to call materialize_rules_from_document, merged_doc=%p\n", (void *)c->merged_doc);
+        fflush(stderr);
+        c->rules_config = materialize_rules_from_document(c->arena, c->merged_doc);
         c->rules_config_from_arena = true;
-        fprintf(stderr, "[compiled_config] materialize_rules_from_files returned %p\n", (void *)c->rules_config);
         if (!c->rules_config)
         {
-            LDEBUG("failed to materialize rules_config for %s", dir);
+            LDEBUG("materialize_rules_from_document failed for %s", dir);
             leuko_compiled_config_unref(c);
             return NULL;
         }
