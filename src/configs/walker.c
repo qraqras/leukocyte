@@ -25,6 +25,18 @@ static bool is_ruby_file(const char *name)
     return false;
 }
 
+static bool matches_any_pattern_regex(const char *path, const regex_t *res, size_t count)
+{
+    if (!res || count == 0 || !path)
+        return false;
+    for (size_t i = 0; i < count; i++)
+    {
+        if (regexec(&res[i], path, 0, NULL, 0) == 0)
+            return true;
+    }
+    return false;
+}
+
 static bool matches_any_pattern(const char *path, char **patterns, size_t count)
 {
     if (!patterns || count == 0)
@@ -93,7 +105,8 @@ static int walk_dir(const char *dir, leuko_compiled_config_t *parent_cfg, leuko_
     if (cfg)
     {
         /* If configured to exclude this directory itself, stop descending */
-        if (matches_any_pattern(dir, cfg->rules_config ? cfg->rules_config->all_exclude : cfg->all_exclude, cfg->rules_config ? cfg->rules_config->all_exclude_count : cfg->all_exclude_count))
+        const leuko_all_cops_config_t *ac = leuko_compiled_config_all_cops(cfg);
+        if (ac && ac->exclude && ac->exclude_count > 0 && matches_any_pattern(dir, ac->exclude, ac->exclude_count))
         {
             leuko_compiled_config_unref(cfg);
             return 0; /* prune */
@@ -124,11 +137,24 @@ static int walk_dir(const char *dir, leuko_compiled_config_t *parent_cfg, leuko_
             const char *basename = name;
             if (cfg)
             {
-                if (dir_matches_pattern(path, basename, cfg->rules_config ? cfg->rules_config->all_exclude : cfg->all_exclude,
-                                        cfg->rules_config ? cfg->rules_config->all_exclude_count : cfg->all_exclude_count))
+                const leuko_all_cops_config_t *ac = leuko_compiled_config_all_cops(cfg);
+                if (ac)
                 {
-                    /* prune */
-                    continue;
+                    /* prefer precompiled regex if available for full-path checks */
+                    if (ac->exclude_re && ac->exclude_re_count > 0)
+                    {
+                        if (matches_any_pattern_regex(path, ac->exclude_re, ac->exclude_re_count))
+                        {
+                            /* prune this child subtree */
+                            continue;
+                        }
+                    }
+                    /* fallback to legacy token/basename checks for patterns like 'vendor/**' */
+                    if (ac->exclude && ac->exclude_count > 0 && dir_matches_pattern(path, basename, ac->exclude, ac->exclude_count))
+                    {
+                        /* prune this child subtree */
+                        continue;
+                    }
                 }
             }
             walk_dir(path, cfg, files, count);
@@ -143,17 +169,30 @@ static int walk_dir(const char *dir, leuko_compiled_config_t *parent_cfg, leuko_
             bool included = true;
             if (cfg)
             {
-                /* include semantics: if include list exists, must match one */
-                size_t all_inc_count = cfg->rules_config ? cfg->rules_config->all_include_count : cfg->all_include_count;
-                char **all_inc = cfg->rules_config ? cfg->rules_config->all_include : cfg->all_include;
-                if (all_inc_count > 0)
+                const leuko_all_cops_config_t *ac = leuko_compiled_config_all_cops(cfg);
+                if (ac)
                 {
-                    included = matches_any_pattern(path, all_inc, all_inc_count);
+                    if (ac->include_re && ac->include_re_count > 0)
+                    {
+                        included = matches_any_pattern_regex(path, ac->include_re, ac->include_re_count);
+                    }
+                    else if (ac->include && ac->include_count > 0)
+                    {
+                        included = matches_any_pattern(path, ac->include, ac->include_count);
+                    }
+
+                    if (ac->exclude_re && ac->exclude_re_count > 0)
+                    {
+                        if (matches_any_pattern_regex(path, ac->exclude_re, ac->exclude_re_count))
+                        {
+                            excluded = true;
+                        }
+                    }
+                    else if (ac->exclude && ac->exclude_count > 0 && matches_any_pattern(path, ac->exclude, ac->exclude_count))
+                    {
+                        excluded = true;
+                    }
                 }
-                size_t all_exc_count = cfg->rules_config ? cfg->rules_config->all_exclude_count : cfg->all_exclude_count;
-                char **all_exc = cfg->rules_config ? cfg->rules_config->all_exclude : cfg->all_exclude;
-                if (all_exc_count > 0 && matches_any_pattern(path, all_exc, all_exc_count))
-                    excluded = true;
             }
             if (included && !excluded)
             {

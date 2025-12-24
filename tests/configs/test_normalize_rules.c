@@ -59,10 +59,10 @@ int main(void)
         return 2;
     }
 
-    /* Materialization should have created rules_config (non-NULL) */
+    /* Materialization should have created effective_config (non-NULL) */
     if (!leuko_compiled_config_rules(c))
     {
-        fprintf(stderr, "no rules_config\n");
+        fprintf(stderr, "no effective_config\n");
         leuko_yaml_node_free(root);
         leuko_compiled_config_unref(c);
         return 2;

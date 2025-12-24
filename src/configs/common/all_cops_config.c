@@ -1,20 +1,12 @@
 #include <stdlib.h>
 #include <string.h>
-#include "configs/common/rule_config.h"
+#include "configs/common/all_cops_config.h"
 
-/**
- * @brief Initialize a leuko_rule_config_t structure with default values.
- * @return Pointer to the initialized leuko_rule_config_t structure
- */
-leuko_rule_config_t *leuko_rule_config_initialize(void)
+leuko_all_cops_config_t *leuko_all_cops_config_initialize(void)
 {
-    leuko_rule_config_t *cfg = calloc(1, sizeof(*cfg));
+    leuko_all_cops_config_t *cfg = calloc(1, sizeof(*cfg));
     if (!cfg)
-    {
         return NULL;
-    }
-    cfg->enabled = true;
-    cfg->severity = LEUKO_SEVERITY_CONVENTION;
     cfg->include = NULL;
     cfg->include_count = 0;
     cfg->exclude = NULL;
@@ -24,17 +16,10 @@ leuko_rule_config_t *leuko_rule_config_initialize(void)
     cfg->include_re_count = 0;
     cfg->exclude_re = NULL;
     cfg->exclude_re_count = 0;
-
-    cfg->specific_config = NULL;
-    cfg->specific_config_free = NULL;
     return cfg;
 }
 
-/**
- * @brief Free a leuko_rule_config_t structure.
- * @param cfg Pointer to the leuko_rule_config_t structure to free
- */
-void leuko_rule_config_free(leuko_rule_config_t *cfg)
+void leuko_all_cops_config_free(leuko_all_cops_config_t *cfg)
 {
     if (!cfg)
         return;
@@ -60,21 +45,12 @@ void leuko_rule_config_free(leuko_rule_config_t *cfg)
         for (size_t i = 0; i < cfg->include_count; i++)
             free(cfg->include[i]);
         free(cfg->include);
-        cfg->include = NULL;
-        cfg->include_count = 0;
     }
     if (cfg->exclude)
     {
         for (size_t i = 0; i < cfg->exclude_count; i++)
             free(cfg->exclude[i]);
         free(cfg->exclude);
-        cfg->exclude = NULL;
-        cfg->exclude_count = 0;
-    }
-    if (cfg->specific_config && cfg->specific_config_free)
-    {
-        cfg->specific_config_free(cfg->specific_config);
-        cfg->specific_config = NULL;
     }
     free(cfg);
 }

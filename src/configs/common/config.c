@@ -43,59 +43,13 @@ void leuko_config_initialize(leuko_config_t *cfg)
 #undef X
 }
 
-static void leuko_all_cops_config_free(leuko_all_cops_config_t *acfg)
-{
-    if (!acfg)
-        return;
-    if (acfg->include)
-    {
-        for (size_t i = 0; i < acfg->include_count; i++)
-            free(acfg->include[i]);
-        free(acfg->include);
-    }
-    if (acfg->exclude)
-    {
-        for (size_t i = 0; i < acfg->exclude_count; i++)
-            free(acfg->exclude[i]);
-        free(acfg->exclude);
-    }
-    if (acfg->inherit_from)
-        free(acfg->inherit_from);
-    if (acfg->inherit_mode)
-        free(acfg->inherit_mode);
-    free(acfg);
-}
-
-static void leuko_category_config_free(leuko_category_config_t *ccfg)
-{
-    if (!ccfg)
-        return;
-    if (ccfg->name)
-        free(ccfg->name);
-    if (ccfg->include)
-    {
-        for (size_t i = 0; i < ccfg->include_count; i++)
-            free(ccfg->include[i]);
-        free(ccfg->include);
-    }
-    if (ccfg->exclude)
-    {
-        for (size_t i = 0; i < ccfg->exclude_count; i++)
-            free(ccfg->exclude[i]);
-        free(ccfg->exclude);
-    }
-    if (ccfg->inherit_mode)
-        free(ccfg->inherit_mode);
-    free(ccfg);
-}
-
 leuko_all_cops_config_t *leuko_config_all_cops(leuko_config_t *cfg)
 {
     if (!cfg)
         return NULL;
     if (!cfg->all_cops)
     {
-        cfg->all_cops = calloc(1, sizeof(*cfg->all_cops));
+        cfg->all_cops = leuko_all_cops_config_initialize();
     }
     return cfg->all_cops;
 }
@@ -119,13 +73,9 @@ leuko_category_config_t *leuko_config_add_category(leuko_config_t *cfg, const ch
     leuko_category_config_t *existing = leuko_config_get_category(cfg, name);
     if (existing)
         return existing;
-    leuko_category_config_t *cc = calloc(1, sizeof(*cc));
-    cc->name = strdup(name);
-    cc->include = NULL;
-    cc->include_count = 0;
-    cc->exclude = NULL;
-    cc->exclude_count = 0;
-    cc->inherit_mode = NULL;
+    leuko_category_config_t *cc = leuko_category_config_initialize(name);
+    if (!cc)
+        return NULL;
 
     leuko_category_config_t **tmp = realloc(cfg->categories, sizeof(*tmp) * (cfg->categories_count + 1));
     if (!tmp)
@@ -181,34 +131,6 @@ size_t leuko_config_count(void)
  * @brief Free a leuko_rule_config_t structure.
  * @param cfg Pointer to the leuko_rule_config_t structure to free
  */
-static void leuko_rule_config_free(leuko_rule_config_t *cfg)
-{
-    if (!cfg)
-    {
-        return;
-    }
-    if (cfg->include)
-    {
-        for (size_t i = 0; i < cfg->include_count; i++)
-        {
-            free(cfg->include[i]);
-        }
-        free(cfg->include);
-    }
-    if (cfg->exclude)
-    {
-        for (size_t i = 0; i < cfg->exclude_count; i++)
-        {
-            free(cfg->exclude[i]);
-        }
-        free(cfg->exclude);
-    }
-    if (cfg->specific_config && cfg->specific_config_free)
-    {
-        cfg->specific_config_free(cfg->specific_config);
-    }
-    free(cfg);
-}
 
 /**
  * @brief Free a leuko_config_t structure.

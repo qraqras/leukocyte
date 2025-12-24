@@ -14,27 +14,8 @@
  * @brief Main configuration structure containing all rule configurations.
  * @note `all_include` and `all_exclude` are for global AllCops-level patterns.
  */
-/* AllCops specific configuration */
-typedef struct leuko_all_cops_config_s
-{
-    char **include;
-    size_t include_count;
-    char **exclude;
-    size_t exclude_count;
-    char *inherit_from; /* optionally store inherit_from string */
-    char *inherit_mode; /* "merge" or "override" */
-} leuko_all_cops_config_t;
-
-/* Per-category configuration (e.g., Layout) */
-typedef struct leuko_category_config_s
-{
-    char *name; /* category name, e.g., "Layout" */
-    char **include;
-    size_t include_count;
-    char **exclude;
-    size_t exclude_count;
-    char *inherit_mode; /* optional */
-} leuko_category_config_t;
+#include "configs/common/all_cops_config.h"
+#include "configs/common/category_config.h"
 
 typedef struct leuko_config_s
 {

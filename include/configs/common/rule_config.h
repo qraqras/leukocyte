@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <yaml.h>
-#include "prism.h"
+#include <regex.h>
 #include "common/severity.h"
 
 /* Config Keys */
@@ -25,6 +25,13 @@ typedef struct leuko_rule_config_s
     size_t include_count;
     char **exclude;
     size_t exclude_count;
+
+    /* Precompiled regex for include/exclude */
+    regex_t *include_re;
+    size_t include_re_count;
+    regex_t *exclude_re;
+    size_t exclude_re_count;
+
     void *specific_config;
     void (*specific_config_free)(void *);
 } leuko_rule_config_t;
@@ -46,5 +53,6 @@ typedef struct leuko_rule_config_handlers_s
 } leuko_rule_config_handlers_t;
 
 leuko_rule_config_t *leuko_rule_config_initialize(void);
+void leuko_rule_config_free(leuko_rule_config_t *cfg);
 
 #endif /* LEUKOCYTE_CONFIGS_RULE_CONFIG_H */

@@ -11,27 +11,16 @@ typedef struct leuko_config_s leuko_config_t;
 
 typedef struct leuko_compiled_config_s
 {
+    /* ディレクトリ情報 */
     char *dir;            /* 所有: 絶対ディレクトリパス */
     uint64_t fingerprint; /* mtime+content+parent の簡易ハッシュ */
 
-    /* AllCops レベルのマージ結果 */
-    char **all_include; /* fnmatch 用パターン配列（所有） */
-    size_t all_include_count;
-    char **all_exclude;
-    size_t all_exclude_count;
-
-    /* ディレクトリ単位で有効な include/exclude（compiled） */
-    char **include;
-    size_t include_count;
-    char **exclude;
-    size_t exclude_count;
+    /* マージ済み libyaml ドキュメント（所有） */
+    yaml_document_t *merged_doc; /* 所有（arena で割当） */
 
     /* 各ルールのマージ済み設定（子優先でフルマージ済み） */
-    leuko_config_t *rules_config; /* 所有（配下の rule 設定を含む） */
-    bool rules_config_from_arena; /* true if rules_config allocated in arena (do not free individually) */
-
-    /* マージ済み libyaml ドキュメント */
-    yaml_document_t *merged_doc; /* 所有（arena で割当） */
+    leuko_config_t *effective_config; /* 所有（配下の rule 設定を含む） */
+    bool effective_config_from_arena; /* true if effective_config allocated in arena (do not free individually) */
 
     /* 使用された設定ファイルの一覧（解析履歴／診断用） */
     char **source_files;
@@ -40,8 +29,6 @@ typedef struct leuko_compiled_config_s
     /* メモリ管理 / キャッシュ用 */
     struct leuko_arena *arena; /* 短寿命割当用アリーナ（所有） */
     int refcount;              /* 参照カウント */
-
-    unsigned int flags; /* 将来の拡張用 */
 } leuko_compiled_config_t;
 
 /* API */
@@ -57,8 +44,8 @@ size_t leuko_compiled_config_all_include_count(const leuko_compiled_config_t *cf
 const char *leuko_compiled_config_all_include_at(const leuko_compiled_config_t *cfg, size_t idx);
 
 /* Provide typed access to AllCops config without pulling heavy headers */
-typedef struct leuko_all_cops_config_s leuko_all_cops_config_t;
-typedef struct leuko_category_config_s leuko_category_config_t;
+#include "configs/common/all_cops_config.h"
+#include "configs/common/category_config.h"
 
 const leuko_all_cops_config_t *leuko_compiled_config_all_cops(const leuko_compiled_config_t *cfg);
 const leuko_category_config_t *leuko_compiled_config_get_category(const leuko_compiled_config_t *cfg, const char *name);
