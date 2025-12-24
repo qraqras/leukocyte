@@ -9,7 +9,6 @@
 
 /* Config Keys */
 #define LEUKO_ALL_COPS "AllCops"
-#define LEUKO_INHERIT_FROM "inherit_from"
 #define LEUKO_CONFIG_KEY_ENABLED "Enabled"
 #define LEUKO_CONFIG_KEY_SEVERITY "Severity"
 #define LEUKO_CONFIG_KEY_INCLUDE "Include"

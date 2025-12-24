@@ -2,7 +2,7 @@
 #define LEUKOCYTE_RULE_CONTEXT_H
 
 #include "prism.h"
-#include "sources/ruby/processed_source.h"
+#include "sources/processed_source.h"
 
 typedef struct leuko_config_s leuko_config_t; // Forward-declare rules_by_type to avoid include cycle with rule_manager
 typedef struct rules_by_type_s rules_by_type_t;

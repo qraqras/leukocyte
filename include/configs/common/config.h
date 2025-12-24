@@ -5,6 +5,11 @@
 #include "common/registry/list.h"
 #include "configs/common/rule_config.h"
 
+#define LEUKO_INHERIT_FROM "inherit_from"
+#define LEUKO_INHERIT_MODE "inherit_mode"
+#define LEUKO_INHERIT_MODE_MERGE "merge"
+#define LEUKO_INHERIT_MODE_OVERRIDE "override"
+
 /**
  * @brief Main configuration structure containing all rule configurations.
  * @note `all_include` and `all_exclude` are for global AllCops-level patterns.

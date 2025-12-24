@@ -134,7 +134,8 @@ endif()
 # If libyaml was built via ExternalProject, expose include and link it
 if(DEFINED LEUKO_LIBYAML_INSTALL_DIR)
     if(EXISTS ${LEUKO_LIBYAML_INSTALL_DIR}/include)
-        target_include_directories(leuko_lib PRIVATE ${LEUKO_LIBYAML_INSTALL_DIR}/include)
+        # Make libyaml headers available to consumers of leuko_lib as well
+        target_include_directories(leuko_lib PUBLIC ${LEUKO_LIBYAML_INSTALL_DIR}/include)
     endif()
     if(EXISTS ${LEUKO_LIBYAML_INSTALL_DIR}/lib/libyaml.a)
         add_library(libyaml_from_ep STATIC IMPORTED)
@@ -144,7 +145,7 @@ if(DEFINED LEUKO_LIBYAML_INSTALL_DIR)
     if(TARGET libyaml_ep)
         add_dependencies(leuko_lib libyaml_ep)
     endif()
-    target_compile_definitions(leuko_lib PRIVATE LEUKO_HAVE_LIBYAML=1)
+    target_compile_definitions(leuko_lib PUBLIC LEUKO_HAVE_LIBYAML=1)
 endif()
 
 # If Prism was built via ExternalProject, expose include dir and ensure dependency
