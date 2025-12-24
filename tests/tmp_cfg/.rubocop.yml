@@ -3,3 +3,8 @@ AllCops:
     - "**/*.rb"
   Exclude:
     - "vendor/**/*"
+Layout:
+  Include:
+    - "lib/**/*.rb"
+  Exclude:
+    - "vendor/layout/**/*"

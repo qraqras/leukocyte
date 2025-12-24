@@ -16,7 +16,12 @@ void leuko_config_initialize(leuko_config_t *cfg)
     }
     memset(cfg, 0, sizeof(*cfg));
 
-    /* Initialize AllCops fields */
+    /* Initialize AllCops and category pointers */
+    cfg->all_cops = NULL;
+    cfg->categories = NULL;
+    cfg->categories_count = 0;
+
+    /* Backwards-compatible AllCops arrays (kept in sync by materialize step) */
     cfg->all_include = NULL;
     cfg->all_include_count = 0;
     cfg->all_exclude = NULL;
@@ -36,6 +41,102 @@ void leuko_config_initialize(leuko_config_t *cfg)
     } while (0);
     LEUKO_RULES_LIST
 #undef X
+}
+
+static void leuko_all_cops_config_free(leuko_all_cops_config_t *acfg)
+{
+    if (!acfg)
+        return;
+    if (acfg->include)
+    {
+        for (size_t i = 0; i < acfg->include_count; i++)
+            free(acfg->include[i]);
+        free(acfg->include);
+    }
+    if (acfg->exclude)
+    {
+        for (size_t i = 0; i < acfg->exclude_count; i++)
+            free(acfg->exclude[i]);
+        free(acfg->exclude);
+    }
+    if (acfg->inherit_from)
+        free(acfg->inherit_from);
+    if (acfg->inherit_mode)
+        free(acfg->inherit_mode);
+    free(acfg);
+}
+
+static void leuko_category_config_free(leuko_category_config_t *ccfg)
+{
+    if (!ccfg)
+        return;
+    if (ccfg->name)
+        free(ccfg->name);
+    if (ccfg->include)
+    {
+        for (size_t i = 0; i < ccfg->include_count; i++)
+            free(ccfg->include[i]);
+        free(ccfg->include);
+    }
+    if (ccfg->exclude)
+    {
+        for (size_t i = 0; i < ccfg->exclude_count; i++)
+            free(ccfg->exclude[i]);
+        free(ccfg->exclude);
+    }
+    if (ccfg->inherit_mode)
+        free(ccfg->inherit_mode);
+    free(ccfg);
+}
+
+leuko_all_cops_config_t *leuko_config_all_cops(leuko_config_t *cfg)
+{
+    if (!cfg)
+        return NULL;
+    if (!cfg->all_cops)
+    {
+        cfg->all_cops = calloc(1, sizeof(*cfg->all_cops));
+    }
+    return cfg->all_cops;
+}
+
+leuko_category_config_t *leuko_config_get_category(leuko_config_t *cfg, const char *name)
+{
+    if (!cfg || !name)
+        return NULL;
+    for (size_t i = 0; i < cfg->categories_count; i++)
+    {
+        if (strcmp(cfg->categories[i]->name, name) == 0)
+            return cfg->categories[i];
+    }
+    return NULL;
+}
+
+leuko_category_config_t *leuko_config_add_category(leuko_config_t *cfg, const char *name)
+{
+    if (!cfg || !name)
+        return NULL;
+    leuko_category_config_t *existing = leuko_config_get_category(cfg, name);
+    if (existing)
+        return existing;
+    leuko_category_config_t *cc = calloc(1, sizeof(*cc));
+    cc->name = strdup(name);
+    cc->include = NULL;
+    cc->include_count = 0;
+    cc->exclude = NULL;
+    cc->exclude_count = 0;
+    cc->inherit_mode = NULL;
+
+    leuko_category_config_t **tmp = realloc(cfg->categories, sizeof(*tmp) * (cfg->categories_count + 1));
+    if (!tmp)
+    {
+        leuko_category_config_free(cc);
+        return NULL;
+    }
+    cfg->categories = tmp;
+    cfg->categories[cfg->categories_count] = cc;
+    cfg->categories_count++;
+    return cc;
 }
 
 /**
@@ -149,5 +250,24 @@ void leuko_config_free(leuko_config_t *cfg)
         free(cfg->all_exclude);
         cfg->all_exclude = NULL;
         cfg->all_exclude_count = 0;
+    }
+
+    /* Free any allocated category configs */
+    if (cfg->categories)
+    {
+        for (size_t i = 0; i < cfg->categories_count; i++)
+        {
+            leuko_category_config_free(cfg->categories[i]);
+        }
+        free(cfg->categories);
+        cfg->categories = NULL;
+        cfg->categories_count = 0;
+    }
+
+    /* Free AllCops config if present */
+    if (cfg->all_cops)
+    {
+        leuko_all_cops_config_free(cfg->all_cops);
+        cfg->all_cops = NULL;
     }
 }

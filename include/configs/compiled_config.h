@@ -56,6 +56,17 @@ const leuko_config_t *leuko_compiled_config_rules(const leuko_compiled_config_t 
 size_t leuko_compiled_config_all_include_count(const leuko_compiled_config_t *cfg);
 const char *leuko_compiled_config_all_include_at(const leuko_compiled_config_t *cfg, size_t idx);
 
+/* Provide typed access to AllCops config without pulling heavy headers */
+typedef struct leuko_all_cops_config_s leuko_all_cops_config_t;
+typedef struct leuko_category_config_s leuko_category_config_t;
+
+const leuko_all_cops_config_t *leuko_compiled_config_all_cops(const leuko_compiled_config_t *cfg);
+const leuko_category_config_t *leuko_compiled_config_get_category(const leuko_compiled_config_t *cfg, const char *name);
+
+/* Category accessors */
+size_t leuko_compiled_config_category_include_count(const leuko_compiled_config_t *cfg, const char *category);
+const char *leuko_compiled_config_category_include_at(const leuko_compiled_config_t *cfg, const char *category, size_t idx);
+
 bool leuko_compiled_config_matches_dir(const leuko_compiled_config_t *cfg, const char *path);
 
 #endif /* LEUKO_CONFIGS_COMPILED_CONFIG_H */

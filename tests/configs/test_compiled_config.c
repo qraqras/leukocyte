@@ -12,7 +12,7 @@ int main(void)
     FILE *f = fopen("tests/tmp_cfg/.rubocop.yml", "w");
     if (!f)
         return 2;
-    fprintf(f, "AllCops:\n  Include:\n    - \"**/*.rb\"\n  Exclude:\n    - \"vendor/**/*\"\n");
+    fprintf(f, "AllCops:\n  Include:\n    - \"**/*.rb\"\n  Exclude:\n    - \"vendor/**/*\"\nLayout:\n  Include:\n    - \"lib/**/*.rb\"\n  Exclude:\n    - \"vendor/layout/**/*\"\n");
     fclose(f);
 
     leuko_compiled_config_t *c = leuko_compiled_config_build(td, NULL);
@@ -41,6 +41,22 @@ int main(void)
     if (!inc || strcmp(inc, "**/*.rb") != 0)
     {
         fprintf(stderr, "unexpected include: %s\n", inc ? inc : "(null)");
+        leuko_compiled_config_unref(c);
+        return 2;
+    }
+
+    /* Ensure AllCops include is present via accessor */
+    if (leuko_compiled_config_all_include_count(c) != 1 || strcmp(leuko_compiled_config_all_include_at(c, 0), "**/*.rb") != 0)
+    {
+        fprintf(stderr, "missing or incorrect AllCops include\n");
+        leuko_compiled_config_unref(c);
+        return 2;
+    }
+
+    /* Ensure category Layout is present via accessor */
+    if (leuko_compiled_config_category_include_count(c, "Layout") != 1 || strcmp(leuko_compiled_config_category_include_at(c, "Layout", 0), "lib/**/*.rb") != 0)
+    {
+        fprintf(stderr, "missing or incorrect Layout category config\n");
         leuko_compiled_config_unref(c);
         return 2;
     }
