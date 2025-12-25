@@ -1,5 +1,5 @@
 {
-  "all": {
+  "general": {
     "exclude": [
       "./**/aaaa/**/*.rb"
     ],

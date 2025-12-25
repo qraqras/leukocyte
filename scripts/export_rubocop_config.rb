@@ -89,7 +89,7 @@ raw_hash = load_and_merge_yaml(options[:config])
 
 # Build output structure (direct)
 out = {
-  'all' => {},
+  'general' => {},
   'categories' => {}
 }
 
@@ -151,9 +151,9 @@ def populate_section(out_section, raw_section, is_category = false, cat_name = n
   end
 end
 
-# copy AllCops: use common population helper
+# copy AllCops into `general` section
 if raw_hash['AllCops'] && raw_hash['AllCops'].is_a?(Hash)
-  populate_section(out['all'], raw_hash['AllCops'])
+  populate_section(out['general'], raw_hash['AllCops'])
 end
 
 # iterate over resolved keys (simplified)
@@ -225,17 +225,17 @@ def build_normalized_map(list)
 end
 
 # Coerce keys to Array when resolved/default indicate Array using map lookup
-if out['all'].is_a?(Hash)
-  all_key_list = ((raw_hash['AllCops'] || {}).keys + (resolved_hash['AllCops'] || {}).keys + (default_cfg['AllCops'] || {}).keys).compact.uniq
-  all_map = build_normalized_map(all_key_list)
-  out['all'].each do |nk, val|
+if out['general'].is_a?(Hash)
+  general_key_list = ((raw_hash['AllCops'] || {}).keys + (resolved_hash['AllCops'] || {}).keys + (default_cfg['AllCops'] || {}).keys).compact.uniq
+  all_map = build_normalized_map(general_key_list)
+  out['general'].each do |nk, val|
     orig = all_map[nk]
     next unless orig
 
     res_val = resolved_hash.dig('AllCops', orig)
     def_val = default_cfg.dig('AllCops', orig)
     if res_val.is_a?(Array) || def_val.is_a?(Array)
-      out['all'][nk] = Array(val)
+      out['general'][nk] = Array(val)
     end
   end
 end
