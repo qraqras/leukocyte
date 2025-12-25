@@ -12,33 +12,33 @@
 
 /**
  * @brief Main configuration structure containing all rule configurations.
- * @note `all_include` and `all_exclude` are for global AllCops-level patterns.
+ * @note `general_include` and `general_exclude` are for global general-level patterns.
  */
-#include "configs/common/all_cops_config.h"
+#include "configs/common/general_config.h"
 #include "configs/common/category_config.h"
 
 typedef struct leuko_config_s
 {
-    /* Global AllCops configuration (preferred storage) */
-    leuko_all_cops_config_t *all_cops;
+    /* Global general configuration (preferred storage) */
+    leuko_general_config_t *general;
 
     /* Per-category configs */
     leuko_category_config_t **categories;
     size_t categories_count;
 
     /* Backwards-compatible arrays for quick access (kept for now) */
-    char **all_include;
-    size_t all_include_count;
-    char **all_exclude;
-    size_t all_exclude_count;
+    char **general_include;
+    size_t general_include_count;
+    char **general_exclude;
+    size_t general_exclude_count;
 
 #define X(field, cat_name, sname, rule_ptr, ops_ptr) leuko_rule_config_t *field;
     LEUKO_RULES_LIST
 #undef X
 } leuko_config_t;
 
-/* Helpers for AllCops/category access */
-leuko_all_cops_config_t *leuko_config_get_all_cops_config(leuko_config_t *cfg);
+/* Helpers for general/category access */
+leuko_general_config_t *leuko_config_get_general_config(leuko_config_t *cfg);
 leuko_category_config_t *leuko_config_get_category_config(leuko_config_t *cfg, const char *name);
 leuko_category_config_t *leuko_config_add_category(leuko_config_t *cfg, const char *name);
 

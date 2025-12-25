@@ -68,6 +68,12 @@ elseif(TARGET cjson)
     target_compile_definitions(leuko_lib PRIVATE LEUKO_HAVE_CJSON=1)
 endif()
 
+# If vendor cJSON directory exists but its include dir isn't exposed by the target,
+# add the vendored path as a fallback so <cJSON.h> works during compilation.
+if(EXISTS ${CMAKE_SOURCE_DIR}/vendor/cjson)
+    target_include_directories(leuko_lib PRIVATE ${CMAKE_SOURCE_DIR}/vendor/cjson)
+endif()
+
 # Link libuv if available
 if(TARGET libuv::libuv)
     # Check that the imported target actually has a valid IMPORTED_LOCATION. When using

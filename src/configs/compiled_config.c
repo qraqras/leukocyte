@@ -8,7 +8,7 @@
 
 #include "configs/compiled_config.h"
 #include "configs/common/config.h"
-#include "configs/common/all_cops_config.h"
+#include "configs/common/general_config.h"
 #include "configs/common/category_config.h"
 #include "utils/allocator/arena.h"
 #include "utils/glob_to_regex.h"
@@ -129,7 +129,7 @@ materialize_rules_from_node(struct leuko_arena *a, leuko_node_t *root)
         size_t n = leuko_node_array_count(inc);
         if (n > 0)
         {
-            leuko_all_cops_config_t *ac = leuko_config_get_all_cops_config(cfg);
+            leuko_general_config_t *ac = leuko_config_get_general_config(cfg);
             ac->include = calloc(n, sizeof(char *));
             ac->include_count = n;
             for (size_t i = 0; i < n; i++)
@@ -143,7 +143,7 @@ materialize_rules_from_node(struct leuko_arena *a, leuko_node_t *root)
         n = leuko_node_array_count(exc);
         if (n > 0)
         {
-            leuko_all_cops_config_t *ac = leuko_config_get_all_cops_config(cfg);
+            leuko_general_config_t *ac = leuko_config_get_general_config(cfg);
             ac->exclude = calloc(n, sizeof(char *));
             ac->exclude_count = n;
             for (size_t i = 0; i < n; i++)
@@ -304,15 +304,15 @@ leuko_compiled_config_build(const char *dir, const leuko_compiled_config_t *pare
         size_t p_inc = 0, c_inc = 0;
         char **p_inc_arr = NULL;
         char **c_inc_arr = NULL;
-        if (parent->effective_config->all_cops)
+        if (parent->effective_config->general)
         {
-            p_inc = parent->effective_config->all_cops->include_count;
-            p_inc_arr = parent->effective_config->all_cops->include;
+            p_inc = parent->effective_config->general->include_count;
+            p_inc_arr = parent->effective_config->general->include;
         }
-        if (c->effective_config->all_cops)
+        if (c->effective_config->general)
         {
-            c_inc = c->effective_config->all_cops->include_count;
-            c_inc_arr = c->effective_config->all_cops->include;
+            c_inc = c->effective_config->general->include_count;
+            c_inc_arr = c->effective_config->general->include;
         }
         if (p_inc > 0)
         {
@@ -323,7 +323,7 @@ leuko_compiled_config_build(const char *dir, const leuko_compiled_config_t *pare
                 narr[i] = leuko_arena_strdup(c->arena, p_inc_arr[i]);
             for (i = 0; i < c_inc; i++)
                 narr[p_inc + i] = leuko_arena_strdup(c->arena, c_inc_arr[i]);
-            leuko_all_cops_config_t *cac = leuko_config_get_all_cops_config(c->effective_config);
+            leuko_general_config_t *cac = leuko_config_get_general_config(c->effective_config);
             cac->include = calloc(total, sizeof(char *));
             cac->include_count = total;
             for (i = 0; i < total; i++)
@@ -398,11 +398,11 @@ const leuko_config_t *leuko_compiled_config_rules(const leuko_compiled_config_t 
     return cfg->effective_config;
 }
 
-const leuko_all_cops_config_t *leuko_compiled_config_all_cops(const leuko_compiled_config_t *cfg)
+const leuko_general_config_t *leuko_compiled_config_general(const leuko_compiled_config_t *cfg)
 {
     if (!cfg || !cfg->effective_config)
         return NULL;
-    return cfg->effective_config->all_cops;
+    return cfg->effective_config->general;
 }
 
 const leuko_category_config_t *leuko_compiled_config_get_category(const leuko_compiled_config_t *cfg, const char *name)
@@ -429,20 +429,20 @@ const char *leuko_compiled_config_category_include_at(const leuko_compiled_confi
 }
 
 /* Accessors */
-size_t leuko_compiled_config_all_include_count(const leuko_compiled_config_t *cfg)
+size_t leuko_compiled_config_general_include_count(const leuko_compiled_config_t *cfg)
 {
-    if (!cfg || !cfg->effective_config || !cfg->effective_config->all_cops)
+    if (!cfg || !cfg->effective_config || !cfg->effective_config->general)
         return 0;
-    return cfg->effective_config->all_cops->include_count;
+    return cfg->effective_config->general->include_count;
 }
 
-const char *leuko_compiled_config_all_include_at(const leuko_compiled_config_t *cfg, size_t idx)
+const char *leuko_compiled_config_general_include_at(const leuko_compiled_config_t *cfg, size_t idx)
 {
-    if (!cfg || !cfg->effective_config || !cfg->effective_config->all_cops)
+    if (!cfg || !cfg->effective_config || !cfg->effective_config->general)
         return NULL;
-    if (idx >= cfg->effective_config->all_cops->include_count)
+    if (idx >= cfg->effective_config->general->include_count)
         return NULL;
-    return cfg->effective_config->all_cops->include[idx];
+    return cfg->effective_config->general->include[idx];
 }
 
 bool leuko_compiled_config_matches_dir(const leuko_compiled_config_t *cfg, const char *path)

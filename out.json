@@ -1,12 +1,4 @@
 {
-  "general": {
-    "exclude": [
-      "./**/aaaa/**/*.rb"
-    ],
-    "severity": {
-      "warning": "refactor"
-    }
-  },
   "categories": {
     "Layout": {
       "exclude": [
@@ -21,6 +13,14 @@
           "enabled": false
         }
       }
+    }
+  },
+  "general": {
+    "exclude": [
+      "./**/aaaa/**/*.rb"
+    ],
+    "severity": {
+      "warning": "refactor"
     }
   }
 }

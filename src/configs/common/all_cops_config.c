@@ -1,10 +1,10 @@
 #include <stdlib.h>
 #include <string.h>
-#include "configs/common/all_cops_config.h"
+#include "configs/common/general_config.h"
 
-leuko_all_cops_config_t *leuko_all_cops_config_initialize(void)
+leuko_general_config_t *leuko_general_config_initialize(void)
 {
-    leuko_all_cops_config_t *cfg = calloc(1, sizeof(*cfg));
+    leuko_general_config_t *cfg = calloc(1, sizeof(*cfg));
     if (!cfg)
         return NULL;
     cfg->include = NULL;
@@ -19,7 +19,7 @@ leuko_all_cops_config_t *leuko_all_cops_config_initialize(void)
     return cfg;
 }
 
-void leuko_all_cops_config_free(leuko_all_cops_config_t *cfg)
+void leuko_general_config_free(leuko_general_config_t *cfg)
 {
     if (!cfg)
         return;

@@ -16,16 +16,16 @@ void leuko_config_initialize(leuko_config_t *cfg)
     }
     memset(cfg, 0, sizeof(*cfg));
 
-    /* Initialize AllCops and category pointers */
-    cfg->all_cops = NULL;
+    /* Initialize general and category pointers */
+    cfg->general = NULL;
     cfg->categories = NULL;
     cfg->categories_count = 0;
 
-    /* Backwards-compatible AllCops arrays (kept in sync by materialize step) */
-    cfg->all_include = NULL;
-    cfg->all_include_count = 0;
-    cfg->all_exclude = NULL;
-    cfg->all_exclude_count = 0;
+    /* Backwards-compatible general arrays (kept in sync by materialize step) */
+    cfg->general_include = NULL;
+    cfg->general_include_count = 0;
+    cfg->general_exclude = NULL;
+    cfg->general_exclude_count = 0;
 
 #define X(field, cat_name, sname, rule_ptr, ops_ptr) \
     do                                               \
@@ -43,15 +43,15 @@ void leuko_config_initialize(leuko_config_t *cfg)
 #undef X
 }
 
-leuko_all_cops_config_t *leuko_config_get_all_cops_config(leuko_config_t *cfg)
+leuko_general_config_t *leuko_config_get_general_config(leuko_config_t *cfg)
 {
     if (!cfg)
         return NULL;
-    if (!cfg->all_cops)
+    if (!cfg->general)
     {
-        cfg->all_cops = leuko_all_cops_config_initialize();
+        cfg->general = leuko_general_config_initialize();
     }
-    return cfg->all_cops;
+    return cfg->general;
 }
 
 leuko_category_config_t *leuko_config_get_category_config(leuko_config_t *cfg, const char *name)
@@ -152,30 +152,29 @@ void leuko_config_free(leuko_config_t *cfg)
     LEUKO_RULES_LIST
 #undef X
 
-    /* Free AllCops lists */
-    if (cfg->all_include)
+    /* Free general lists */
+    if (cfg->general_include)
     {
-        for (size_t i = 0; i < cfg->all_include_count; i++)
+        for (size_t i = 0; i < cfg->general_include_count; i++)
         {
-            free(cfg->all_include[i]);
+            free(cfg->general_include[i]);
         }
-        free(cfg->all_include);
-        cfg->all_include = NULL;
-        cfg->all_include_count = 0;
+        free(cfg->general_include);
+        cfg->general_include = NULL;
+        cfg->general_include_count = 0;
     }
-    if (cfg->all_exclude)
+    if (cfg->general_exclude)
     {
-        for (size_t i = 0; i < cfg->all_exclude_count; i++)
+        for (size_t i = 0; i < cfg->general_exclude_count; i++)
         {
-            free(cfg->all_exclude[i]);
+            free(cfg->general_exclude[i]);
         }
-        free(cfg->all_exclude);
-        cfg->all_exclude = NULL;
-        cfg->all_exclude_count = 0;
+        free(cfg->general_exclude);
+        cfg->general_exclude = NULL;
+        cfg->general_exclude_count = 0;
     }
 
-    /* Free any allocated category configs */
-    if (cfg->categories)
+    /* Free any allocated category configs */    if (cfg->categories)
     {
         for (size_t i = 0; i < cfg->categories_count; i++)
         {
@@ -186,10 +185,10 @@ void leuko_config_free(leuko_config_t *cfg)
         cfg->categories_count = 0;
     }
 
-    /* Free AllCops config if present */
-    if (cfg->all_cops)
+    /* Free general config if present */
+    if (cfg->general)
     {
-        leuko_all_cops_config_free(cfg->all_cops);
-        cfg->all_cops = NULL;
+        leuko_general_config_free(cfg->general);
+        cfg->general = NULL;
     }
 }

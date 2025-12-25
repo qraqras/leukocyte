@@ -96,11 +96,11 @@ static int walk_dir(const char *dir, leuko_compiled_config_t *parent_cfg, leuko_
     /* Build compiled_config for this dir (prototype: reads local .rubocop.yml if present) */
     leuko_compiled_config_t *cfg = leuko_compiled_config_build(dir, parent_cfg);
 
-    /* Determine pruning by checking AllCops excludes against this directory path */
+    /* Determine pruning by checking general excludes against this directory path */
     if (cfg)
     {
         /* If configured to exclude this directory itself, stop descending */
-        const leuko_all_cops_config_t *ac = leuko_compiled_config_all_cops(cfg);
+        const leuko_general_config_t *ac = leuko_compiled_config_general(cfg);
         if (ac && ac->exclude && ac->exclude_count > 0 && matches_any_pattern(dir, ac->exclude, ac->exclude_count))
         {
             leuko_compiled_config_unref(cfg);
@@ -132,7 +132,7 @@ static int walk_dir(const char *dir, leuko_compiled_config_t *parent_cfg, leuko_
             const char *basename = name;
             if (cfg)
             {
-                const leuko_all_cops_config_t *ac = leuko_compiled_config_all_cops(cfg);
+                const leuko_general_config_t *ac = leuko_compiled_config_general(cfg);
                 if (ac)
                 {
                     /* prefer precompiled regex if available for full-path checks */
@@ -159,12 +159,12 @@ static int walk_dir(const char *dir, leuko_compiled_config_t *parent_cfg, leuko_
             /* Candidate file */
             if (!is_ruby_file(name))
                 continue;
-            /* Global AllCops include/exclude */
+            /* Global general include/exclude */
             bool excluded = false;
             bool included = true;
             if (cfg)
             {
-                const leuko_all_cops_config_t *ac = leuko_compiled_config_all_cops(cfg);
+                const leuko_general_config_t *ac = leuko_compiled_config_general(cfg);
                 if (ac)
                 {
                     if (ac->include_re && ac->include_re_count > 0)
