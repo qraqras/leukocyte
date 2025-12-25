@@ -3,4 +3,16 @@ inherit_from:
 
 AllCops:
   Exclude:
-    - xxxx/**/*.rb
+    - ./**/aaaa/**/*.rb
+  Severity:
+    warning: 'refactor'
+
+Layout/IndentationConsistency:
+  Enabled: true
+  EnforcedStyle: indented_internal_methods
+
+Layout:
+  Exclude:
+    - ./**/bbbb/**/*.rb
+  TrailingWhitespace:
+    Enabled: false

@@ -43,7 +43,7 @@ void leuko_config_initialize(leuko_config_t *cfg)
 #undef X
 }
 
-leuko_all_cops_config_t *leuko_config_all_cops(leuko_config_t *cfg)
+leuko_all_cops_config_t *leuko_config_get_all_cops_config(leuko_config_t *cfg)
 {
     if (!cfg)
         return NULL;
@@ -54,7 +54,7 @@ leuko_all_cops_config_t *leuko_config_all_cops(leuko_config_t *cfg)
     return cfg->all_cops;
 }
 
-leuko_category_config_t *leuko_config_get_category(leuko_config_t *cfg, const char *name)
+leuko_category_config_t *leuko_config_get_category_config(leuko_config_t *cfg, const char *name)
 {
     if (!cfg || !name)
         return NULL;
@@ -70,7 +70,7 @@ leuko_category_config_t *leuko_config_add_category(leuko_config_t *cfg, const ch
 {
     if (!cfg || !name)
         return NULL;
-    leuko_category_config_t *existing = leuko_config_get_category(cfg, name);
+    leuko_category_config_t *existing = leuko_config_get_category_config(cfg, name);
     if (existing)
         return existing;
     leuko_category_config_t *cc = leuko_category_config_initialize(name);

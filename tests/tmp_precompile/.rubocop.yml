@@ -1,5 +1,0 @@
-AllCops:
-  Include:
-    - "**/*.rb"
-  Exclude:
-    - "vendor/**/*"

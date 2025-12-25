@@ -38,8 +38,8 @@ typedef struct leuko_config_s
 } leuko_config_t;
 
 /* Helpers for AllCops/category access */
-leuko_all_cops_config_t *leuko_config_all_cops(leuko_config_t *cfg);
-leuko_category_config_t *leuko_config_get_category(leuko_config_t *cfg, const char *name);
+leuko_all_cops_config_t *leuko_config_get_all_cops_config(leuko_config_t *cfg);
+leuko_category_config_t *leuko_config_get_category_config(leuko_config_t *cfg, const char *name);
 leuko_category_config_t *leuko_config_add_category(leuko_config_t *cfg, const char *name);
 
 void leuko_config_initialize(leuko_config_t *cfg);

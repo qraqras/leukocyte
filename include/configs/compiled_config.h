@@ -4,9 +4,10 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <yaml.h>
 /* forward declare leuko_config_t to avoid heavy includes in header */
 typedef struct leuko_config_s leuko_config_t;
+/* forward declare leuko_yaml_node_t to avoid including libyaml types */
+typedef struct leuko_yaml_node_s leuko_yaml_node_t;
 #include "utils/allocator/arena.h" /* leuko_arena */
 
 typedef struct leuko_compiled_config_s
@@ -15,8 +16,8 @@ typedef struct leuko_compiled_config_s
     char *dir;            /* 所有: 絶対ディレクトリパス */
     uint64_t fingerprint; /* mtime+content+parent の簡易ハッシュ */
 
-    /* マージ済み libyaml ドキュメント（所有） */
-    yaml_document_t *merged_doc; /* 所有（arena で割当） */
+    /* マージ済み in-memory node（所有） */
+    leuko_yaml_node_t *merged_node; /* 所有（ヒープ割当て） */
 
     /* 各ルールのマージ済み設定（子優先でフルマージ済み） */
     leuko_config_t *effective_config; /* 所有（配下の rule 設定を含む） */
@@ -36,7 +37,7 @@ leuko_compiled_config_t *leuko_compiled_config_build(const char *dir,
                                                      const leuko_compiled_config_t *parent);
 void leuko_compiled_config_ref(leuko_compiled_config_t *cfg);
 void leuko_compiled_config_unref(leuko_compiled_config_t *cfg);
-const yaml_document_t *leuko_compiled_config_merged_doc(const leuko_compiled_config_t *cfg);
+const leuko_yaml_node_t *leuko_compiled_config_merged_node(const leuko_compiled_config_t *cfg);
 const leuko_config_t *leuko_compiled_config_rules(const leuko_compiled_config_t *cfg);
 
 /* Accessors to avoid pulling large deps in tests */

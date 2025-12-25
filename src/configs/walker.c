@@ -1,20 +1,15 @@
-/*
- * walker.c
- * Directory walker that builds compiled_config per-directory and collects Ruby files
- */
-
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <limits.h>
 #include <fnmatch.h>
 
 #include "configs/walker.h"
 #include "configs/compiled_config.h"
 #include "configs/common/config.h" /* full config structure */
-#include <limits.h>
 #include "leuko_debug.h"
 
 static bool is_ruby_file(const char *name)

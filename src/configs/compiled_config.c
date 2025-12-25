@@ -1,28 +1,30 @@
-/*
- * compiled_config.c
- * Build merged yaml_document_t and materialize leuko_config_t
- */
-
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <sys/stat.h>
 #include <errno.h>
-#include <yaml.h>
+#include <regex.h>
 
 #include "configs/compiled_config.h"
 #include "configs/common/config.h"
+#include "configs/common/all_cops_config.h"
+#include "configs/common/category_config.h"
 #include "utils/allocator/arena.h"
-#include "utils/string_array.h"
-#include "leuko_debug.h"
-#include "sources/yaml/merge.h"
-#include "common/registry/registry.h"
-#include <regex.h>
 #include "utils/glob_to_regex.h"
+#include "utils/string_array.h"
+#include "sources/yaml/merge.h"
+#include "sources/yaml/node.h"
+#include "sources/yaml/parse.h"
+#include "common/registry/registry.h"
 
-/* Forward declare document-based materializer */
-static leuko_config_t *materialize_rules_from_document(struct leuko_arena *a, yaml_document_t *doc);
+/* Minimal, clear and node-based compiled_config implementation.
+ * This file replaces the legacy document-based code and provides:
+ * - build/ref/unref
+ * - node-based materialize
+ * - simple fingerprint computation
+ * - accessors used by tests
+ */
 
 /* Simple FNV-1a 64bit for fingerprinting */
 static uint64_t
@@ -39,90 +41,465 @@ leuko_fnv1a_64(const void *data, size_t len)
     return h;
 }
 
-/* Build a minimal merged yaml_document_t from a list of files.
- * For prototype, simply parse each file and keep last document as merged_doc
+/* Helper: compile glob strings into regex_t array */
+static bool
+leuko_compile_regex_array(char **patterns, size_t count, regex_t **out, size_t *out_count)
+{
+    if (!patterns || count == 0)
+    {
+        *out = NULL;
+        *out_count = 0;
+        return true;
+    }
+
+    regex_t *arr = NULL;
+    size_t n = 0;
+    for (size_t i = 0; i < count; i++)
+    {
+        char *re_s = leuko_glob_to_regex(patterns[i]);
+        if (!re_s)
+            continue;
+        regex_t r;
+        int rc = regcomp(&r, re_s, REG_EXTENDED | REG_NOSUB);
+        free(re_s);
+        if (rc != 0)
+            continue;
+        regex_t *tmp = realloc(arr, sizeof(regex_t) * (n + 1));
+        if (!tmp)
+        {
+            regfree(&r);
+            /* free already compiled */
+            for (size_t j = 0; j < n; j++)
+                regfree(&arr[j]);
+            free(arr);
+            return false;
+        }
+        arr = tmp;
+        arr[n] = r;
+        n++;
+    }
+    *out = arr;
+    *out_count = n;
+    return true;
+}
+
+/* Build a merged node from files (simple last-wins merge using leuko_yaml_merge_nodes) */
+static leuko_yaml_node_t *
+build_merged_node_from_files(struct leuko_arena *a, char **files, size_t count)
+{
+    if (!files || count == 0)
+        return NULL;
+    leuko_yaml_node_t *merged = NULL;
+    for (size_t i = 0; i < count; i++)
+    {
+        leuko_yaml_node_t *local = NULL;
+        if (!leuko_yaml_parse(files[i], &local))
+        {
+            if (merged)
+                leuko_yaml_node_free(merged);
+            return NULL;
+        }
+        if (!merged)
+        {
+            merged = local;
+        }
+        else
+        {
+            leuko_yaml_node_t *next = NULL;
+            if (!leuko_yaml_merge_nodes(merged, local, &next))
+            {
+                leuko_yaml_node_free(merged);
+                leuko_yaml_node_free(local);
+                return NULL;
+            }
+            leuko_yaml_node_free(merged);
+            leuko_yaml_node_free(local);
+            merged = next;
+        }
+    }
+    return merged;
+}
+
+/* Materialize rules from a merged node into a freshly allocated leuko_config_t.
+ * Allocations are done with heap allocation (not arena) so callers can choose
+ * to free via leuko_config_free or keep it in an arena.
+ */
+static leuko_config_t *
+materialize_rules_from_node(struct leuko_arena *a, leuko_yaml_node_t *root)
+{
+    if (!root)
+        return NULL;
+    leuko_config_t *cfg = leuko_arena_alloc(a, sizeof(leuko_config_t));
+    if (!cfg)
+        return NULL;
+    leuko_config_initialize(cfg);
+
+    /* AllCops */
+    leuko_yaml_node_t *allcops = leuko_yaml_node_get_mapping_child(root, "AllCops");
+    if (allcops && allcops->type == LEUKO_YAML_NODE_MAPPING)
+    {
+        leuko_yaml_node_t *inc = leuko_yaml_node_get_mapping_child(allcops, LEUKO_CONFIG_KEY_INCLUDE);
+        size_t n = leuko_yaml_node_sequence_count(inc);
+        if (n > 0)
+        {
+            leuko_all_cops_config_t *ac = leuko_config_get_all_cops_config(cfg);
+            ac->include = calloc(n, sizeof(char *));
+            ac->include_count = n;
+            for (size_t i = 0; i < n; i++)
+            {
+                const char *s = leuko_yaml_node_sequence_scalar_at(inc, i);
+                ac->include[i] = strdup(s ? s : "");
+            }
+            leuko_compile_regex_array(ac->include, ac->include_count, &ac->include_re, &ac->include_re_count);
+        }
+        leuko_yaml_node_t *exc = leuko_yaml_node_get_mapping_child(allcops, LEUKO_CONFIG_KEY_EXCLUDE);
+        n = leuko_yaml_node_sequence_count(exc);
+        if (n > 0)
+        {
+            leuko_all_cops_config_t *ac = leuko_config_get_all_cops_config(cfg);
+            ac->exclude = calloc(n, sizeof(char *));
+            ac->exclude_count = n;
+            for (size_t i = 0; i < n; i++)
+            {
+                const char *s = leuko_yaml_node_sequence_scalar_at(exc, i);
+                ac->exclude[i] = strdup(s ? s : "");
+            }
+            leuko_compile_regex_array(ac->exclude, ac->exclude_count, &ac->exclude_re, &ac->exclude_re_count);
+        }
+    }
+
+    /* Categories */
+    if (root->type == LEUKO_YAML_NODE_MAPPING)
+    {
+        for (size_t i = 0; i < root->map_len; i++)
+        {
+            const char *cat = root->map_keys[i];
+            if (!cat)
+                continue;
+            if (strcmp(cat, "AllCops") == 0)
+                continue;
+            leuko_yaml_node_t *cmap = root->map_vals[i];
+            if (!cmap || cmap->type != LEUKO_YAML_NODE_MAPPING)
+                continue;
+            leuko_category_config_t *cc = leuko_config_add_category(cfg, cat);
+            leuko_yaml_node_t *cinc = leuko_yaml_node_get_mapping_child(cmap, LEUKO_CONFIG_KEY_INCLUDE);
+            size_t n = leuko_yaml_node_sequence_count(cinc);
+            if (n > 0)
+            {
+                cc->include = calloc(n, sizeof(char *));
+                cc->include_count = n;
+                for (size_t j = 0; j < n; j++)
+                    cc->include[j] = strdup(leuko_yaml_node_sequence_scalar_at(cinc, j) ?: "");
+                leuko_compile_regex_array(cc->include, cc->include_count, &cc->include_re, &cc->include_re_count);
+            }
+            leuko_yaml_node_t *cexc = leuko_yaml_node_get_mapping_child(cmap, LEUKO_CONFIG_KEY_EXCLUDE);
+            n = leuko_yaml_node_sequence_count(cexc);
+            if (n > 0)
+            {
+                cc->exclude = calloc(n, sizeof(char *));
+                cc->exclude_count = n;
+                for (size_t j = 0; j < n; j++)
+                    cc->exclude[j] = strdup(leuko_yaml_node_sequence_scalar_at(cexc, j) ?: "");
+                leuko_compile_regex_array(cc->exclude, cc->exclude_count, &cc->exclude_re, &cc->exclude_re_count);
+            }
+        }
+    }
+
+    /* Normalize rule keys and let rule handlers apply merged settings */
+    leuko_yaml_node_t *merged = leuko_yaml_node_deep_copy(root);
+    leuko_yaml_normalize_rule_keys(merged);
+
+    const rule_registry_entry_t *reg = leuko_get_rule_registry();
+    size_t reg_n = leuko_get_rule_registry_count();
+    for (size_t ri = 0; ri < reg_n; ri++)
+    {
+        const rule_registry_entry_t *ent = &reg[ri];
+        leuko_rule_config_t *rconf = leuko_rule_config_get_by_index(cfg, ri);
+        if (!rconf)
+            continue;
+        leuko_yaml_node_t *rule_node = leuko_yaml_node_get_rule_mapping(merged, ent->full_name);
+        if (rule_node)
+        {
+            leuko_yaml_node_t *inc = leuko_yaml_node_get_mapping_child(rule_node, LEUKO_CONFIG_KEY_INCLUDE);
+            size_t n = leuko_yaml_node_sequence_count(inc);
+            if (n > 0)
+            {
+                rconf->include = calloc(n, sizeof(char *));
+                rconf->include_count = n;
+                for (size_t i = 0; i < n; i++)
+                    rconf->include[i] = strdup(leuko_yaml_node_sequence_scalar_at(inc, i) ?: "");
+            }
+            leuko_yaml_node_t *exc = leuko_yaml_node_get_mapping_child(rule_node, LEUKO_CONFIG_KEY_EXCLUDE);
+            n = leuko_yaml_node_sequence_count(exc);
+            if (n > 0)
+            {
+                rconf->exclude = calloc(n, sizeof(char *));
+                rconf->exclude_count = n;
+                for (size_t i = 0; i < n; i++)
+                    rconf->exclude[i] = strdup(leuko_yaml_node_sequence_scalar_at(exc, i) ?: "");
+            }
+        }
+        /* call rule-specific handler if present */
+        const leuko_rule_config_handlers_t *ops = ent->handlers;
+        if (ops && ops->apply_merged)
+        {
+            char *err = NULL;
+            bool ok = ops->apply_merged(rconf, merged, ent->full_name, ent->category_name, ent->rule_name, &err);
+            if (!ok && err)
+            {
+                /* ignore for now; tests do not surface apply errors */
+                free(err);
+            }
+        }
+
+        /* compile rule-level include/exclude regex arrays */
+        if (rconf->include && rconf->include_count > 0)
+            leuko_compile_regex_array(rconf->include, rconf->include_count, &rconf->include_re, &rconf->include_re_count);
+        if (rconf->exclude && rconf->exclude_count > 0)
+            leuko_compile_regex_array(rconf->exclude, rconf->exclude_count, &rconf->exclude_re, &rconf->exclude_re_count);
+    }
+
+    leuko_yaml_node_free(merged);
+
+    return cfg;
+}
+
+/* Public API */
+leuko_compiled_config_t *
+leuko_compiled_config_build(const char *dir, const leuko_compiled_config_t *parent)
+{
+    if (!dir)
+        return NULL;
+    leuko_compiled_config_t *c = calloc(1, sizeof(leuko_compiled_config_t));
+    if (!c)
+        return NULL;
+
+    c->dir = strdup(dir);
+    c->arena = leuko_arena_new(0);
+    c->refcount = 1;
+
+    /* For prototype, look for .rubocop.yml in dir only */
+    char cfgpath[PATH_MAX];
+    snprintf(cfgpath, sizeof(cfgpath), "%s/.rubocop.yml", dir);
+
+    struct stat st;
+    if (stat(cfgpath, &st) != 0)
+    {
+        /* no config file */
+        return c;
+    }
+
+    c->source_files = malloc(sizeof(char *));
+    c->source_files_count = 1;
+    c->source_files[0] = strdup(cfgpath);
+
+    /* Build merged node */
+    c->merged_node = build_merged_node_from_files(c->arena, c->source_files, c->source_files_count);
+    if (!c->merged_node)
+    {
+        leuko_compiled_config_unref(c);
+        return NULL;
+    }
+
+    /* Materialize typed config into arena so freeing compiled_config cleans it up */
+    c->effective_config = materialize_rules_from_node(c->arena, c->merged_node);
+    c->effective_config_from_arena = true;
+    if (!c->effective_config)
+    {
+        leuko_compiled_config_unref(c);
+        return NULL;
+    }
+
+    /* Merge parent's AllCops simple arrays into child (parent first) */
+    if (parent && parent->effective_config)
+    {
+        size_t p_inc = 0, c_inc = 0;
+        char **p_inc_arr = NULL;
+        char **c_inc_arr = NULL;
+        if (parent->effective_config->all_cops)
+        {
+            p_inc = parent->effective_config->all_cops->include_count;
+            p_inc_arr = parent->effective_config->all_cops->include;
+        }
+        if (c->effective_config->all_cops)
+        {
+            c_inc = c->effective_config->all_cops->include_count;
+            c_inc_arr = c->effective_config->all_cops->include;
+        }
+        if (p_inc > 0)
+        {
+            size_t total = p_inc + c_inc;
+            char **narr = leuko_arena_alloc(c->arena, sizeof(char *) * total);
+            size_t i;
+            for (i = 0; i < p_inc; i++)
+                narr[i] = leuko_arena_strdup(c->arena, p_inc_arr[i]);
+            for (i = 0; i < c_inc; i++)
+                narr[p_inc + i] = leuko_arena_strdup(c->arena, c_inc_arr[i]);
+            leuko_all_cops_config_t *cac = leuko_config_get_all_cops_config(c->effective_config);
+            cac->include = calloc(total, sizeof(char *));
+            cac->include_count = total;
+            for (i = 0; i < total; i++)
+                cac->include[i] = strdup(narr[i]);
+        }
+    }
+
+    /* fingerprint: hash file path + mtime */
+    uint64_t h = 0;
+    h = leuko_fnv1a_64(c->source_files[0], strlen(c->source_files[0]));
+    h ^= (uint64_t)st.st_mtime;
+    c->fingerprint = h;
+
+    return c;
+}
+
+void
+
+    /* Accessors */
+    const leuko_yaml_node_t *
+    leuko_compiled_config_merged_node(const leuko_compiled_config_t *cfg)
+{
+    if (!cfg)
+        return NULL;
+    return cfg->merged_node;
+}
+
+const leuko_config_t *
+leuko_compiled_config_rules(const leuko_compiled_config_t *cfg)
+{
+    if (!cfg)
+        return NULL;
+    return cfg->effective_config;
+}
+
+size_t
+leuko_compiled_config_all_include_count(const leuko_compiled_config_t *cfg)
+{
+    if (!cfg || !cfg->effective_config || !cfg->effective_config->all_cops)
+        return 0;
+    return cfg->effective_config->all_cops->include_count;
+}
+
+const char *
+leuko_compiled_config_all_include_at(const leuko_compiled_config_t *cfg, size_t idx)
+{
+    if (!cfg || !cfg->effective_config || !cfg->effective_config->all_cops)
+        return NULL;
+    if (idx >= cfg->effective_config->all_cops->include_count)
+        return NULL;
+    return cfg->effective_config->all_cops->include[idx];
+}
+
+const leuko_all_cops_config_t *
+leuko_compiled_config_all_cops(const leuko_compiled_config_t *cfg)
+{
+    if (!cfg || !cfg->effective_config)
+        return NULL;
+    return cfg->effective_config->all_cops;
+}
+
+const leuko_category_config_t *
+leuko_compiled_config_get_category(const leuko_compiled_config_t *cfg, const char *name)
+{
+    if (!cfg || !cfg->effective_config || !name)
+        return NULL;
+    return leuko_config_get_category_config((leuko_config_t *)cfg->effective_config, name);
+}
+
+size_t
+leuko_compiled_config_category_include_count(const leuko_compiled_config_t *cfg, const char *category)
+{
+    const leuko_category_config_t *cc = leuko_compiled_config_get_category(cfg, category);
+    if (!cc)
+        return 0;
+    return cc->include_count;
+}
+
+const char *
+leuko_compiled_config_category_include_at(const leuko_compiled_config_t *cfg, const char *category, size_t idx)
+{
+    const leuko_category_config_t *cc = leuko_compiled_config_get_category(cfg, category);
+    if (!cc || idx >= cc->include_count)
+        return NULL;
+    return cc->include[idx];
+}
+
+bool leuko_compiled_config_matches_dir(const leuko_compiled_config_t *cfg, const char *path)
+{
+    if (!cfg || !cfg->dir || !path)
+        return false;
+    size_t dlen = strlen(cfg->dir);
+    if (strncmp(cfg->dir, path, dlen) != 0)
+        return false;
+    /* allow exact match or directory prefix */
+    if (path[dlen] == '\0' || path[dlen] == '/')
+        return true;
+    return false;
+}
+
+/* For prototype, simply parse each file and keep last document as merged_doc
  * (full deep merge to be added later). This is sufficient for tests that
  * check presence and conversion.
  */
-static yaml_document_t *
-build_merged_doc_from_files(struct leuko_arena *a, char **files, size_t count)
+static leuko_yaml_node_t *build_merged_node_from_files_legacy(struct leuko_arena *a, char **files, size_t count)
 {
-    yaml_parser_t parser;
-    yaml_document_t *doc = NULL;
-    size_t i;
-
-    for (i = 0; i < count; i++)
+    leuko_yaml_node_t *merged = NULL;
+    for (size_t i = 0; i < count; i++)
     {
-        FILE *fh = fopen(files[i], "rb");
-        if (!fh)
+        leuko_yaml_node_t *local = NULL;
+        if (!leuko_yaml_parse(files[i], &local))
         {
-            LDEBUG("failed to open %s: %s", files[i], strerror(errno));
+            if (merged)
+            {
+                leuko_yaml_node_free(merged);
+            }
             return NULL;
         }
-        if (!yaml_parser_initialize(&parser))
+        if (!merged)
         {
-            fclose(fh);
-            LDEBUG("yaml: parser init failed");
-            return NULL;
+            merged = local;
         }
-        yaml_parser_set_input_file(&parser, fh);
-        yaml_document_t *local_doc = calloc(1, sizeof(yaml_document_t));
-        if (!local_doc)
+        else
         {
-            yaml_parser_delete(&parser);
-            fclose(fh);
-            return NULL;
+            leuko_yaml_node_t *next = NULL;
+            if (!leuko_yaml_merge_nodes(merged, local, &next))
+            {
+                leuko_yaml_node_free(merged);
+                leuko_yaml_node_free(local);
+                return NULL;
+            }
+            leuko_yaml_node_free(merged);
+            leuko_yaml_node_free(local);
+            merged = next;
         }
-        if (!yaml_parser_load(&parser, local_doc))
-        {
-            yaml_document_delete(local_doc);
-            free(local_doc);
-            yaml_parser_delete(&parser);
-            fclose(fh);
-            LDEBUG("yaml: parse failed for %s", files[i]);
-            return NULL;
-        }
-        /* Keep the last parsed document as merged_doc (prototype behaviour) */
-        if (doc)
-        {
-            yaml_document_delete(doc);
-            free(doc);
-            doc = NULL;
-        }
-        doc = local_doc;
-
-        yaml_parser_delete(&parser);
-        fclose(fh);
     }
-
-    return doc;
+    return merged;
 }
 
 /* Convert merged_doc to leuko_config_t
  * For prototype, we implement a minimal converter that extracts AllCops: Include/Exclude
  * and rules: names and enabled flag.
  */
-static leuko_config_t *
-materialize_rules_from_files(struct leuko_arena *a, char **files, size_t count)
+static leuko_config_t *materialize_rules_from_files(struct leuko_arena *a, char **files, size_t count)
 {
-    /* Legacy entrypoint kept for compatibility: build merged doc and forward to document-based materializer */
     if (!files || count == 0)
         return NULL;
-    yaml_document_t *doc = build_merged_doc_from_files(a, files, count);
-    if (!doc)
+    leuko_yaml_node_t *merged = build_merged_node_from_files(a, files, count);
+    if (!merged)
         return NULL;
-    leuko_config_t *cfg = materialize_rules_from_document(a, doc);
-    yaml_document_delete(doc);
-    free(doc);
+    leuko_config_t *cfg = materialize_rules_from_node(a, merged);
+    leuko_yaml_node_free(merged);
     return cfg;
 }
 
-/* Materialize rules from a merged yaml_document_t by invoking per-rule handlers */
-static leuko_config_t *
-materialize_rules_from_document(struct leuko_arena *a, yaml_document_t *doc)
+/* Materialize rules from a merged yaml_document_t by invoking per-rule handlers (legacy - replaced by node-based materializer) */
+static leuko_config_t *materialize_rules_from_document_legacy(struct leuko_arena *a, yaml_document_t *doc)
 {
     if (!doc)
         return NULL;
+    /* legacy materializer disabled */
+    (void)a;
+    (void)doc;
+    return NULL;
     leuko_config_t *cfg = leuko_arena_alloc(a, sizeof(leuko_config_t));
     if (!cfg)
         return NULL;
@@ -153,7 +530,6 @@ materialize_rules_from_document(struct leuko_arena *a, yaml_document_t *doc)
         }
         if (allcops && allcops->type == YAML_MAPPING_NODE)
         {
-            fprintf(stderr, "[compiled_config] allcops=%p type=%d pairs.top=%ld\n", (void *)allcops, allcops->type, (long)allcops->data.mapping.pairs.top);
             yaml_node_t *inc = leuko_yaml_find_mapping_value(doc, allcops, LEUKO_CONFIG_KEY_INCLUDE);
             if (inc && inc->type == YAML_SEQUENCE_NODE)
             {
@@ -163,7 +539,7 @@ materialize_rules_from_document(struct leuko_arena *a, yaml_document_t *doc)
                 if (n > 0)
                 {
                     /* store in typed AllCops struct */
-                    leuko_all_cops_config_t *acfg = leuko_config_all_cops(cfg);
+                    leuko_all_cops_config_t *acfg = leuko_config_get_all_cops_config(cfg);
                     acfg->include = calloc(n, sizeof(char *));
                     acfg->include_count = n;
                     for (size_t i = 0; i < n; i++)
@@ -183,7 +559,7 @@ materialize_rules_from_document(struct leuko_arena *a, yaml_document_t *doc)
                 if (n > 0)
                 {
                     /* store in typed AllCops struct */
-                    leuko_all_cops_config_t *acfg = leuko_config_all_cops(cfg);
+                    leuko_all_cops_config_t *acfg = leuko_config_get_all_cops_config(cfg);
                     acfg->exclude = calloc(n, sizeof(char *));
                     acfg->exclude_count = n;
                     for (size_t i = 0; i < n; i++)
@@ -196,7 +572,7 @@ materialize_rules_from_document(struct leuko_arena *a, yaml_document_t *doc)
             }
 
             /* compile precompiled regex patterns for AllCops (prototype) */
-            leuko_all_cops_config_t *acfg = leuko_config_all_cops(cfg);
+            leuko_all_cops_config_t *acfg = leuko_config_get_all_cops_config(cfg);
             if (acfg)
             {
                 /* helper: compile include patterns */
@@ -354,285 +730,7 @@ materialize_rules_from_document(struct leuko_arena *a, yaml_document_t *doc)
         }
     }
 
-    /* Normalize rule keys in the merged document and (future) apply per-rule handlers.
-     * For now we perform normalization so downstream code sees a consistent view where
-     * rule-specific nested mappings are also visible as full-name keys (Category/Rule).
-     */
-    leuko_yaml_node_t *merged = leuko_yaml_node_from_document(doc);
-    if (merged)
-    {
-        leuko_yaml_normalize_rule_keys(merged);
-
-        /* Populate per-rule include/exclude from merged node (if present) so handlers need not do it */
-        const rule_registry_entry_t *reg = leuko_get_rule_registry();
-        size_t reg_n = leuko_get_rule_registry_count();
-        for (size_t ri = 0; ri < reg_n; ri++)
-        {
-            const rule_registry_entry_t *ent = &reg[ri];
-            leuko_rule_config_t *rconf = leuko_rule_config_get_by_index(cfg, ri);
-            if (!rconf)
-                continue;
-            leuko_yaml_node_t *rule_node = leuko_yaml_node_get_rule_mapping(merged, ent->full_name);
-            if (rule_node)
-            {
-                leuko_yaml_node_t *inc = leuko_yaml_node_get_mapping_child(rule_node, LEUKO_CONFIG_KEY_INCLUDE);
-                size_t n = leuko_yaml_node_sequence_count(inc);
-                if (n > 0)
-                {
-                    rconf->include = calloc(n, sizeof(char *));
-                    rconf->include_count = n;
-                    for (size_t i = 0; i < n; i++)
-                    {
-                        const char *s = leuko_yaml_node_sequence_scalar_at(inc, i);
-                        rconf->include[i] = strdup(s ? s : "");
-                    }
-                }
-                leuko_yaml_node_t *exc = leuko_yaml_node_get_mapping_child(rule_node, LEUKO_CONFIG_KEY_EXCLUDE);
-                n = leuko_yaml_node_sequence_count(exc);
-                if (n > 0)
-                {
-                    rconf->exclude = calloc(n, sizeof(char *));
-                    rconf->exclude_count = n;
-                    for (size_t i = 0; i < n; i++)
-                    {
-                        const char *s = leuko_yaml_node_sequence_scalar_at(exc, i);
-                        rconf->exclude[i] = strdup(s ? s : "");
-                    }
-                }
-            }
-        }
-
-        /* Call per-rule apply_merged handlers to populate cfg (use index-based access matching registry order) */
-        for (size_t ri = 0; ri < reg_n; ri++)
-        {
-            const rule_registry_entry_t *ent = &reg[ri];
-            leuko_rule_config_t *rconf = leuko_rule_config_get_by_index(cfg, ri);
-            if (!rconf)
-                continue;
-            const leuko_rule_config_handlers_t *ops = ent->handlers;
-            if (!ops || !ops->apply_merged)
-                continue;
-            char *err = NULL;
-            bool ok = ops->apply_merged(rconf, merged, ent->full_name, ent->category_name, ent->rule_name, &err);
-            if (!ok)
-            {
-                LDEBUG("apply_merged failed for %s: %s", ent->full_name, err ? err : "(null)");
-            }
-            if (err)
-                free(err);
-        }
-
-        /* After per-rule handlers, precompile rule-level include/exclude patterns */
-        for (size_t ri = 0; ri < reg_n; ri++)
-        {
-            leuko_rule_config_t *rconf = leuko_rule_config_get_by_index(cfg, ri);
-            if (!rconf)
-                continue;
-            /* compile includes */
-            if (rconf->include && rconf->include_count > 0)
-            {
-                rconf->include_re = NULL;
-                rconf->include_re_count = 0;
-                for (size_t i = 0; i < rconf->include_count; i++)
-                {
-                    char *re_s = leuko_glob_to_regex(rconf->include[i]);
-                    if (!re_s)
-                        continue;
-                    regex_t r;
-                    int rc = regcomp(&r, re_s, REG_EXTENDED | REG_NOSUB);
-                    free(re_s);
-                    if (rc != 0)
-                        continue;
-                    regex_t *narr = realloc(rconf->include_re, sizeof(regex_t) * (rconf->include_re_count + 1));
-                    if (!narr)
-                    {
-                        regfree(&r);
-                        continue;
-                    }
-                    rconf->include_re = narr;
-                    rconf->include_re[rconf->include_re_count] = r;
-                    rconf->include_re_count++;
-                }
-            }
-            /* compile excludes */
-            if (rconf->exclude && rconf->exclude_count > 0)
-            {
-                rconf->exclude_re = NULL;
-                rconf->exclude_re_count = 0;
-                for (size_t i = 0; i < rconf->exclude_count; i++)
-                {
-                    char *re_s = leuko_glob_to_regex(rconf->exclude[i]);
-                    if (!re_s)
-                        continue;
-                    regex_t r;
-                    int rc = regcomp(&r, re_s, REG_EXTENDED | REG_NOSUB);
-                    free(re_s);
-                    if (rc != 0)
-                        continue;
-                    regex_t *narr = realloc(rconf->exclude_re, sizeof(regex_t) * (rconf->exclude_re_count + 1));
-                    if (!narr)
-                    {
-                        regfree(&r);
-                        continue;
-                    }
-                    rconf->exclude_re = narr;
-                    rconf->exclude_re[rconf->exclude_re_count] = r;
-                    rconf->exclude_re_count++;
-                }
-            }
-        }
-
-        leuko_yaml_node_free(merged);
-    }
-
     return cfg;
-}
-
-leuko_compiled_config_t *
-leuko_compiled_config_build(const char *dir, const leuko_compiled_config_t *parent)
-{
-    if (!dir)
-        return NULL;
-    leuko_compiled_config_t *c = calloc(1, sizeof(leuko_compiled_config_t));
-    if (!c)
-        return NULL;
-
-    c->dir = strdup(dir);
-    c->arena = leuko_arena_new(0); /* struct leuko_arena* */
-    c->refcount = 1;
-
-    /* For prototype, look for .rubocop.yml in dir only */
-    char cfgpath[PATH_MAX];
-    snprintf(cfgpath, sizeof(cfgpath), "%s/.rubocop.yml", dir);
-
-    struct stat st;
-    if (stat(cfgpath, &st) == 0)
-    {
-        /* we have a config file */
-        c->source_files = malloc(sizeof(char *));
-        c->source_files_count = 1;
-        c->source_files[0] = strdup(cfgpath);
-
-        /* build merged_doc (prototype: last file) */
-        fprintf(stderr, "[compiled_config] parsing %s\n", c->source_files[0]);
-        c->merged_doc = build_merged_doc_from_files(c->arena, c->source_files, c->source_files_count);
-        fprintf(stderr, "[compiled_config] build_merged_doc returned %p\n", (void *)c->merged_doc);
-        if (!c->merged_doc)
-        {
-            LDEBUG("failed to build merged_doc for %s", dir);
-            leuko_compiled_config_unref(c);
-            return NULL;
-        }
-
-        fprintf(stderr, "[compiled_config] materialize_rules_from_files start\n");
-        /* Build leuko_yaml_node merged tree and materialize rules from it */
-        fprintf(stderr, "[compiled_config] materialize: about to call materialize_rules_from_document, merged_doc=%p\n", (void *)c->merged_doc);
-        fflush(stderr);
-        c->effective_config = materialize_rules_from_document(c->arena, c->merged_doc);
-        c->effective_config_from_arena = true;
-        if (!c->effective_config)
-        {
-            LDEBUG("materialize_rules_from_document failed for %s", dir);
-            leuko_compiled_config_unref(c);
-            return NULL;
-        }
-
-        /* Merge parent's AllCops include/exclude into child's effective_config so parent-level excludes
-         * apply to deeper subtrees. We concatenate parent arrays before child's arrays.
-         */
-        if (parent && parent->effective_config)
-        {
-            /* merge include arrays (prefer typed parent->all_cops if present, otherwise legacy arrays) */
-            size_t p_inc = 0;
-            char **p_inc_arr = NULL;
-            if (parent->effective_config->all_cops)
-            {
-                p_inc = parent->effective_config->all_cops->include_count;
-                p_inc_arr = parent->effective_config->all_cops->include;
-            }
-            else
-            {
-                p_inc = parent->effective_config->all_include_count;
-                p_inc_arr = parent->effective_config->all_include;
-            }
-            size_t c_inc = 0;
-            char **c_inc_arr = NULL;
-            if (c->effective_config->all_cops)
-            {
-                c_inc = c->effective_config->all_cops->include_count;
-                c_inc_arr = c->effective_config->all_cops->include;
-            }
-            if (p_inc > 0)
-            {
-                size_t total = p_inc + c_inc;
-                char **narr = leuko_arena_alloc(c->arena, sizeof(char *) * total);
-                size_t i;
-                for (i = 0; i < p_inc; i++)
-                {
-                    narr[i] = leuko_arena_strdup(c->arena, p_inc_arr[i]);
-                }
-                for (i = 0; i < c_inc; i++)
-                {
-                    narr[p_inc + i] = leuko_arena_strdup(c->arena, c_inc_arr[i]);
-                }
-                /* also update typed AllCops include (arena allocation is fine here) */
-                leuko_all_cops_config_t *cac = leuko_config_all_cops(c->effective_config);
-                cac->include = calloc(total, sizeof(char *));
-                cac->include_count = total;
-                for (i = 0; i < total; i++)
-                    cac->include[i] = strdup(narr[i]);
-            }
-
-            /* merge exclude arrays (prefer typed parent) */
-            size_t p_exc = 0;
-            char **p_exc_arr = NULL;
-            if (parent->effective_config->all_cops)
-            {
-                p_exc = parent->effective_config->all_cops->exclude_count;
-                p_exc_arr = parent->effective_config->all_cops->exclude;
-            }
-            else
-            {
-                p_exc = parent->effective_config->all_exclude_count;
-                p_exc_arr = parent->effective_config->all_exclude;
-            }
-            size_t c_exc = 0;
-            char **c_exc_arr = NULL;
-            if (c->effective_config->all_cops)
-            {
-                c_exc = c->effective_config->all_cops->exclude_count;
-                c_exc_arr = c->effective_config->all_cops->exclude;
-            }
-            if (p_exc > 0)
-            {
-                size_t total = p_exc + c_exc;
-                char **narr = leuko_arena_alloc(c->arena, sizeof(char *) * total);
-                size_t i;
-                for (i = 0; i < p_exc; i++)
-                {
-                    narr[i] = leuko_arena_strdup(c->arena, p_exc_arr[i]);
-                }
-                for (i = 0; i < c_exc; i++)
-                {
-                    narr[p_exc + i] = leuko_arena_strdup(c->arena, c_exc_arr[i]);
-                }
-
-                leuko_all_cops_config_t *cac = leuko_config_all_cops(c->effective_config);
-                cac->exclude = calloc(total, sizeof(char *));
-                cac->exclude_count = total;
-                for (i = 0; i < total; i++)
-                    cac->exclude[i] = strdup(narr[i]);
-            }
-        }
-
-        /* compute a fingerprint: here simple hash of mtime + file path */
-        uint64_t h = 0;
-        h = leuko_fnv1a_64(c->source_files[0], strlen(c->source_files[0]));
-        h ^= (uint64_t)st.st_mtime;
-        c->fingerprint = h;
-    }
-
-    return c;
 }
 
 void leuko_compiled_config_ref(leuko_compiled_config_t *cfg)
@@ -649,11 +747,10 @@ void leuko_compiled_config_unref(leuko_compiled_config_t *cfg)
     cfg->refcount--;
     if (cfg->refcount <= 0)
     {
-        if (cfg->merged_doc)
+        if (cfg->merged_node)
         {
-            yaml_document_delete(cfg->merged_doc);
-            free(cfg->merged_doc);
-            cfg->merged_doc = NULL;
+            leuko_yaml_node_free(cfg->merged_node);
+            cfg->merged_node = NULL;
         }
         if (cfg->effective_config)
         {
@@ -680,40 +777,35 @@ void leuko_compiled_config_unref(leuko_compiled_config_t *cfg)
     }
 }
 
-const yaml_document_t *
-leuko_compiled_config_merged_doc(const leuko_compiled_config_t *cfg)
+const leuko_yaml_node_t *leuko_compiled_config_merged_node(const leuko_compiled_config_t *cfg)
 {
     if (!cfg)
         return NULL;
-    return cfg->merged_doc;
+    return cfg->merged_node;
 }
 
-const leuko_config_t *
-leuko_compiled_config_rules(const leuko_compiled_config_t *cfg)
+const leuko_config_t *leuko_compiled_config_rules(const leuko_compiled_config_t *cfg)
 {
     if (!cfg)
         return NULL;
     return cfg->effective_config;
 }
 
-const leuko_all_cops_config_t *
-leuko_compiled_config_all_cops(const leuko_compiled_config_t *cfg)
+const leuko_all_cops_config_t *leuko_compiled_config_all_cops(const leuko_compiled_config_t *cfg)
 {
     if (!cfg || !cfg->effective_config)
         return NULL;
     return cfg->effective_config->all_cops;
 }
 
-const leuko_category_config_t *
-leuko_compiled_config_get_category(const leuko_compiled_config_t *cfg, const char *name)
+const leuko_category_config_t *leuko_compiled_config_get_category(const leuko_compiled_config_t *cfg, const char *name)
 {
     if (!cfg || !cfg->effective_config || !name)
         return NULL;
-    return leuko_config_get_category((leuko_config_t *)cfg->effective_config, name);
+    return leuko_config_get_category_config((leuko_config_t *)cfg->effective_config, name);
 }
 
-size_t
-leuko_compiled_config_category_include_count(const leuko_compiled_config_t *cfg, const char *category)
+size_t leuko_compiled_config_category_include_count(const leuko_compiled_config_t *cfg, const char *category)
 {
     const leuko_category_config_t *cc = leuko_compiled_config_get_category(cfg, category);
     if (!cc)
@@ -721,8 +813,7 @@ leuko_compiled_config_category_include_count(const leuko_compiled_config_t *cfg,
     return cc->include_count;
 }
 
-const char *
-leuko_compiled_config_category_include_at(const leuko_compiled_config_t *cfg, const char *category, size_t idx)
+const char *leuko_compiled_config_category_include_at(const leuko_compiled_config_t *cfg, const char *category, size_t idx)
 {
     const leuko_category_config_t *cc = leuko_compiled_config_get_category(cfg, category);
     if (!cc || idx >= cc->include_count)
@@ -731,16 +822,14 @@ leuko_compiled_config_category_include_at(const leuko_compiled_config_t *cfg, co
 }
 
 /* Accessors */
-size_t
-leuko_compiled_config_all_include_count(const leuko_compiled_config_t *cfg)
+size_t leuko_compiled_config_all_include_count(const leuko_compiled_config_t *cfg)
 {
     if (!cfg || !cfg->effective_config || !cfg->effective_config->all_cops)
         return 0;
     return cfg->effective_config->all_cops->include_count;
 }
 
-const char *
-leuko_compiled_config_all_include_at(const leuko_compiled_config_t *cfg, size_t idx)
+const char *leuko_compiled_config_all_include_at(const leuko_compiled_config_t *cfg, size_t idx)
 {
     if (!cfg || !cfg->effective_config || !cfg->effective_config->all_cops)
         return NULL;

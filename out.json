@@ -1,0 +1,26 @@
+{
+  "all": {
+    "exclude": [
+      "./**/aaaa/**/*.rb"
+    ],
+    "severity": {
+      "warning": "refactor"
+    }
+  },
+  "categories": {
+    "Layout": {
+      "exclude": [
+        "./**/bbbb/**/*.rb"
+      ],
+      "rules": {
+        "IndentationConsistency": {
+          "enabled": true,
+          "enforced_style": "indented_internal_methods"
+        },
+        "TrailingWhitespace": {
+          "enabled": false
+        }
+      }
+    }
+  }
+}
