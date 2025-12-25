@@ -10,6 +10,16 @@ if(TARGET cJSON)
   return()
 endif()
 
+# Prefer vendor copy if present
+if(EXISTS ${CMAKE_SOURCE_DIR}/vendor/cjson/CMakeLists.txt)
+  message(STATUS "Using vendor/cjson")
+  add_subdirectory(${CMAKE_SOURCE_DIR}/vendor/cjson ${CMAKE_BINARY_DIR}/vendor/cjson)
+  if(TARGET cJSON OR TARGET cjson)
+    message(STATUS "Added vendor cJSON subdirectory")
+    return()
+  endif()
+endif()
+
 # Try pkg-config
 find_package(PkgConfig QUIET)
 if(PKG_CONFIG_FOUND)
