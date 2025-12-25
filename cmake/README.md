@@ -14,3 +14,5 @@ include(LeukoHelpers OPTIONAL)
 ```
 
 Add additional FindXXX.cmake or toolchain files here as needed.
+
+This project now prefers `cJSON` for JSON parsing and no longer requires `libyaml` as a build dependency; a `CJSON.cmake` helper is provided to find or fetch cJSON.

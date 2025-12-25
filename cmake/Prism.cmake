@@ -44,11 +44,10 @@ else()
             GIT_TAG main
             PREFIX ${CMAKE_BINARY_DIR}/vendor/prism
             CONFIGURE_COMMAND ""
-            BUILD_COMMAND cd <SOURCE_DIR> && export PKG_CONFIG_PATH=${LEUKO_LIBYAML_INSTALL_DIR}/lib/pkgconfig:$${PKG_CONFIG_PATH} && gem install bundler --no-document || true && bundle config build.psych --with-libyaml-dir=${LEUKO_LIBYAML_INSTALL_DIR} && bundle install --jobs 4 --retry 3 && bundle exec rake make
+            BUILD_COMMAND cd <SOURCE_DIR> && gem install bundler --no-document || true && bundle install --jobs 4 --retry 3 && bundle exec rake make
             BUILD_IN_SOURCE 1
             INSTALL_COMMAND ""
             BUILD_BYPRODUCTS <SOURCE_DIR>/build/libprism.a <SOURCE_DIR>/build/libprism${CMAKE_SHARED_LIBRARY_SUFFIX}
-            DEPENDS libyaml_ep
         )
 
         add_library(prism_static STATIC IMPORTED GLOBAL)

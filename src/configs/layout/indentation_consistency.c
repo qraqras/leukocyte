@@ -1,5 +1,7 @@
 #include <string.h>
+#ifdef LEUKO_HAVE_LIBYAML
 #include <yaml.h>
+#endif
 #include "configs/common/rule_config.h"
 #include "configs/layout/indentation_consistency.h"
 #include "common/registry/registry.h"
@@ -32,6 +34,7 @@ leuko_rule_config_t *layout_indentation_consistency_initialize(void)
 }
 
 /* Multi-document apply for indentation rule (compat wrapper) */
+#ifdef LEUKO_HAVE_LIBYAML
 bool layout_indentation_consistency_apply(leuko_rule_config_t *config, yaml_document_t **docs, size_t doc_count, const char *full_name, const char *category_name, const char *rule_name, char **err)
 {
     if (!config)
@@ -46,6 +49,7 @@ bool layout_indentation_consistency_apply(leuko_rule_config_t *config, yaml_docu
     leuko_yaml_node_free(merged);
     return res;
 }
+#endif
 
 /* New merged-node apply */
 bool layout_indentation_consistency_apply_merged(leuko_rule_config_t *config, leuko_yaml_node_t *merged, const char *full_name, const char *category_name, const char *rule_name, char **err)
@@ -83,6 +87,8 @@ void layout_indentation_consistency_config_free(void *config)
  */
 struct leuko_rule_config_handlers_s layout_indentation_consistency_config_ops = {
     .initialize = layout_indentation_consistency_initialize,
+#ifdef LEUKO_HAVE_LIBYAML
     .apply_yaml = layout_indentation_consistency_apply,
+#endif
     .apply_merged = layout_indentation_consistency_apply_merged,
 };

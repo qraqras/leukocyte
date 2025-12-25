@@ -3,7 +3,9 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#ifdef LEUKO_HAVE_LIBYAML
 #include <yaml.h>
+#endif
 #include <regex.h>
 #include "common/severity.h"
 
@@ -48,7 +50,9 @@ typedef struct leuko_rule_config_handlers_s
     /* Legacy: apply using raw yaml_document_t array (deprecated)
      * New: apply using merged leuko_yaml_node_t for simpler rule logic
      */
+#ifdef LEUKO_HAVE_LIBYAML
     bool (*apply_yaml)(leuko_rule_config_t *config, yaml_document_t **docs, size_t doc_count, const char *full_name, const char *category_name, const char *rule_name, char **err);
+#endif
     bool (*apply_merged)(leuko_rule_config_t *config, leuko_yaml_node_t *merged, const char *full_name, const char *category_name, const char *rule_name, char **err);
 } leuko_rule_config_handlers_t;
 
