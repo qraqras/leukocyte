@@ -1,10 +1,39 @@
 #include "common/generated_rules.h"
+#include "common/registry/list.h"
 #include <stdint.h>
 /*
- * NOTE: This file is a hand-coded initial stub of the generated registry.
- * Later this will be produced from rules macros. For now include a tiny
- * example category so materialize and tests can be wired up.
+ * Generated registry: expand per-category macros defined in include/common/registry/list.h
+ * We generate static entries[] arrays for each category and then a category registry
+ * array that points to those entries. This file is intended to be produced by a
+ * generator in the future; for now, expand LEUKO_RULES_CATEGORIES via macros.
  */
+
+/* CATEGORY macro will be invoked with (category_name_macro, category_rules_macro)
+ * We define helpers to expand a single category into an entries array and a full
+ * category registry entry. The X macro inside category macros will expand to rule entries.
+ */
+#define CATEGORY(cat_name_macro, cat_rules_macro) \
+    static const leuko_rule_registry_entry_t CAT_##cat_rules_macro[] = { \
+        /* Expand the rules for this category */ \
+        /* Inside this context X(field, cat_name, sname, rule_ptr, ops_ptr) expands */ \
+        /* into an initializer for leuko_rule_registry_entry_t */ \
+        /* We reuse cat_name_macro to supply category (string constant) when needed */ \
+        cat_rules_macro \
+    }; \
+    static const leuko_rule_category_registry_t cat_reg_##cat_rules_macro = { \
+        .category = cat_name_macro, .entries = CAT_##cat_rules_macro, .count = sizeof(CAT_##cat_rules_macro)/sizeof(*CAT_##cat_rules_macro) };
+
+/* We need to map X(...) in the per-category macros to the entry initializers */
+#undef X
+#define X(field, cat_name, sname, rule_ptr, ops_ptr) { .name = sname, .handlers = ops_ptr },
+
+/* Expand categories to produce CAT_* arrays and cat_reg_* objects */
+LEUKO_RULES_CATEGORIES
+
+#undef X
+#undef CATEGORY
+
+
 
 /* Forward-declare ops pointers from existing rules (if any). If there are none,
  * handlers may be NULL which means the rule has no special handler.
@@ -27,17 +56,14 @@ const leuko_rule_config_handlers_t leuko_rule_handlers_stub = {
     .apply_merged = leuko_rule_apply_stub,
 };
 
-static const leuko_rule_registry_entry_t leuko_rules_layout[] = {
-    { .name = "IndentationConsistency", .handlers = &leuko_rule_handlers_stub },
-};
-
-static const leuko_rule_registry_entry_t leuko_rules_style[] = {
-    { .name = "TrailingWhitespace", .handlers = NULL },
-};
-
+/* Now the CATEGORY-based static generation above created cat_reg_* symbols and
+ * CAT_<macro> arrays; collect them into the final categories array via CATEGORY
+ * macro expansion.
+ */
 static const leuko_rule_category_registry_t leuko_rule_categories[] = {
-    { .category = "Layout", .entries = leuko_rules_layout, .count = sizeof(leuko_rules_layout)/sizeof(*leuko_rules_layout) },
-    { .category = "Style", .entries = leuko_rules_style, .count = sizeof(leuko_rules_style)/sizeof(*leuko_rules_style) },
+#define CATEGORY(cat_name_macro, cat_rules_macro) cat_reg_##cat_rules_macro,
+    LEUKO_RULES_CATEGORIES
+#undef CATEGORY
 };
 
 const leuko_rule_category_registry_t *leuko_get_rule_categories(void)
