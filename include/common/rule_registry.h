@@ -10,9 +10,9 @@ typedef struct rule_s rule_t;
 /* Registry structures used by materialize */
 typedef struct leuko_rule_registry_entry_s
 {
-    const char *name; /* rule name, e.g. "IndentationConsistency" */
+    const char *name;      /* rule name, e.g. "IndentationConsistency" */
     const char *full_name; /* full name: "Category/Rule" (auto-generated at init) */
-    rule_t *rule;     /* pointer to rule instance (opaque) */
+    rule_t *rule;          /* pointer to rule instance (opaque) */
     const leuko_rule_config_handlers_t *handlers;
 } leuko_rule_registry_entry_t;
 
@@ -29,6 +29,12 @@ size_t leuko_get_rule_category_count(void);
 
 /* Find a rule's global index by category and name. Returns SIZE_MAX if not found */
 size_t leuko_rule_find_index(const char *category, const char *name);
+
+/* Category names */
+/* clang-format off */
+#define LEUKO_RULE_CATEGORY_NAME_LAYOUT "Layout"
+#define LEUKO_RULE_CATEGORY_NAME_LINT   "Lint"
+/* clang-format on */
 
 /* Layout Rules */
 /* clang-format off */
@@ -134,5 +140,4 @@ size_t leuko_rule_find_index(const char *category, const char *name);
 #define LEUKO_RULE_NAME_TRAILING_WHITESPACE                            "TrailingWhitespace"
 /* clang-format on */
 
-#endif /* LEUKOCYTE_COMMON_RULE_REGISTRY_H
-*/
+#endif /* LEUKOCYTE_COMMON_RULE_REGISTRY_H */

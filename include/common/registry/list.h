@@ -1,7 +1,7 @@
 #ifndef LEUKOCYTE_CONFIGS_RULES_LIST_H
 #define LEUKOCYTE_CONFIGS_RULES_LIST_H
 
-#include "common/category.h"
+#include "common/rule_registry.h"
 #include "common/rule_registry.h"
 #include "configs/layout/indentation_consistency.h"
 #include "rules/layout/indentation_consistency.h"

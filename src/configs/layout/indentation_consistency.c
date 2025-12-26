@@ -33,14 +33,15 @@ leuko_rule_config_t *layout_indentation_consistency_initialize(void)
 }
 
 /* New merged-node apply */
-bool layout_indentation_consistency_apply_merged(leuko_rule_config_t *config, leuko_node_t *merged, const char *full_name, const char *category_name, const char *rule_name, char **err)
+bool layout_indentation_consistency_apply_merged(leuko_rule_config_t *config, leuko_node_t *node, char **err)
 {
     if (err)
         *err = NULL;
-    if (!config || !config->specific_config || !merged)
+    if (!config || !config->specific_config || !node)
         return false;
     layout_indentation_consistency_config_t *sc = (layout_indentation_consistency_config_t *)config->specific_config;
-    const char *val = leuko_node_get_rule_mapping_scalar(merged, full_name, CONFIG_KEY_OF_LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE);
+    leuko_node_t *v = leuko_node_get_mapping_child(node, CONFIG_KEY_OF_LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE);
+    const char *val = v && LEUKO_NODE_IS_SCALAR(v->type) ? v->scalar : NULL;
     if (!val)
         return true; /* nothing to override */
     if (strcmp(val, CONFIG_VALUE_OF_LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_INDENTED_INTERNAL_METHODS) == 0)
@@ -68,5 +69,5 @@ void layout_indentation_consistency_config_free(void *config)
  */
 struct leuko_rule_config_handlers_s layout_indentation_consistency_config_ops = {
     .initialize = layout_indentation_consistency_initialize,
-    .apply_merged = layout_indentation_consistency_apply_merged,
+    .apply = layout_indentation_consistency_apply_merged,
 };

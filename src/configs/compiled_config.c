@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <limits.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include <regex.h>
@@ -16,14 +17,6 @@
 #include "sources/node.h"
 #include "sources/json/parse.h"
 #include "common/rule_registry.h"
-
-/* Minimal, clear and node-based compiled_config implementation.
- * This file replaces the legacy document-based code and provides:
- * - build/ref/unref
- * - node-based materialize
- * - simple fingerprint computation
- * - accessors used by tests
- */
 
 /* Simple FNV-1a 64bit for fingerprinting */
 static uint64_t
@@ -253,13 +246,12 @@ materialize_rules_from_node(struct leuko_arena *a, leuko_node_t *root)
 
             /* call rule-specific handler if present */
             const leuko_rule_config_handlers_t *ops = ent->handlers;
-            if (ops && ops->apply_merged)
+            if (ops && ops->apply)
             {
                 char *err = NULL;
                 /* Prefer to pass the specific rule node to handlers when available */
                 leuko_node_t *arg_node = rule_node ? rule_node : merged;
-                const char *full_name = ent->full_name;
-                bool ok = ops->apply_merged(rconf, arg_node, full_name, cat->name, ent->name, &err);
+                bool ok = ops->apply(rconf, arg_node, &err);
                 if (!ok && err)
                 {
                     free(err); /* ignore for now */

@@ -2,7 +2,7 @@
 #include <string.h>
 #include <getopt.h>
 #include <stdio.h>
-#include "common/category.h"
+#include "common/rule_registry.h"
 #include "cli/parser.h"
 #include "cli/formatter.h"
 #include "version.h"

@@ -38,20 +38,17 @@ static const leuko_rule_category_registry_t leuko_rule_categories[] = {
 };
 
 /* Forward-declare a stub handler for rules without handlers */
-static bool leuko_rule_apply_stub(leuko_rule_config_t *config, leuko_node_t *merged, const char *full_name, const char *category_name, const char *rule_name, char **err)
+static bool leuko_rule_apply_stub(leuko_rule_config_t *config, leuko_node_t *node, char **err)
 {
     (void)config;
-    (void)merged;
-    (void)full_name;
-    (void)category_name;
-    (void)rule_name;
+    (void)node;
     (void)err;
     return true;
 }
 
 const leuko_rule_config_handlers_t leuko_rule_handlers_stub = {
     .initialize = NULL,
-    .apply_merged = leuko_rule_apply_stub,
+    .apply = leuko_rule_apply_stub,
 };
 
 const leuko_rule_category_registry_t *leuko_get_rule_categories(void)

@@ -45,8 +45,7 @@ typedef struct leuko_node_s leuko_node_t;
 typedef struct leuko_rule_config_handlers_s
 {
     leuko_rule_config_t *(*initialize)(void);
-    /* New: apply using merged leuko_node_t for simpler rule logic */
-    bool (*apply_merged)(leuko_rule_config_t *config, leuko_node_t *merged, const char *full_name, const char *category_name, const char *rule_name, char **err);
+    bool (*apply)(leuko_rule_config_t *config, leuko_node_t *node, char **err);
 } leuko_rule_config_handlers_t;
 
 leuko_rule_config_t *leuko_rule_config_initialize(void);

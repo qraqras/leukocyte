@@ -23,18 +23,14 @@ leuko_rule_config_t *layout_indentation_width_initialize(void)
     return cfg;
 }
 
-bool layout_indentation_width_apply_merged(leuko_rule_config_t *config, leuko_node_t *merged, const char *full_name, const char *category_name, const char *rule_name, char **err)
+bool layout_indentation_width_apply_merged(leuko_rule_config_t *config, leuko_node_t *node, char **err)
 {
-    (void)category_name;
-    (void)rule_name;
     if (err)
         *err = NULL;
-    if (!config || !config->specific_config || !merged)
+    if (!config || !config->specific_config || !node)
         return false;
 
     layout_indentation_width_config_t *sc = (layout_indentation_width_config_t *)config->specific_config;
-    /* If merged is the specific rule node, read directly; otherwise fall back. */
-    leuko_node_t *node = (leuko_node_t *)merged;
     leuko_node_t *val_node = leuko_node_get_mapping_child(node, CONFIG_KEY_OF_LAYOUT_INDENTATION_WIDTH);
     if (!val_node || !LEUKO_NODE_IS_SCALAR(val_node->type))
         return true; /* nothing to override */
@@ -60,5 +56,5 @@ void layout_indentation_width_config_free(void *config)
 
 struct leuko_rule_config_handlers_s layout_indentation_width_config_ops = {
     .initialize = layout_indentation_width_initialize,
-    .apply_merged = layout_indentation_width_apply_merged,
+    .apply = layout_indentation_width_apply_merged,
 };
