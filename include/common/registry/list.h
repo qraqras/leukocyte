@@ -2,7 +2,7 @@
 #define LEUKOCYTE_CONFIGS_RULES_LIST_H
 
 #include "common/category.h"
-#include "common/generated_rules.h"
+#include "common/rule_registry.h"
 #include "configs/layout/indentation_consistency.h"
 #include "rules/layout/indentation_consistency.h"
 #include "configs/layout/indentation_width.h"
@@ -12,22 +12,30 @@
 #include "configs/layout/line_length.h"
 #include "rules/layout/line_length.h"
 
-/* Per-category rule lists (use X-macro entries for each rule) */
-#define LEUKO_RULES_LAYOUT \
+/**
+ * @brief Macro listing all rules in the `Layout` category.
+ */
+#define LEUKO_RULES_LAYOUT                                                                                                                                                                        \
     X(layout_indentation_consistency, LEUKO_RULE_CATEGORY_NAME_LAYOUT, LEUKO_RULE_NAME_INDENTATION_CONSISTENCY, &layout_indentation_consistency_rule, &layout_indentation_consistency_config_ops) \
-    X(layout_indentation_width, LEUKO_RULE_CATEGORY_NAME_LAYOUT, LEUKO_RULE_NAME_INDENTATION_WIDTH, &layout_indentation_width_rule, &layout_indentation_width_config_ops) \
-    X(layout_indentation_style, LEUKO_RULE_CATEGORY_NAME_LAYOUT, LEUKO_RULE_NAME_INDENTATION_STYLE, &layout_indentation_style_rule, &layout_indentation_style_config_ops) \
+    X(layout_indentation_width, LEUKO_RULE_CATEGORY_NAME_LAYOUT, LEUKO_RULE_NAME_INDENTATION_WIDTH, &layout_indentation_width_rule, &layout_indentation_width_config_ops)                         \
+    X(layout_indentation_style, LEUKO_RULE_CATEGORY_NAME_LAYOUT, LEUKO_RULE_NAME_INDENTATION_STYLE, &layout_indentation_style_rule, &layout_indentation_style_config_ops)                         \
     X(layout_line_length, LEUKO_RULE_CATEGORY_NAME_LAYOUT, LEUKO_RULE_NAME_LINE_LENGTH, &layout_line_length_rule, &layout_line_length_config_ops)
 
-/* Lint Rules (none implemented yet) */
-#define LEUKO_RULES_LINT
+/**
+ * @brief Macro listing all rules in the `Lint` category.
+ */
+#define LEUKO_RULES_LINT /* Currently empty */
 
-/* Top-level categories macro: pairs of (category_name, macro) expanded by generated_rules.c */
+/**
+ * @brief Macro listing all rule categories and their rules.
+ */
 #define LEUKO_RULES_CATEGORIES                                    \
     CATEGORY(LEUKO_RULE_CATEGORY_NAME_LAYOUT, LEUKO_RULES_LAYOUT) \
     CATEGORY(LEUKO_RULE_CATEGORY_NAME_LINT, LEUKO_RULES_LINT)
 
-/* Backwards-compatible flat list (concatenate category macros) */
+/**
+ * @brief Macro listing all rules across all categories.
+ */
 #define LEUKO_RULES_LIST \
     LEUKO_RULES_LAYOUT   \
     LEUKO_RULES_LINT

@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "common/generated_rules.h"
+#include "common/rule_registry.h"
 
 int main(void)
 {
@@ -12,7 +12,7 @@ int main(void)
     const leuko_rule_category_registry_t *c = NULL;
     for (size_t i = 0; i < n; i++)
     {
-        if (cats[i].category && strcmp(cats[i].category, "Layout") == 0)
+        if (cats[i].name && strcmp(cats[i].name, "Layout") == 0)
         {
             c = &cats[i];
             break;

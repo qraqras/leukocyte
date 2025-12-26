@@ -9,7 +9,7 @@
 #include "rules/common/rule_manager.h"
 #include "configs/common/config.h"
 #include "rules/common/rule.h"
-#include "common/generated_rules.h"
+#include "common/rule_registry.h"
 #include "prism/diagnostic.h"
 
 /* Array of rules by node type */

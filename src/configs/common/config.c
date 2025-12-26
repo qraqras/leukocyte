@@ -2,7 +2,7 @@
 #include <string.h>
 
 #include "configs/common/config.h"
-#include "common/generated_rules.h"
+#include "common/rule_registry.h"
 
 /**
  * @brief Initialize a leuko_config_t structure.

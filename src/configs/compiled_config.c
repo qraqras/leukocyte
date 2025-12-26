@@ -15,7 +15,7 @@
 #include "utils/string_array.h"
 #include "sources/node.h"
 #include "sources/json/parse.h"
-#include "common/generated_rules.h"
+#include "common/rule_registry.h"
 
 /* Minimal, clear and node-based compiled_config implementation.
  * This file replaces the legacy document-based code and provides:
@@ -204,7 +204,7 @@ materialize_rules_from_node(struct leuko_arena *a, leuko_node_t *root)
     {
         const leuko_rule_category_registry_t *cat = &cats[ci];
         /* find category node in merged tree */
-        leuko_node_t *cat_node = leuko_node_get_mapping_child(merged, cat->category);
+        leuko_node_t *cat_node = leuko_node_get_mapping_child(merged, cat->name);
         for (size_t ei = 0; ei < cat->count; ei++)
         {
             const leuko_rule_registry_entry_t *ent = &cat->entries[ei];
@@ -225,9 +225,8 @@ materialize_rules_from_node(struct leuko_arena *a, leuko_node_t *root)
             /* fallback: try full name at top-level (Category/Name) */
             if (!rule_node)
             {
-                char fullbuf[256];
-                snprintf(fullbuf, sizeof(fullbuf), "%s/%s", cat->category, ent->name);
-                rule_node = leuko_node_get_rule_mapping(merged, fullbuf);
+                /* use generated full_name to avoid runtime formatting */
+                rule_node = leuko_node_get_rule_mapping(merged, ent->full_name);
             }
 
             if (rule_node)
@@ -257,11 +256,10 @@ materialize_rules_from_node(struct leuko_arena *a, leuko_node_t *root)
             if (ops && ops->apply_merged)
             {
                 char *err = NULL;
-                char fullbuf[256];
-                snprintf(fullbuf, sizeof(fullbuf), "%s/%s", cat->category, ent->name);
                 /* Prefer to pass the specific rule node to handlers when available */
                 leuko_node_t *arg_node = rule_node ? rule_node : merged;
-                bool ok = ops->apply_merged(rconf, arg_node, fullbuf, cat->category, ent->name, &err);
+                const char *full_name = ent->full_name;
+                bool ok = ops->apply_merged(rconf, arg_node, full_name, cat->name, ent->name, &err);
                 if (!ok && err)
                 {
                     free(err); /* ignore for now */

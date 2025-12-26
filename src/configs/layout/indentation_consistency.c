@@ -3,7 +3,7 @@
 
 #include "configs/common/rule_config.h"
 #include "configs/layout/indentation_consistency.h"
-#include "common/generated_rules.h"
+#include "common/rule_registry.h"
 #include "sources/node.h"
 
 /**

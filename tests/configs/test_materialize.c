@@ -6,7 +6,7 @@
 #include <unistd.h>
 
 #include "configs/compiled_config.h"
-#include "common/generated_rules.h"
+#include "common/rule_registry.h"
 #include "configs/common/rule_config.h"
 
 /* Forward-declare minimal types to avoid pulling heavy headers (prism etc.) */
