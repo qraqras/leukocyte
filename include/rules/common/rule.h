@@ -3,7 +3,6 @@
 
 #include <stdbool.h>
 #include "prism.h"
-#include "common/registry/registry.h"
 #include "rules/common/rule_context.h"
 // Forward-declare config type to avoid circular include
 typedef struct leuko_config_s leuko_config_t;

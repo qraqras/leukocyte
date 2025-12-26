@@ -2,7 +2,7 @@
 #include <string.h>
 
 #include "configs/common/config.h"
-#include "common/registry/registry.h"
+#include "common/generated_rules.h"
 
 /**
  * @brief Initialize a leuko_config_t structure.
@@ -124,7 +124,12 @@ leuko_rule_config_t *leuko_rule_config_get_by_index(leuko_config_t *cfg, size_t 
  */
 size_t leuko_config_count(void)
 {
-    return leuko_get_rule_registry_count();
+    size_t total = 0;
+    const leuko_rule_category_registry_t *cats = leuko_get_rule_categories();
+    size_t ncat = leuko_get_rule_category_count();
+    for (size_t i = 0; i < ncat; i++)
+        total += cats[i].count;
+    return total;
 }
 
 /**

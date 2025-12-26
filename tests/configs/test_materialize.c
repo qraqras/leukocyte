@@ -12,7 +12,8 @@
 /* Forward-declare minimal types to avoid pulling heavy headers (prism etc.) */
 typedef struct leuko_config_s leuko_config_t;
 typedef struct leuko_rule_config_s leuko_rule_config_t;
-leuko_rule_config_t *leuko_rule_config_get_by_index(leuko_config_t *cfg, size_t idx);static void write_file(const char *path, const char *content)
+leuko_rule_config_t *leuko_rule_config_get_by_index(leuko_config_t *cfg, size_t idx);
+static void write_file(const char *path, const char *content)
 {
     FILE *f = fopen(path, "w");
     assert(f);

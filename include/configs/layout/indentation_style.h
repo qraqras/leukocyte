@@ -1,0 +1,28 @@
+#ifndef LEUKOCYTE_CONFIGS_LAYOUT_INDENTATION_STYLE_H
+#define LEUKOCYTE_CONFIGS_LAYOUT_INDENTATION_STYLE_H
+
+#include "configs/common/rule_config.h"
+
+#define CONFIG_KEY_OF_LAYOUT_INDENTATION_STYLE "EnforcedStyle"
+#define CONFIG_VALUE_OF_LAYOUT_INDENTATION_STYLE_SPACES "space"
+#define CONFIG_VALUE_OF_LAYOUT_INDENTATION_STYLE_TABS "tab"
+
+extern struct leuko_rule_config_handlers_s layout_indentation_style_config_ops;
+
+typedef enum
+{
+    LAYOUT_INDENTATION_STYLE_SPACES,
+    LAYOUT_INDENTATION_STYLE_TABS,
+} indentation_style_t;
+
+typedef struct layout_indentation_style_config_s
+{
+    indentation_style_t style; /* default: spaces */
+} layout_indentation_style_config_t;
+
+leuko_rule_config_t *layout_indentation_style_initialize(void);
+void layout_indentation_style_config_free(void *config);
+/* New API: merged-node apply */
+bool layout_indentation_style_apply_merged(leuko_rule_config_t *config, leuko_node_t *merged, const char *full_name, const char *category_name, const char *rule_name, char **err);
+
+#endif /* LEUKOCYTE_CONFIGS_LAYOUT_INDENTATION_STYLE_H */

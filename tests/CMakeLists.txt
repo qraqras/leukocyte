@@ -97,3 +97,11 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/tests/configs/test_materialize.c)
   target_link_libraries(test_materialize PRIVATE leuko_lib pthread)
   add_test(NAME test_materialize COMMAND test_materialize)
 endif()
+
+# rule apply_merged tests
+if(EXISTS ${CMAKE_SOURCE_DIR}/tests/configs/test_rule_apply_merged.c)
+  add_executable(test_rule_apply_merged configs/test_rule_apply_merged.c)
+  target_include_directories(test_rule_apply_merged PRIVATE ${CMAKE_SOURCE_DIR}/include)
+  target_link_libraries(test_rule_apply_merged PRIVATE leuko_lib pthread)
+  add_test(NAME test_rule_apply_merged COMMAND test_rule_apply_merged)
+endif()

@@ -1,6 +1,20 @@
 #ifndef LEUKOCYTE_RULE_REGISTRY_H
 #define LEUKOCYTE_RULE_REGISTRY_H
 
+/* DEPRECATION NOTICE ⚠️
+ * The legacy flat rule registry API has been removed in favor of the
+ * category-indexed generated registry (`include/common/generated_rules.h`).
+ * Please migrate callers to use:
+ *   - `leuko_get_rule_categories()`
+ *   - `leuko_get_rule_category_count()`
+ *   - `leuko_rule_find_index(category, name)`
+ *
+ * This header remains to provide legacy rule name macros; it will be removed
+ * in a future major version.
+ */
+
+#warning "include/common/registry/registry.h is deprecated; include common/generated_rules.h instead"
+
 #include <stddef.h>
 #include "common/category.h"
 #include "configs/common/rule_config.h"
@@ -9,21 +23,6 @@
  * @brief Rule structure forward declaration.
  */
 typedef struct rule_s rule_t;
-
-/**
- * @brief Rule registry entry structure.
- */
-typedef struct rule_registry_entry_s
-{
-    const char *category_name;                           /* e.g., "Layout" */
-    const char *rule_name;                               /* e.g., "AccessModifierIndentation" */
-    const char *full_name;                               /* e.g., "Layout/AccessModifierIndentation" */
-    rule_t *rule;                                        /* Pointer to the rule instance */
-    const struct leuko_rule_config_handlers_s *handlers; /* Pointer to the config operations */
-} rule_registry_entry_t;
-
-const rule_registry_entry_t *leuko_get_rule_registry(void);
-size_t leuko_get_rule_registry_count(void);
 
 #define LEUKO_FULLNAME(cat, sname) cat "/" sname
 
@@ -78,6 +77,8 @@ size_t leuko_get_rule_registry_count(void);
 #define LEUKO_RULE_NAME_INDENTATION_CONSISTENCY                        "IndentationConsistency"
 #define LEUKO_RULE_NAME_INDENTATION_STYLE                              "IndentationStyle"
 #define LEUKO_RULE_NAME_INDENTATION_WIDTH                              "IndentationWidth"
+#define LEUKO_RULE_NAME_INDENTATION_STYLE                              "IndentationStyle"
+#define LEUKO_RULE_NAME_LINE_LENGTH                                    "LineLength"
 #define LEUKO_RULE_NAME_INITIAL_INDENTATION                            "InitialIndentation"
 #define LEUKO_RULE_NAME_LEADING_commonT_SPACE                          "LeadingcommontSpace"
 #define LEUKO_RULE_NAME_LEADING_EMPTY_LINES                            "LeadingEmptyLines"

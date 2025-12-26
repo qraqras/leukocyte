@@ -10,9 +10,12 @@ int main(void)
     assert(n >= 1);
     /* find Layout category */
     const leuko_rule_category_registry_t *c = NULL;
-    for (size_t i = 0; i < n; i++){
-        if (cats[i].category && strcmp(cats[i].category, "Layout") == 0){
-            c = &cats[i]; break;
+    for (size_t i = 0; i < n; i++)
+    {
+        if (cats[i].category && strcmp(cats[i].category, "Layout") == 0)
+        {
+            c = &cats[i];
+            break;
         }
     }
     assert(c != NULL);

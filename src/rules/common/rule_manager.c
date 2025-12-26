@@ -9,7 +9,7 @@
 #include "rules/common/rule_manager.h"
 #include "configs/common/config.h"
 #include "rules/common/rule.h"
-#include "common/registry/registry.h"
+#include "common/generated_rules.h"
 #include "prism/diagnostic.h"
 
 /* Array of rules by node type */
@@ -275,50 +275,59 @@ bool build_rules_by_type_for_file(const leuko_config_t *cfg, const char *file_pa
 
     memset(out, 0, sizeof(*out));
 
-    const rule_registry_entry_t *registry = leuko_get_rule_registry();
-    size_t registry_count = leuko_get_rule_registry_count();
+    const leuko_rule_category_registry_t *cats = leuko_get_rule_categories();
+    size_t cats_n = leuko_get_rule_category_count();
 
-    for (size_t i = 0; i < registry_count; i++)
+    size_t global_idx = 0;
+    for (size_t ci = 0; ci < cats_n; ci++)
     {
-        const rule_registry_entry_t *entry = &registry[i];
-        rule_t *r = entry->rule;
-        leuko_rule_config_t *rcfg = leuko_rule_config_get_by_index((leuko_config_t *)cfg, i);
-
-        /* If no config or disabled, skip */
-        if (!rcfg || !rcfg->enabled)
+        const leuko_rule_category_registry_t *cat = &cats[ci];
+        for (size_t ei = 0; ei < cat->count; ei++)
         {
-            continue;
-        }
+            const leuko_rule_registry_entry_t *ent = &cat->entries[ei];
+            rule_t *r = (rule_t *)ent->rule;
+            leuko_rule_config_t *rcfg = leuko_rule_config_get_by_index((leuko_config_t *)cfg, global_idx);
 
-        /* Include/Exclude semantics: if include list exists, file must match one; then exclude overrides */
-        if (rcfg->include_count > 0)
-        {
-            if (!file_matches_patterns(file_path, rcfg->include, rcfg->include_count))
+            /* If no config or disabled, skip */
+            if (!rcfg || !rcfg->enabled)
             {
+                global_idx++;
                 continue;
             }
-        }
-        if (rcfg->exclude_count > 0)
-        {
-            if (file_matches_patterns(file_path, rcfg->exclude, rcfg->exclude_count))
-            {
-                continue;
-            }
-        }
 
-        /* Add rule for every node type it handles */
-        for (size_t node = 0; node < PM_NODE_TYPE_COUNT; node++)
-        {
-            if (!r->handlers[node])
+            /* Include/Exclude semantics: if include list exists, file must match one; then exclude overrides */
+            if (rcfg->include_count > 0)
             {
-                continue;
+                if (!file_matches_patterns(file_path, rcfg->include, rcfg->include_count))
+                {
+                    global_idx++;
+                    continue;
+                }
             }
-            if (!add_rule_to_rb(out, node, r))
+            if (rcfg->exclude_count > 0)
             {
-                /* on allocation failure, free what we built and return false */
-                free_rules_by_type(out);
-                return false;
+                if (file_matches_patterns(file_path, rcfg->exclude, rcfg->exclude_count))
+                {
+                    global_idx++;
+                    continue;
+                }
             }
+
+            /* Add rule for every node type it handles */
+            for (size_t node = 0; node < PM_NODE_TYPE_COUNT; node++)
+            {
+                if (!r->handlers[node])
+                {
+                    continue;
+                }
+                if (!add_rule_to_rb(out, node, r))
+                {
+                    /* on allocation failure, free what we built and return false */
+                    free_rules_by_type(out);
+                    return false;
+                }
+            }
+            global_idx++;
         }
     }
 
@@ -452,28 +461,33 @@ void init_rules(void)
     memset(rules_by_type, 0, sizeof(rules_by_type));
     memset(rules_count_by_type, 0, sizeof(rules_count_by_type));
 
-    const rule_registry_entry_t *registry = leuko_get_rule_registry();
-    size_t registry_count = leuko_get_rule_registry_count();
+    const leuko_rule_category_registry_t *cats = leuko_get_rule_categories();
+    size_t cats_n = leuko_get_rule_category_count();
 
-    for (size_t i = 0; i < registry_count; i++)
+    for (size_t ci = 0; ci < cats_n; ci++)
     {
-        rule_t *r = registry[i].rule;
-        for (size_t node = 0; node < PM_NODE_TYPE_COUNT; node++)
+        const leuko_rule_category_registry_t *cat = &cats[ci];
+        for (size_t ei = 0; ei < cat->count; ei++)
         {
-            if (!r->handlers[node])
+            const leuko_rule_registry_entry_t *ent = &cat->entries[ei];
+            rule_t *r = (rule_t *)ent->rule;
+            for (size_t node = 0; node < PM_NODE_TYPE_COUNT; node++)
             {
-                continue;
-            }
+                if (!r->handlers[node])
+                {
+                    continue;
+                }
 
-            size_t cur = rules_count_by_type[node];
-            rule_t **newarr = realloc(rules_by_type[node], (cur + 1) * sizeof(rule_t *));
-            if (!newarr)
-            {
-                continue;
+                size_t cur = rules_count_by_type[node];
+                rule_t **newarr = realloc(rules_by_type[node], (cur + 1) * sizeof(rule_t *));
+                if (!newarr)
+                {
+                    continue;
+                }
+                newarr[cur] = r;
+                rules_by_type[node] = newarr;
+                rules_count_by_type[node] = cur + 1;
             }
-            newarr[cur] = r;
-            rules_by_type[node] = newarr;
-            rules_count_by_type[node] = cur + 1;
         }
     }
 }

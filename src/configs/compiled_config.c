@@ -15,7 +15,6 @@
 #include "utils/string_array.h"
 #include "sources/node.h"
 #include "sources/json/parse.h"
-#include "common/registry/registry.h"
 #include "common/generated_rules.h"
 
 /* Minimal, clear and node-based compiled_config implementation.
@@ -260,7 +259,9 @@ materialize_rules_from_node(struct leuko_arena *a, leuko_node_t *root)
                 char *err = NULL;
                 char fullbuf[256];
                 snprintf(fullbuf, sizeof(fullbuf), "%s/%s", cat->category, ent->name);
-                bool ok = ops->apply_merged(rconf, merged, fullbuf, cat->category, ent->name, &err);
+                /* Prefer to pass the specific rule node to handlers when available */
+                leuko_node_t *arg_node = rule_node ? rule_node : merged;
+                bool ok = ops->apply_merged(rconf, arg_node, fullbuf, cat->category, ent->name, &err);
                 if (!ok && err)
                 {
                     free(err); /* ignore for now */

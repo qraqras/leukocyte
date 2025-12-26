@@ -20,7 +20,7 @@
 
 /* We need to map X(...) in the per-category macros to the entry initializers */
 #undef X
-#define X(field, cat_name, sname, rule_ptr, ops_ptr) { .name = sname, .rule = rule_ptr, .handlers = ops_ptr },
+#define X(field, cat_name, sname, rule_ptr, ops_ptr) {.name = sname, .rule = rule_ptr, .handlers = ops_ptr},
 
 /* Expand categories to produce CAT_* arrays and cat_reg_* objects */
 LEUKO_RULES_CATEGORIES
