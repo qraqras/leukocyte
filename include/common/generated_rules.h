@@ -4,13 +4,19 @@
 #include <stddef.h>
 #include "configs/common/rule_config.h"
 
+/* Forward declare rule type as opaque to avoid heavy includes */
+typedef struct rule_s rule_t;
+
 /* Registry structures used by materialize */
-typedef struct {
+typedef struct
+{
     const char *name; /* rule name, e.g. "IndentationConsistency" */
+    rule_t *rule;     /* pointer to rule instance (opaque) */
     const leuko_rule_config_handlers_t *handlers;
 } leuko_rule_registry_entry_t;
 
-typedef struct {
+typedef struct
+{
     const char *category; /* "Layout" */
     const leuko_rule_registry_entry_t *entries;
     size_t count;
