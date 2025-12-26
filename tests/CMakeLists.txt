@@ -81,3 +81,19 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/tests/sources/test_parse_to_node.c)
   endif()
   add_test(NAME test_parse_to_node COMMAND test_parse_to_node)
 endif()
+
+# generated registry test
+if(EXISTS ${CMAKE_SOURCE_DIR}/tests/configs/test_generated_registry.c)
+  add_executable(test_generated_registry configs/test_generated_registry.c)
+  target_include_directories(test_generated_registry PRIVATE ${CMAKE_SOURCE_DIR}/include)
+  target_link_libraries(test_generated_registry PRIVATE leuko_lib pthread)
+  add_test(NAME test_generated_registry COMMAND test_generated_registry)
+endif()
+
+# materialize test
+if(EXISTS ${CMAKE_SOURCE_DIR}/tests/configs/test_materialize.c)
+  add_executable(test_materialize configs/test_materialize.c)
+  target_include_directories(test_materialize PRIVATE ${CMAKE_SOURCE_DIR}/include)
+  target_link_libraries(test_materialize PRIVATE leuko_lib pthread)
+  add_test(NAME test_materialize COMMAND test_materialize)
+endif()

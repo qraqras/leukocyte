@@ -174,7 +174,7 @@ void leuko_config_free(leuko_config_t *cfg)
         cfg->general_exclude_count = 0;
     }
 
-    /* Free any allocated category configs */    if (cfg->categories)
+    /* Free any allocated category configs */ if (cfg->categories)
     {
         for (size_t i = 0; i < cfg->categories_count; i++)
         {

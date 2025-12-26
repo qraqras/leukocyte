@@ -16,6 +16,7 @@
 #include "sources/node.h"
 #include "sources/json/parse.h"
 #include "common/registry/registry.h"
+#include "common/generated_rules.h"
 
 /* Minimal, clear and node-based compiled_config implementation.
  * This file replaces the legacy document-based code and provides:
@@ -196,54 +197,82 @@ materialize_rules_from_node(struct leuko_arena *a, leuko_node_t *root)
     leuko_node_t *merged = leuko_node_deep_copy(root);
     leuko_node_normalize_rule_keys(merged);
 
-    const rule_registry_entry_t *reg = leuko_get_rule_registry();
-    size_t reg_n = leuko_get_rule_registry_count();
-    for (size_t ri = 0; ri < reg_n; ri++)
-    {
-        const rule_registry_entry_t *ent = &reg[ri];
-        leuko_rule_config_t *rconf = leuko_rule_config_get_by_index(cfg, ri);
-        if (!rconf)
-            continue;
-        leuko_node_t *rule_node = leuko_node_get_rule_mapping(merged, ent->full_name);
-        if (rule_node)
-        {
-            leuko_node_t *inc = leuko_node_get_mapping_child(rule_node, LEUKO_CONFIG_KEY_INCLUDE);
-            size_t n = leuko_node_array_count(inc);
-            if (n > 0)
-            {
-                rconf->include = calloc(n, sizeof(char *));
-                rconf->include_count = n;
-                for (size_t i = 0; i < n; i++)
-                    rconf->include[i] = strdup(leuko_node_array_scalar_at(inc, i) ?: "");
-            }
-            leuko_node_t *exc = leuko_node_get_mapping_child(rule_node, LEUKO_CONFIG_KEY_EXCLUDE);
-            n = leuko_node_array_count(exc);
-            if (n > 0)
-            {
-                rconf->exclude = calloc(n, sizeof(char *));
-                rconf->exclude_count = n;
-                for (size_t i = 0; i < n; i++)
-                    rconf->exclude[i] = strdup(leuko_node_array_scalar_at(exc, i) ?: "");
-            }
-        }
-        /* call rule-specific handler if present */
-        const leuko_rule_config_handlers_t *ops = ent->handlers;
-        if (ops && ops->apply_merged)
-        {
-            char *err = NULL;
-            bool ok = ops->apply_merged(rconf, merged, ent->full_name, ent->category_name, ent->rule_name, &err);
-            if (!ok && err)
-            {
-                /* ignore for now; tests do not surface apply errors */
-                free(err);
-            }
-        }
+    /* Use generated category-indexed registry to apply rules category-by-category */
+    const leuko_rule_category_registry_t *cats = leuko_get_rule_categories();
+    size_t cats_n = leuko_get_rule_category_count();
 
-        /* compile rule-level include/exclude regex arrays */
-        if (rconf->include && rconf->include_count > 0)
-            leuko_compile_regex_array(rconf->include, rconf->include_count, &rconf->include_re, &rconf->include_re_count);
-        if (rconf->exclude && rconf->exclude_count > 0)
-            leuko_compile_regex_array(rconf->exclude, rconf->exclude_count, &rconf->exclude_re, &rconf->exclude_re_count);
+    for (size_t ci = 0; ci < cats_n; ci++)
+    {
+        const leuko_rule_category_registry_t *cat = &cats[ci];
+        /* find category node in merged tree */
+        leuko_node_t *cat_node = leuko_node_get_mapping_child(merged, cat->category);
+        for (size_t ei = 0; ei < cat->count; ei++)
+        {
+            const leuko_rule_registry_entry_t *ent = &cat->entries[ei];
+            /* compute global index for rule config storage */
+            size_t global_idx = 0;
+            for (size_t jj = 0; jj < ci; jj++)
+                global_idx += cats[jj].count;
+            global_idx += ei;
+
+            leuko_rule_config_t *rconf = leuko_rule_config_get_by_index(cfg, global_idx);
+            if (!rconf)
+                continue;
+
+            /* Try to obtain the rule node under the category first */
+            leuko_node_t *rule_node = NULL;
+            if (cat_node)
+                rule_node = leuko_node_get_mapping_child(cat_node, ent->name);
+            /* fallback: try full name at top-level (Category/Name) */
+            if (!rule_node)
+            {
+                char fullbuf[256];
+                snprintf(fullbuf, sizeof(fullbuf), "%s/%s", cat->category, ent->name);
+                rule_node = leuko_node_get_rule_mapping(merged, fullbuf);
+            }
+
+            if (rule_node)
+            {
+                leuko_node_t *inc = leuko_node_get_mapping_child(rule_node, LEUKO_CONFIG_KEY_INCLUDE);
+                size_t n = leuko_node_array_count(inc);
+                if (n > 0)
+                {
+                    rconf->include = calloc(n, sizeof(char *));
+                    rconf->include_count = n;
+                    for (size_t i = 0; i < n; i++)
+                        rconf->include[i] = strdup(leuko_node_array_scalar_at(inc, i) ?: "");
+                }
+                leuko_node_t *exc = leuko_node_get_mapping_child(rule_node, LEUKO_CONFIG_KEY_EXCLUDE);
+                n = leuko_node_array_count(exc);
+                if (n > 0)
+                {
+                    rconf->exclude = calloc(n, sizeof(char *));
+                    rconf->exclude_count = n;
+                    for (size_t i = 0; i < n; i++)
+                        rconf->exclude[i] = strdup(leuko_node_array_scalar_at(exc, i) ?: "");
+                }
+            }
+
+            /* call rule-specific handler if present */
+            const leuko_rule_config_handlers_t *ops = ent->handlers;
+            if (ops && ops->apply_merged)
+            {
+                char *err = NULL;
+                char fullbuf[256];
+                snprintf(fullbuf, sizeof(fullbuf), "%s/%s", cat->category, ent->name);
+                bool ok = ops->apply_merged(rconf, merged, fullbuf, cat->category, ent->name, &err);
+                if (!ok && err)
+                {
+                    free(err); /* ignore for now */
+                }
+            }
+
+            /* compile rule-level include/exclude regex arrays */
+            if (rconf->include && rconf->include_count > 0)
+                leuko_compile_regex_array(rconf->include, rconf->include_count, &rconf->include_re, &rconf->include_re_count);
+            if (rconf->exclude && rconf->exclude_count > 0)
+                leuko_compile_regex_array(rconf->exclude, rconf->exclude_count, &rconf->exclude_re, &rconf->exclude_re_count);
+        }
     }
 
     if (merged)

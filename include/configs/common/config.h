@@ -10,13 +10,13 @@
 #define LEUKO_INHERIT_MODE_MERGE "merge"
 #define LEUKO_INHERIT_MODE_OVERRIDE "override"
 
+#include "configs/common/general_config.h"
+#include "configs/common/category_config.h"
+
 /**
  * @brief Main configuration structure containing all rule configurations.
  * @note `general_include` and `general_exclude` are for global general-level patterns.
  */
-#include "configs/common/general_config.h"
-#include "configs/common/category_config.h"
-
 typedef struct leuko_config_s
 {
     /* Global general configuration (preferred storage) */
