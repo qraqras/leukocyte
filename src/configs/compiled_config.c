@@ -189,40 +189,54 @@ materialize_rules_from_node(struct leuko_arena *a, leuko_node_t *root)
     leuko_node_t *merged = leuko_node_deep_copy(root);
     leuko_node_normalize_rule_keys(merged);
 
-    /* Use generated category-indexed registry to apply rules category-by-category */
+    /* Node-driven pass: iterate present nodes and apply matching rules. */
     const leuko_rule_category_registry_t *cats = leuko_get_rule_categories();
     size_t cats_n = leuko_get_rule_category_count();
 
-    for (size_t ci = 0; ci < cats_n; ci++)
+    /* compute category base indices to map (cat_idx, entry_idx) -> global index */
+    size_t *cat_base = NULL;
+    if (cats_n > 0)
     {
-        const leuko_rule_category_registry_t *cat = &cats[ci];
-        /* find category node in merged tree */
-        leuko_node_t *cat_node = leuko_node_get_mapping_child(merged, cat->name);
+        cat_base = calloc(cats_n, sizeof(size_t));
+        size_t b = 0;
+        for (size_t i = 0; i < cats_n; i++)
+        {
+            cat_base[i] = b;
+            b += cats[i].count;
+        }
+    }
+
+    /* Visitor context for per-category processing */
+    struct cat_visit_ctx_s
+    {
+        leuko_config_t *cfg;
+        const leuko_rule_category_registry_t *cat;
+        size_t cat_idx;
+        const size_t *cat_base;
+    } cat_ctx;
+    cat_ctx.cfg = cfg;
+    cat_ctx.cat = NULL;
+    cat_ctx.cat_idx = 0;
+    cat_ctx.cat_base = cat_base;
+
+    /* Visitor for rules under a category */
+    bool rule_visitor(const char *rule_key, leuko_node_t *rule_node, void *vctx)
+    {
+        (void)rule_key;
+        if (!vctx)
+            return true;
+        struct cat_visit_ctx_s *ctx = (struct cat_visit_ctx_s *)vctx;
+        const leuko_rule_category_registry_t *cat = ctx->cat;
+        size_t cat_idx = ctx->cat_idx;
+        /* find rule entry */
         for (size_t ei = 0; ei < cat->count; ei++)
         {
             const leuko_rule_registry_entry_t *ent = &cat->entries[ei];
-            /* compute global index for rule config storage */
-            size_t global_idx = 0;
-            for (size_t jj = 0; jj < ci; jj++)
-                global_idx += cats[jj].count;
-            global_idx += ei;
-
-            leuko_rule_config_t *rconf = leuko_rule_config_get_by_index(cfg, global_idx);
-            if (!rconf)
+            if (!ent->name || strcmp(ent->name, rule_key) != 0)
                 continue;
-
-            /* Try to obtain the rule node under the category first */
-            leuko_node_t *rule_node = NULL;
-            if (cat_node)
-                rule_node = leuko_node_get_mapping_child(cat_node, ent->name);
-            /* fallback: try full name at top-level (Category/Name) */
-            if (!rule_node)
-            {
-                /* use generated full_name to avoid runtime formatting */
-                rule_node = leuko_node_get_rule_mapping(merged, ent->full_name);
-            }
-
-            if (rule_node)
+            size_t global_idx = ctx->cat_base ? ctx->cat_base[cat_idx] + ei : ei;
+            leuko_rule_config_t *rconf = leuko_rule_config_get_by_index(ctx->cfg, global_idx);
+            if (rconf && rule_node)
             {
                 leuko_node_t *inc = leuko_node_get_mapping_child(rule_node, LEUKO_CONFIG_KEY_INCLUDE);
                 size_t n = leuko_node_array_count(inc);
@@ -244,27 +258,42 @@ materialize_rules_from_node(struct leuko_arena *a, leuko_node_t *root)
                 }
             }
 
-            /* call rule-specific handler if present */
             const leuko_rule_config_handlers_t *ops = ent->handlers;
             if (ops && ops->apply)
             {
                 char *err = NULL;
-                /* Prefer to pass the specific rule node to handlers when available */
                 leuko_node_t *arg_node = rule_node ? rule_node : merged;
                 bool ok = ops->apply(rconf, arg_node, &err);
                 if (!ok && err)
                 {
-                    free(err); /* ignore for now */
+                    free(err);
                 }
             }
-
-            /* compile rule-level include/exclude regex arrays */
-            if (rconf->include && rconf->include_count > 0)
-                leuko_compile_regex_array(rconf->include, rconf->include_count, &rconf->include_re, &rconf->include_re_count);
-            if (rconf->exclude && rconf->exclude_count > 0)
-                leuko_compile_regex_array(rconf->exclude, rconf->exclude_count, &rconf->exclude_re, &rconf->exclude_re_count);
+            break;
         }
+        return true; /* continue */
     }
+
+    /* Top-level visitor: iterate categories */
+    bool top_visitor(const char *cat_key, leuko_node_t *val, void *vctx)
+    {
+        (void)vctx;
+        if (!cat_key || strcmp(cat_key, "general") == 0)
+            return true;
+        size_t cat_idx;
+        const leuko_rule_category_registry_t *cat = leuko_rule_find_category(cat_key, &cat_idx);
+        if (!cat)
+            return true;
+        if (!val || val->type != LEUKO_NODE_OBJECT)
+            return true;
+        struct cat_visit_ctx_s ctx = {cfg, cat, cat_idx, cat_base};
+        leuko_node_visit_mapping(val, &ctx, rule_visitor);
+        return true;
+    }
+
+    leuko_node_visit_mapping(merged, NULL, top_visitor);
+
+    free(cat_base);
 
     if (merged)
         leuko_node_free(merged);

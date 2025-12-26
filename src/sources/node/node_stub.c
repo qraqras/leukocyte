@@ -160,3 +160,19 @@ void leuko_node_normalize_rule_keys(leuko_node_t *root)
 {
     (void)root; /* no-op for now */
 }
+
+void leuko_node_visit_mapping(const leuko_node_t *node, void *ctx, bool (*visitor)(const char *key, leuko_node_t *val, void *ctx))
+{
+    if (!node || node->type != LEUKO_NODE_OBJECT || !visitor)
+        return;
+    for (size_t i = 0; i < node->map_len; i++)
+    {
+        const char *k = node->map_keys[i];
+        leuko_node_t *v = node->map_vals[i];
+        if (!k)
+            continue;
+        bool keep = visitor(k, v, ctx);
+        if (!keep)
+            break;
+    }
+}
