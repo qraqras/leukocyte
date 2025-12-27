@@ -24,7 +24,6 @@ typedef struct layout_indentation_consistency_config_s
 } layout_indentation_consistency_config_t;
 
 leuko_config_rule_view_t *layout_indentation_consistency_initialize(void);
-void layout_indentation_consistency_config_free(void *config);
 /* New API: merged-node apply */
 bool layout_indentation_consistency_apply_merged(leuko_config_rule_view_t *config, leuko_node_t *node, char **err);
 

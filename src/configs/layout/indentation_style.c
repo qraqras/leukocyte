@@ -1,35 +1,31 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "configs/common/category_config.h"
 #include "configs/layout/indentation_style.h"
 #include "sources/node.h"
 
 leuko_config_rule_view_t *layout_indentation_style_initialize(void)
 {
-    layout_indentation_style_config_t *specific = calloc(1, sizeof(*specific));
-    if (!specific)
-        return NULL;
-    specific->style = LAYOUT_INDENTATION_STYLE_SPACES;
-
-    leuko_config_rule_view_t *cfg = leuko_rule_config_initialize();
+    leuko_config_rule_view_indentation_style_t *cfg = calloc(1, sizeof(*cfg));
     if (!cfg)
-    {
-        free(specific);
         return NULL;
-    }
-    cfg->specific_config = specific;
-    cfg->specific_config_free = layout_indentation_style_config_free;
-    return cfg;
+    /* Initialize base defaults */
+    cfg->base.enabled = true;
+    cfg->base.severity = LEUKO_SEVERITY_CONVENTION;
+
+    cfg->specific.style = LAYOUT_INDENTATION_STYLE_SPACES;
+    return (leuko_config_rule_view_t *)cfg;
 }
 
 bool layout_indentation_style_apply_merged(leuko_config_rule_view_t *config, leuko_node_t *node, char **err)
 {
     if (err)
         *err = NULL;
-    if (!config || !config->specific_config || !node)
+    if (!config || !node)
         return false;
 
-    layout_indentation_style_config_t *sc = (layout_indentation_style_config_t *)config->specific_config;
+    layout_indentation_style_config_t *sc = &((leuko_config_rule_view_indentation_style_t *)config)->specific;
     leuko_node_t *val_node = leuko_node_get_mapping_child(node, CONFIG_KEY_OF_LAYOUT_INDENTATION_STYLE);
     if (!val_node || !LEUKO_NODE_IS_SCALAR(val_node->type))
         return true; /* nothing to override */
@@ -51,12 +47,7 @@ bool layout_indentation_style_apply_merged(leuko_config_rule_view_t *config, leu
     return true;
 }
 
-void layout_indentation_style_config_free(void *config)
-{
-    if (!config)
-        return;
-    free(config);
-}
+/* No separate free required for typed embedded specifics. */
 
 struct leuko_rule_config_handlers_s layout_indentation_style_config_ops = {
     .initialize = layout_indentation_style_initialize,

@@ -49,7 +49,7 @@ const char *leuko_compiled_config_general_include_at(const leuko_compiled_config
 #include "configs/common/category_config.h"
 
 const leuko_config_general_t *leuko_compiled_config_general(const leuko_compiled_config_t *cfg);
-const leuko_config_category_t *leuko_compiled_config_get_category(const leuko_compiled_config_t *cfg, const char *name);
+const leuko_config_category_base_t *leuko_compiled_config_get_category(const leuko_compiled_config_t *cfg, const char *name);
 
 /* Access a rule view pointer (base+specific) from the generated static view for testing or convenience. */
 leuko_config_rule_view_t *leuko_compiled_config_view_rule(const leuko_compiled_config_t *cfg, const char *category, const char *rule_name);

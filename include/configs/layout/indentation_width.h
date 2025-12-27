@@ -14,7 +14,6 @@ typedef struct layout_indentation_width_config_s
 } layout_indentation_width_config_t;
 
 leuko_config_rule_view_t *layout_indentation_width_initialize(void);
-void layout_indentation_width_config_free(void *config);
 bool layout_indentation_width_apply_merged(leuko_config_rule_view_t *config, leuko_node_t *node, char **err);
 
 #endif /* LEUKOCYTE_CONFIGS_LAYOUT_INDENTATION_WIDTH_H */

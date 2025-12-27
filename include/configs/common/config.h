@@ -12,20 +12,18 @@
 #define LEUKO_INHERIT_MODE_MERGE "merge"
 #define LEUKO_INHERIT_MODE_OVERRIDE "override"
 
-
-
 /**
  * @brief Main configuration structure containing all rule configurations.
  */
 typedef struct leuko_config_s
 {
     leuko_config_general_t *general;
-    leuko_config_categories_view_t categories; /* access: cfg->categories.layout.rules.indentation_consistency */
+    leuko_config_categories_view_t categories;
 } leuko_config_t;
 
 /* Helpers for general/category access */
 leuko_config_general_t *leuko_config_get_general_config(leuko_config_t *cfg);
-leuko_config_category_t *leuko_config_get_category_config(leuko_config_t *cfg, const char *name);
+leuko_config_category_base_t *leuko_config_get_category_config(leuko_config_t *cfg, const char *name);
 leuko_config_category_view_t *leuko_config_get_view_category(leuko_config_t *cfg, const char *name);
 
 /* Helper: access a rule base by category and rule name (e.g., categories.Layout.rules.TrailingWhitespace) */

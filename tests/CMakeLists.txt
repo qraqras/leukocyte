@@ -114,6 +114,14 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/tests/configs/test_rule_apply_merged.c)
   add_test(NAME test_rule_apply_merged COMMAND test_rule_apply_merged)
 endif()
 
+# move-preserve-specific test
+if(EXISTS ${CMAKE_SOURCE_DIR}/tests/configs/test_move_preserve_specific.c)
+  add_executable(test_move_preserve_specific configs/test_move_preserve_specific.c)
+  target_include_directories(test_move_preserve_specific PRIVATE ${CMAKE_SOURCE_DIR}/include)
+  target_link_libraries(test_move_preserve_specific PRIVATE leuko_lib pthread)
+  add_test(NAME test_move_preserve_specific COMMAND test_move_preserve_specific)
+endif()
+
 # access by path test (categories.<category>.<rule>)
 if(EXISTS ${CMAKE_SOURCE_DIR}/tests/configs/test_access_by_path.c)
   add_executable(test_access_by_path configs/test_access_by_path.c)

@@ -310,14 +310,10 @@ leuko_config_rule_view_t *leuko_compiled_config_view_rule(const leuko_compiled_c
     leuko_config_t *ec = (leuko_config_t *)cfg->effective_config;
     if (strcmp(category, "Layout") == 0)
     {
-        if (strcmp(rule_name, "IndentationConsistency") == 0)
-            return &ec->categories.layout.rules.indentation_consistency;
-        if (strcmp(rule_name, "IndentationWidth") == 0)
-            return &ec->categories.layout.rules.indentation_width;
-        if (strcmp(rule_name, "IndentationStyle") == 0)
-            return &ec->categories.layout.rules.indentation_style;
-        if (strcmp(rule_name, "LineLength") == 0)
-            return &ec->categories.layout.rules.line_length;
+        if (strcmp(rule_name, "IndentationConsistency") == 0) { fprintf(stderr, "[view_rule] IndentationConsistency -> %p\n", (void*)&ec->categories.layout.rules.indentation_consistency); return &ec->categories.layout.rules.indentation_consistency; }
+        if (strcmp(rule_name, "IndentationWidth") == 0) { fprintf(stderr, "[view_rule] IndentationWidth -> %p specific=%p\n", (void*)&ec->categories.layout.rules.indentation_width, (void*)&ec->categories.layout.rules.indentation_width.specific); return &ec->categories.layout.rules.indentation_width; }
+        if (strcmp(rule_name, "IndentationStyle") == 0) { fprintf(stderr, "[view_rule] IndentationStyle -> %p specific=%p\n", (void*)&ec->categories.layout.rules.indentation_style, (void*)&ec->categories.layout.rules.indentation_style.specific); return &ec->categories.layout.rules.indentation_style; }
+        if (strcmp(rule_name, "LineLength") == 0) { fprintf(stderr, "[view_rule] LineLength -> %p specific=%p\n", (void*)&ec->categories.layout.rules.line_length, (void*)&ec->categories.layout.rules.line_length.specific); return &ec->categories.layout.rules.line_length; }
     }
     return NULL;
 }
@@ -336,7 +332,7 @@ const leuko_config_general_t *leuko_compiled_config_general(const leuko_compiled
     return cfg->effective_config->general;
 }
 
-const leuko_config_category_t *leuko_compiled_config_get_category(const leuko_compiled_config_t *cfg, const char *name)
+const leuko_config_category_base_t *leuko_compiled_config_get_category(const leuko_compiled_config_t *cfg, const char *name)
 {
     if (!cfg || !cfg->effective_config || !name)
         return NULL;
@@ -345,7 +341,7 @@ const leuko_config_category_t *leuko_compiled_config_get_category(const leuko_co
 
 size_t leuko_compiled_config_category_include_count(const leuko_compiled_config_t *cfg, const char *category)
 {
-    const leuko_config_category_t *cc = leuko_compiled_config_get_category(cfg, category);
+    const leuko_config_category_base_t *cc = leuko_compiled_config_get_category(cfg, category);
     if (!cc)
         return 0;
     return cc->include_count;
@@ -353,7 +349,7 @@ size_t leuko_compiled_config_category_include_count(const leuko_compiled_config_
 
 const char *leuko_compiled_config_category_include_at(const leuko_compiled_config_t *cfg, const char *category, size_t idx)
 {
-    const leuko_config_category_t *cc = leuko_compiled_config_get_category(cfg, category);
+    const leuko_config_category_base_t *cc = leuko_compiled_config_get_category(cfg, category);
     if (!cc || idx >= cc->include_count)
         return NULL;
     return cc->include[idx];

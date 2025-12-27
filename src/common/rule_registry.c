@@ -17,7 +17,7 @@
 /* CATEGORY macro will be invoked with (category_name_macro, category_rules_macro)
  * We expand per-category rule lists into CAT_* arrays and cat_reg_* objects.
  */
-#define CATEGORY(cat_name_macro, cat_rules_macro)                                   \
+#define CATEGORY(field, cat_name_macro, cat_rules_macro)                            \
     static leuko_registry_rule_entry_t CAT_##cat_rules_macro[] = {cat_rules_macro}; \
     static const leuko_registry_category_t cat_reg_##cat_rules_macro = {            \
         .name = cat_name_macro, .entries = CAT_##cat_rules_macro, .count = sizeof(CAT_##cat_rules_macro) / sizeof(*CAT_##cat_rules_macro)};
@@ -27,12 +27,12 @@
  * adjacent string literal concatenation (cat_name "/" sname).
  */
 #undef X
-#define X(field, cat_name, sname, rule_ptr, ops_ptr) {                                    \
-                                                         .name = sname,                   \
-                                                         .full_name = cat_name "/" sname, \
-                                                         .rule = rule_ptr,                \
-                                                         .handlers = ops_ptr,             \
-                                                     },
+#define X(field, cat_name, sname, rule_ptr, ops_ptr, specific_t) {                                    \
+                                                                     .name = sname,                   \
+                                                                     .full_name = cat_name "/" sname, \
+                                                                     .rule = rule_ptr,                \
+                                                                     .handlers = ops_ptr,             \
+                                                                 },
 
 /* Expand categories to produce CAT_* arrays and cat_reg_* objects */
 LEUKO_RULES_CATEGORIES
@@ -42,7 +42,7 @@ LEUKO_RULES_CATEGORIES
 
 /* Collect category registry objects into the final categories array */
 static const leuko_registry_category_t leuko_rule_categories[] = {
-#define CATEGORY(cat_name_macro, cat_rules_macro) cat_reg_##cat_rules_macro,
+#define CATEGORY(field, cat_name_macro, cat_rules_macro) cat_reg_##cat_rules_macro,
     LEUKO_RULES_CATEGORIES
 #undef CATEGORY
 };

@@ -49,7 +49,7 @@ void leuko_config_initialize(leuko_config_t *cfg)
 
     /* Initialize embedded category views' base structs for all known categories.
      * We map registry category names (e.g., "Layout") to the generated view
-     * member and initialize the embedded `leuko_config_category_t`'s name.
+     * member and initialize the embedded `leuko_config_category_base_t`'s name.
      */
     {
         const leuko_registry_category_t *cats = leuko_get_rule_categories();
@@ -89,7 +89,7 @@ leuko_config_category_view_t *leuko_config_get_view_category(leuko_config_t *cfg
     return NULL;
 }
 
-leuko_config_category_t *leuko_config_get_category_config(leuko_config_t *cfg, const char *name)
+leuko_config_category_base_t *leuko_config_get_category_config(leuko_config_t *cfg, const char *name)
 {
     leuko_config_category_view_t *v = leuko_config_get_view_category(cfg, name);
     if (!v)
@@ -109,7 +109,7 @@ leuko_config_rule_base_t *leuko_config_get_rule(leuko_config_t *cfg, const char 
     if (strcmp(category, "Layout") == 0)
     {
 #undef X
-#define X(field, cat_name, sname, rule_ptr, ops_ptr) \
+#define X(field, cat_name, sname, rule_ptr, ops_ptr, specific_t) \
         if (strcmp(rule_name, sname) == 0) \
             return &cfg->categories.layout.rules.field.base;
         LEUKO_RULES_LAYOUT
@@ -119,7 +119,7 @@ leuko_config_rule_base_t *leuko_config_get_rule(leuko_config_t *cfg, const char 
     return NULL;
 }
 
-/* Return a pointer to the view-type for a rule config (includes specific_config). */
+/* Return a pointer to the view-type for a rule config (typed-specifics are embedded). */
 leuko_config_rule_view_t *leuko_config_get_view_rule(leuko_config_t *cfg, const char *category, const char *rule_name)
 {
     if (!cfg || !category || !rule_name)
@@ -128,9 +128,9 @@ leuko_config_rule_view_t *leuko_config_get_view_rule(leuko_config_t *cfg, const 
     if (strcmp(category, "Layout") == 0)
     {
 #undef X
-#define X(field, cat_name, sname, rule_ptr, ops_ptr) \
+#define X(field, cat_name, sname, rule_ptr, ops_ptr, specific_t) \
         if (strcmp(rule_name, sname) == 0) \
-            return &cfg->categories.layout.rules.field;
+            return (leuko_config_rule_view_t *)&cfg->categories.layout.rules.field;
         LEUKO_RULES_LAYOUT
 #undef X
     }
@@ -146,11 +146,29 @@ void leuko_config_set_view_rule(leuko_config_t *cfg, const char *category, const
     if (strcmp(category, "Layout") == 0)
     {
 #undef X
-#define X(field, cat_name, sname, rule_ptr, ops_ptr) \
+#define X(field, cat_name, sname, rule_ptr, ops_ptr, specific_t) \
         if (strcmp(rule_name, sname) == 0) \
         { \
-            leuko_rule_config_move_to_view(rconf, &cfg->categories.layout.rules.field); \
-            return; \
+            /* Special-case typed view for indentation_consistency (PoC): copy base and move specific value */ \
+            { \
+                /* dst is typed view */ \
+                leuko_config_rule_view_##field##_t *dst = &cfg->categories.layout.rules.field; \
+                leuko_config_rule_view_t *src = rconf; \
+                dst->base = src->base; \
+                /* copy specific struct value from typed heap view into embedded typed specific */ \
+                { \
+                    leuko_config_rule_view_##field##_t *s = (leuko_config_rule_view_##field##_t *)src; \
+                    /* DEBUG */ fprintf(stderr, "[move] copying specific for %s dst=%p specific_addr=%p\n", sname, (void*)dst, (void*)&dst->specific); \
+                    memcpy(&dst->specific, &s->specific, sizeof(dst->specific)); \
+                    /* DEBUG */ fprintf(stderr, "[move] src specific first int32 = %d dst specific first int32 = %d\n", *(int32_t *)&s->specific, *(int32_t *)&dst->specific); \
+                } \
+                /* DEBUG */ fprintf(stderr, "[move] set specific inside dst=%p\n", (void*)dst); \
+                /* Null out source base pointers so freeing it doesn't free moved memory */ \
+                src->base.include = NULL; src->base.include_count = 0; src->base.include_re = NULL; src->base.include_re_count = 0; \
+                src->base.exclude = NULL; src->base.exclude_count = 0; src->base.exclude_re = NULL; src->base.exclude_re_count = 0; \
+                leuko_rule_config_free(src); \
+                return; \
+            } \
         }
         LEUKO_RULES_LAYOUT
 #undef X

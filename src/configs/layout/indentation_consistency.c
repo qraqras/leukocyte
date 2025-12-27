@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include "configs/common/rule_config.h"
+#include "configs/common/category_config.h"
 #include "configs/layout/indentation_consistency.h"
 #include "common/rule_registry.h"
 #include "sources/node.h"
@@ -12,24 +13,15 @@
  */
 leuko_config_rule_view_t *layout_indentation_consistency_initialize(void)
 {
-    /* Specific configuration */
-    layout_indentation_consistency_config_t *specific_cfg = calloc(1, sizeof(*specific_cfg));
-    if (!specific_cfg)
-    {
-        return NULL;
-    }
-    specific_cfg->enforced_style = LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_NORMAL;
-
-    /* Rule configuration */
-    leuko_config_rule_view_t *cfg = leuko_rule_config_initialize();
+    leuko_config_rule_view_indentation_consistency_t *cfg = calloc(1, sizeof(*cfg));
     if (!cfg)
-    {
-        free(specific_cfg);
         return NULL;
-    }
-    cfg->specific_config = specific_cfg;
-    cfg->specific_config_free = layout_indentation_consistency_config_free;
-    return cfg;
+    /* Initialize base defaults */
+    cfg->base.enabled = true;
+    cfg->base.severity = LEUKO_SEVERITY_CONVENTION;
+
+    cfg->specific.enforced_style = LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_NORMAL;
+    return (leuko_config_rule_view_t *)cfg;
 }
 
 /* New merged-node apply */
@@ -37,9 +29,9 @@ bool layout_indentation_consistency_apply_merged(leuko_config_rule_view_t *confi
 {
     if (err)
         *err = NULL;
-    if (!config || !config->specific_config || !node)
+    if (!config || !node)
         return false;
-    layout_indentation_consistency_config_t *sc = (layout_indentation_consistency_config_t *)config->specific_config;
+    layout_indentation_consistency_config_t *sc = &((leuko_config_rule_view_indentation_consistency_t *)config)->specific;
     leuko_node_t *v = leuko_node_get_mapping_child(node, CONFIG_KEY_OF_LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE);
     const char *val = v && LEUKO_NODE_IS_SCALAR(v->type) ? v->scalar : NULL;
     if (!val)
@@ -51,18 +43,7 @@ bool layout_indentation_consistency_apply_merged(leuko_config_rule_view_t *confi
     return true;
 }
 
-/**
- * @brief Free the memory allocated for a layout_indentation_consistency_config_t structure.
- * @param config Pointer to the layout_indentation_consistency_config_t structure to free
- */
-void layout_indentation_consistency_config_free(void *config)
-{
-    if (!config)
-    {
-        return;
-    }
-    free(config);
-}
+/* No separate free required for typed embedded specifics. */
 
 /**
  * @brief Configuration operations for Layout/IndentationConsistency rule.

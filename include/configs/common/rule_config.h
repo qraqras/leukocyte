@@ -15,11 +15,7 @@
 #define LEUKO_CONFIG_KEY_EXCLUDE "Exclude"
 
 /**
- * @brief Rule configuration base (embedded in generated view).
- *
- * This holds the shared rule fields (enabled/severity/include/exclude and
- * precompiled regexes). Rule-specific configuration is stored separately in
- * `specific_config`.
+ * @brief Rule configuration base structure.
  */
 typedef struct leuko_config_rule_base_s
 {
@@ -36,12 +32,12 @@ typedef struct leuko_config_rule_base_s
     size_t exclude_re_count;
 } leuko_config_rule_base_t;
 
-/* View type: embeds base and holds rule-specific configuration separately */
+/**
+ * @brief Rule configuration view structure including base and specific config.
+ */
 typedef struct leuko_config_rule_view_s
 {
     leuko_config_rule_base_t base;
-    void *specific_config;
-    void (*specific_config_free)(void *);
 } leuko_config_rule_view_t;
 
 //* Forward-declare merged node type to avoid heavy includes */

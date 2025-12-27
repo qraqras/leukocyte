@@ -26,8 +26,7 @@ leuko_config_rule_view_t *leuko_rule_config_initialize(void)
     cfg->base.exclude_re = NULL;
     cfg->base.exclude_re_count = 0;
 
-    cfg->specific_config = NULL;
-    cfg->specific_config_free = NULL;
+    /* typed-specifics are embedded per-rule; base view no longer holds a generic pointer */
     return cfg;
 }
 
@@ -50,13 +49,8 @@ void leuko_rule_config_reset(leuko_config_rule_view_t *cfg)
         return;
     /* Reset base fields */
     leuko_rule_config_base_reset(&cfg->base);
-    /* Reset specific */
-    if (cfg->specific_config && cfg->specific_config_free)
-    {
-        cfg->specific_config_free(cfg->specific_config);
-        cfg->specific_config = NULL;
-        cfg->specific_config_free = NULL;
-    }
+    /* Reset specific: typed specifics are embedded; call leuko_rule_config_view_reset for typed resets if needed */
+    /* No generic pointer to free here */
 }
 
 /* Reset an embedded base struct */
@@ -97,7 +91,6 @@ void leuko_rule_config_base_reset(leuko_config_rule_base_t *base)
         base->exclude = NULL;
         base->exclude_count = 0;
     }
-
 }
 
 /* Reset a full view (base + specific) */
@@ -106,12 +99,7 @@ void leuko_rule_config_view_reset(leuko_config_rule_view_t *view)
     if (!view)
         return;
     leuko_rule_config_base_reset(&view->base);
-    if (view->specific_config && view->specific_config_free)
-    {
-        view->specific_config_free(view->specific_config);
-        view->specific_config = NULL;
-        view->specific_config_free = NULL;
-    }
+    /* No generic specific pointer to free; typed specifics remain embedded and should be reset by rule-specific logic if needed. */
 }
 
 /* Move heap-allocated rule config into embedded view and free the source */
@@ -136,25 +124,19 @@ void leuko_rule_config_move_to_view(leuko_config_rule_view_t *src, leuko_config_
     dst->base.exclude_re = src->base.exclude_re;
     dst->base.exclude_re_count = src->base.exclude_re_count;
 
-    /* Move specific config ownership into dst */
-    dst->specific_config = src->specific_config;
-    dst->specific_config_free = src->specific_config_free;
+    /* Note: typed-specifics are handled by typed move logic (e.g., leuko_config_set_view_rule). */
 
-    /* Null out source so freeing it doesn't touch moved pointers */
+    /* Null out source base pointers so freeing it won't free moved memory */
     src->base.include = NULL;
     src->base.include_count = 0;
     src->base.include_re = NULL;
     src->base.include_re_count = 0;
-
     src->base.exclude = NULL;
     src->base.exclude_count = 0;
     src->base.exclude_re = NULL;
     src->base.exclude_re_count = 0;
 
-    src->specific_config = NULL;
-    src->specific_config_free = NULL;
-
-    /* Free source object */
+    /* Free source object (typed heap view) */
     leuko_rule_config_free(src);
 }
 
@@ -178,7 +160,7 @@ bool leuko_rule_config_apply(leuko_config_rule_view_t *rconf, const struct leuko
         size_t n = leuko_node_array_count(inc);
         if (n > 0)
         {
-                rconf->base.include = calloc(n, sizeof(char *));
+            rconf->base.include = calloc(n, sizeof(char *));
             rconf->base.include_count = n;
             for (size_t i = 0; i < n; i++)
                 rconf->base.include[i] = strdup(leuko_node_array_scalar_at(inc, i) ?: "");
@@ -200,7 +182,7 @@ bool leuko_rule_config_apply(leuko_config_rule_view_t *rconf, const struct leuko
         n = leuko_node_array_count(exc);
         if (n > 0)
         {
-                rconf->base.exclude = calloc(n, sizeof(char *));
+            rconf->base.exclude = calloc(n, sizeof(char *));
             rconf->base.exclude_count = n;
             for (size_t i = 0; i < n; i++)
                 rconf->base.exclude[i] = strdup(leuko_node_array_scalar_at(exc, i) ?: "");

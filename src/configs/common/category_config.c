@@ -4,9 +4,9 @@
 #include "configs/common/category_config.h"
 #include "configs/common/config.h"
 
-leuko_config_category_t *leuko_category_config_initialize(const char *name)
+leuko_config_category_base_t *leuko_category_config_initialize(const char *name)
 {
-    leuko_config_category_t *cfg = calloc(1, sizeof(*cfg));
+    leuko_config_category_base_t *cfg = calloc(1, sizeof(*cfg));
     if (!cfg)
         return NULL;
     if (name)
@@ -26,7 +26,7 @@ leuko_config_category_t *leuko_category_config_initialize(const char *name)
     return cfg;
 }
 
-void leuko_category_config_free(leuko_config_category_t *cfg)
+void leuko_category_config_free(leuko_config_category_base_t *cfg)
 {
     if (!cfg)
         return;
@@ -67,7 +67,7 @@ void leuko_category_config_free(leuko_config_category_t *cfg)
 }
 
 /* Reset an embedded category struct without freeing the struct itself. */
-void leuko_category_config_reset(leuko_config_category_t *cfg)
+void leuko_category_config_reset(leuko_config_category_base_t *cfg)
 {
     if (!cfg)
         return;
@@ -131,7 +131,7 @@ bool leuko_category_config_apply(leuko_config_t *cfg, const char *name, leuko_no
     /* Only operate on categories that already exist in the runtime config.
      * If the category hasn't been added previously, it is unknown to Leuko and
      * we must not create it here. */
-    leuko_config_category_t *cc = leuko_config_get_category_config(cfg, name);
+    leuko_config_category_base_t *cc = leuko_config_get_category_config(cfg, name);
     if (!cc)
         return true;
 

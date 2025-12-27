@@ -6,7 +6,9 @@
 #include <stdbool.h>
 #include "configs/common/rule_config.h"
 
-/* Global/general configuration (formerly AllCops) */
+/**
+ * @brief General configuration structure.
+ */
 typedef struct leuko_config_general_s
 {
     char **include;
@@ -25,8 +27,6 @@ typedef struct leuko_node_s leuko_node_t;
 
 leuko_config_general_t *leuko_general_config_initialize(void);
 void leuko_general_config_free(leuko_config_general_t *cfg);
-
-/* Apply general-level settings from a 'general' node into cfg. */
 bool leuko_general_config_apply(leuko_config_t *cfg, leuko_node_t *general);
 
 #endif /* LEUKOCYTE_CONFIGS_GENERAL_CONFIG_H */

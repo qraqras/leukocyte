@@ -282,7 +282,7 @@ bool build_rules_by_type_for_file(const leuko_config_t *cfg, const char *file_pa
     {
         const leuko_registry_category_t *cat = &cats[ci];
         /* Find runtime category config if present */
-        const leuko_config_category_t *cc = leuko_config_get_category_config((leuko_config_t *)cfg, cat->name);
+        const leuko_config_category_base_t *cc = leuko_config_get_category_config((leuko_config_t *)cfg, cat->name);
         if (!cc)
             continue;
         for (size_t ei = 0; ei < cat->count; ei++)
