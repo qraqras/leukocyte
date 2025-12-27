@@ -100,203 +100,65 @@ build_merged_node_from_files(struct leuko_arena *a, char **files, size_t count)
     return last;
 }
 
+/* Helper: find registry entry by name within a given category */
+static const leuko_registry_rule_entry_t *
+leuko_find_entry_in_category(const leuko_registry_category_t *cat, const char *name)
+{
+    if (!cat || !name)
+        return NULL;
+    for (size_t i = 0; i < cat->count; i++)
+    {
+        if (cat->entries[i].name && strcmp(cat->entries[i].name, name) == 0)
+            return &cat->entries[i];
+    }
+    return NULL;
+}
+
 /* Materialize rules from a merged node into a freshly allocated leuko_config_t.
  * Allocations are done with heap allocation (not arena) so callers can choose
  * to free via leuko_config_free or keep it in an arena.
  */
-static leuko_config_t *
-materialize_rules_from_node(struct leuko_arena *a, leuko_node_t *root)
+static leuko_config_t *materialize_rules_from_node(struct leuko_arena *a, leuko_node_t *root)
 {
     if (!root)
+    {
         return NULL;
+    }
     leuko_config_t *cfg = leuko_arena_alloc(a, sizeof(leuko_config_t));
     if (!cfg)
+    {
         return NULL;
+    }
     leuko_config_initialize(cfg);
 
-    /* General (was AllCops) */
+    /* General config */
     leuko_node_t *general = leuko_node_get_mapping_child(root, "general");
     if (general && general->type == LEUKO_NODE_OBJECT)
     {
-        leuko_node_t *inc = leuko_node_get_mapping_child(general, LEUKO_CONFIG_KEY_INCLUDE);
-        size_t n = leuko_node_array_count(inc);
-        if (n > 0)
-        {
-            leuko_general_config_t *ac = leuko_config_get_general_config(cfg);
-            ac->include = calloc(n, sizeof(char *));
-            ac->include_count = n;
-            for (size_t i = 0; i < n; i++)
-            {
-                const char *s = leuko_node_array_scalar_at(inc, i);
-                ac->include[i] = strdup(s ? s : "");
-            }
-            leuko_compile_regex_array(ac->include, ac->include_count, &ac->include_re, &ac->include_re_count);
-        }
-        leuko_node_t *exc = leuko_node_get_mapping_child(general, LEUKO_CONFIG_KEY_EXCLUDE);
-        n = leuko_node_array_count(exc);
-        if (n > 0)
-        {
-            leuko_general_config_t *ac = leuko_config_get_general_config(cfg);
-            ac->exclude = calloc(n, sizeof(char *));
-            ac->exclude_count = n;
-            for (size_t i = 0; i < n; i++)
-            {
-                const char *s = leuko_node_array_scalar_at(exc, i);
-                ac->exclude[i] = strdup(s ? s : "");
-            }
-            leuko_compile_regex_array(ac->exclude, ac->exclude_count, &ac->exclude_re, &ac->exclude_re_count);
-        }
+        leuko_general_config_apply(cfg, general);
     }
 
-    /* Categories */
-    if (root->type == LEUKO_NODE_OBJECT)
+    /* Categories (registry-driven pass): iterate known registry categories
+     * and apply when present in JSON. This ensures stable processing order and
+     * ignores unknown categories.
+     */
+    leuko_node_t *categories = leuko_node_get_mapping_child(root, "categories");
+    if (categories && categories->type == LEUKO_NODE_OBJECT)
     {
-        for (size_t i = 0; i < root->map_len; i++)
+        /* Node-driven pass: iterate JSON categories in order and apply per-category
+         * include/exclude then rules. This preserves JSON order: Category1 -> its Rules -> Category2 -> its Rules
+         */
+        for (size_t ci = 0; ci < categories->map_len; ci++)
         {
-            const char *cat = root->map_keys[i];
-            if (!cat)
+            const char *cat_key = categories->map_keys[ci];
+            if (!cat_key)
                 continue;
-            if (strcmp(cat, "general") == 0)
+            leuko_node_t *cat_node = categories->map_vals[ci];
+            if (!cat_node || cat_node->type != LEUKO_NODE_OBJECT)
                 continue;
-            leuko_node_t *cmap = root->map_vals[i];
-            if (!cmap || cmap->type != LEUKO_NODE_OBJECT)
-                continue;
-            leuko_category_config_t *cc = leuko_config_add_category(cfg, cat);
-            leuko_node_t *cinc = leuko_node_get_mapping_child(cmap, LEUKO_CONFIG_KEY_INCLUDE);
-            size_t n = leuko_node_array_count(cinc);
-            if (n > 0)
-            {
-                cc->include = calloc(n, sizeof(char *));
-                cc->include_count = n;
-                for (size_t j = 0; j < n; j++)
-                    cc->include[j] = strdup(leuko_node_array_scalar_at(cinc, j) ?: "");
-                leuko_compile_regex_array(cc->include, cc->include_count, &cc->include_re, &cc->include_re_count);
-            }
-            leuko_node_t *cexc = leuko_node_get_mapping_child(cmap, LEUKO_CONFIG_KEY_EXCLUDE);
-            n = leuko_node_array_count(cexc);
-            if (n > 0)
-            {
-                cc->exclude = calloc(n, sizeof(char *));
-                cc->exclude_count = n;
-                for (size_t j = 0; j < n; j++)
-                    cc->exclude[j] = strdup(leuko_node_array_scalar_at(cexc, j) ?: "");
-                leuko_compile_regex_array(cc->exclude, cc->exclude_count, &cc->exclude_re, &cc->exclude_re_count);
-            }
+            leuko_category_config_apply(cfg, cat_key, cat_node);
         }
     }
-
-    /* Normalize rule keys and let rule handlers apply merged settings */
-    leuko_node_t *merged = leuko_node_deep_copy(root);
-    leuko_node_normalize_rule_keys(merged);
-
-    /* Node-driven pass: iterate present nodes and apply matching rules. */
-    const leuko_rule_category_registry_t *cats = leuko_get_rule_categories();
-    size_t cats_n = leuko_get_rule_category_count();
-
-    /* compute category base indices to map (cat_idx, entry_idx) -> global index */
-    size_t *cat_base = NULL;
-    if (cats_n > 0)
-    {
-        cat_base = calloc(cats_n, sizeof(size_t));
-        size_t b = 0;
-        for (size_t i = 0; i < cats_n; i++)
-        {
-            cat_base[i] = b;
-            b += cats[i].count;
-        }
-    }
-
-    /* Visitor context for per-category processing */
-    struct cat_visit_ctx_s
-    {
-        leuko_config_t *cfg;
-        const leuko_rule_category_registry_t *cat;
-        size_t cat_idx;
-        const size_t *cat_base;
-    } cat_ctx;
-    cat_ctx.cfg = cfg;
-    cat_ctx.cat = NULL;
-    cat_ctx.cat_idx = 0;
-    cat_ctx.cat_base = cat_base;
-
-    /* Visitor for rules under a category */
-    bool rule_visitor(const char *rule_key, leuko_node_t *rule_node, void *vctx)
-    {
-        (void)rule_key;
-        if (!vctx)
-            return true;
-        struct cat_visit_ctx_s *ctx = (struct cat_visit_ctx_s *)vctx;
-        const leuko_rule_category_registry_t *cat = ctx->cat;
-        size_t cat_idx = ctx->cat_idx;
-        /* find rule entry */
-        for (size_t ei = 0; ei < cat->count; ei++)
-        {
-            const leuko_rule_registry_entry_t *ent = &cat->entries[ei];
-            if (!ent->name || strcmp(ent->name, rule_key) != 0)
-                continue;
-            size_t global_idx = ctx->cat_base ? ctx->cat_base[cat_idx] + ei : ei;
-            leuko_rule_config_t *rconf = leuko_rule_config_get_by_index(ctx->cfg, global_idx);
-            if (rconf && rule_node)
-            {
-                leuko_node_t *inc = leuko_node_get_mapping_child(rule_node, LEUKO_CONFIG_KEY_INCLUDE);
-                size_t n = leuko_node_array_count(inc);
-                if (n > 0)
-                {
-                    rconf->include = calloc(n, sizeof(char *));
-                    rconf->include_count = n;
-                    for (size_t i = 0; i < n; i++)
-                        rconf->include[i] = strdup(leuko_node_array_scalar_at(inc, i) ?: "");
-                }
-                leuko_node_t *exc = leuko_node_get_mapping_child(rule_node, LEUKO_CONFIG_KEY_EXCLUDE);
-                n = leuko_node_array_count(exc);
-                if (n > 0)
-                {
-                    rconf->exclude = calloc(n, sizeof(char *));
-                    rconf->exclude_count = n;
-                    for (size_t i = 0; i < n; i++)
-                        rconf->exclude[i] = strdup(leuko_node_array_scalar_at(exc, i) ?: "");
-                }
-            }
-
-            const leuko_rule_config_handlers_t *ops = ent->handlers;
-            if (ops && ops->apply)
-            {
-                char *err = NULL;
-                leuko_node_t *arg_node = rule_node ? rule_node : merged;
-                bool ok = ops->apply(rconf, arg_node, &err);
-                if (!ok && err)
-                {
-                    free(err);
-                }
-            }
-            break;
-        }
-        return true; /* continue */
-    }
-
-    /* Top-level visitor: iterate categories */
-    bool top_visitor(const char *cat_key, leuko_node_t *val, void *vctx)
-    {
-        (void)vctx;
-        if (!cat_key || strcmp(cat_key, "general") == 0)
-            return true;
-        size_t cat_idx;
-        const leuko_rule_category_registry_t *cat = leuko_rule_find_category(cat_key, &cat_idx);
-        if (!cat)
-            return true;
-        if (!val || val->type != LEUKO_NODE_OBJECT)
-            return true;
-        struct cat_visit_ctx_s ctx = {cfg, cat, cat_idx, cat_base};
-        leuko_node_visit_mapping(val, &ctx, rule_visitor);
-        return true;
-    }
-
-    leuko_node_visit_mapping(merged, NULL, top_visitor);
-
-    free(cat_base);
-
-    if (merged)
-        leuko_node_free(merged);
 
     return cfg;
 }
@@ -372,7 +234,7 @@ leuko_compiled_config_build(const char *dir, const leuko_compiled_config_t *pare
                 narr[i] = leuko_arena_strdup(c->arena, p_inc_arr[i]);
             for (i = 0; i < c_inc; i++)
                 narr[p_inc + i] = leuko_arena_strdup(c->arena, c_inc_arr[i]);
-            leuko_general_config_t *cac = leuko_config_get_general_config(c->effective_config);
+            leuko_config_general_t *cac = leuko_config_get_general_config(c->effective_config);
             cac->include = calloc(total, sizeof(char *));
             cac->include_count = total;
             for (i = 0; i < total; i++)
@@ -440,6 +302,26 @@ const leuko_node_t *leuko_compiled_config_merged_node(const leuko_compiled_confi
     return cfg->merged_node;
 }
 
+/* Return the rule pointer referenced by the generated static view (if any) */
+leuko_config_rule_view_t *leuko_compiled_config_view_rule(const leuko_compiled_config_t *cfg, const char *category, const char *rule_name)
+{
+    if (!cfg || !cfg->effective_config || !category || !rule_name)
+        return NULL;
+    leuko_config_t *ec = (leuko_config_t *)cfg->effective_config;
+    if (strcmp(category, "Layout") == 0)
+    {
+        if (strcmp(rule_name, "IndentationConsistency") == 0)
+            return &ec->categories.layout.rules.indentation_consistency;
+        if (strcmp(rule_name, "IndentationWidth") == 0)
+            return &ec->categories.layout.rules.indentation_width;
+        if (strcmp(rule_name, "IndentationStyle") == 0)
+            return &ec->categories.layout.rules.indentation_style;
+        if (strcmp(rule_name, "LineLength") == 0)
+            return &ec->categories.layout.rules.line_length;
+    }
+    return NULL;
+}
+
 const leuko_config_t *leuko_compiled_config_rules(const leuko_compiled_config_t *cfg)
 {
     if (!cfg)
@@ -447,14 +329,14 @@ const leuko_config_t *leuko_compiled_config_rules(const leuko_compiled_config_t 
     return cfg->effective_config;
 }
 
-const leuko_general_config_t *leuko_compiled_config_general(const leuko_compiled_config_t *cfg)
+const leuko_config_general_t *leuko_compiled_config_general(const leuko_compiled_config_t *cfg)
 {
     if (!cfg || !cfg->effective_config)
         return NULL;
     return cfg->effective_config->general;
 }
 
-const leuko_category_config_t *leuko_compiled_config_get_category(const leuko_compiled_config_t *cfg, const char *name)
+const leuko_config_category_t *leuko_compiled_config_get_category(const leuko_compiled_config_t *cfg, const char *name)
 {
     if (!cfg || !cfg->effective_config || !name)
         return NULL;
@@ -463,7 +345,7 @@ const leuko_category_config_t *leuko_compiled_config_get_category(const leuko_co
 
 size_t leuko_compiled_config_category_include_count(const leuko_compiled_config_t *cfg, const char *category)
 {
-    const leuko_category_config_t *cc = leuko_compiled_config_get_category(cfg, category);
+    const leuko_config_category_t *cc = leuko_compiled_config_get_category(cfg, category);
     if (!cc)
         return 0;
     return cc->include_count;
@@ -471,7 +353,7 @@ size_t leuko_compiled_config_category_include_count(const leuko_compiled_config_
 
 const char *leuko_compiled_config_category_include_at(const leuko_compiled_config_t *cfg, const char *category, size_t idx)
 {
-    const leuko_category_config_t *cc = leuko_compiled_config_get_category(cfg, category);
+    const leuko_config_category_t *cc = leuko_compiled_config_get_category(cfg, category);
     if (!cc || idx >= cc->include_count)
         return NULL;
     return cc->include[idx];

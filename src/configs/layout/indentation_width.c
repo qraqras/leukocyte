@@ -5,14 +5,14 @@
 #include "configs/layout/indentation_width.h"
 #include "sources/node.h"
 
-leuko_rule_config_t *layout_indentation_width_initialize(void)
+leuko_config_rule_view_t *layout_indentation_width_initialize(void)
 {
     layout_indentation_width_config_t *specific = calloc(1, sizeof(*specific));
     if (!specific)
         return NULL;
     specific->width = 2; /* default */
 
-    leuko_rule_config_t *cfg = leuko_rule_config_initialize();
+    leuko_config_rule_view_t *cfg = leuko_rule_config_initialize();
     if (!cfg)
     {
         free(specific);
@@ -23,7 +23,7 @@ leuko_rule_config_t *layout_indentation_width_initialize(void)
     return cfg;
 }
 
-bool layout_indentation_width_apply_merged(leuko_rule_config_t *config, leuko_node_t *node, char **err)
+bool layout_indentation_width_apply_merged(leuko_config_rule_view_t *config, leuko_node_t *node, char **err)
 {
     if (err)
         *err = NULL;

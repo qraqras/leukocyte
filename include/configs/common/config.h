@@ -4,47 +4,36 @@
 #include <stddef.h>
 #include "common/registry/list.h"
 #include "configs/common/rule_config.h"
+#include "configs/common/general_config.h"
+#include "configs/common/category_config.h"
 
 #define LEUKO_INHERIT_FROM "inherit_from"
 #define LEUKO_INHERIT_MODE "inherit_mode"
 #define LEUKO_INHERIT_MODE_MERGE "merge"
 #define LEUKO_INHERIT_MODE_OVERRIDE "override"
 
-#include "configs/common/general_config.h"
-#include "configs/common/category_config.h"
+
 
 /**
  * @brief Main configuration structure containing all rule configurations.
- * @note `general_include` and `general_exclude` are for global general-level patterns.
  */
 typedef struct leuko_config_s
 {
-    /* Global general configuration (preferred storage) */
-    leuko_general_config_t *general;
-
-    /* Per-category configs */
-    leuko_category_config_t **categories;
-    size_t categories_count;
-
-    /* Backwards-compatible arrays for quick access (kept for now) */
-    char **general_include;
-    size_t general_include_count;
-    char **general_exclude;
-    size_t general_exclude_count;
-
-#define X(field, cat_name, sname, rule_ptr, ops_ptr) leuko_rule_config_t *field;
-    LEUKO_RULES_LIST
-#undef X
+    leuko_config_general_t *general;
+    leuko_config_categories_view_t categories; /* access: cfg->categories.layout.rules.indentation_consistency */
 } leuko_config_t;
 
 /* Helpers for general/category access */
-leuko_general_config_t *leuko_config_get_general_config(leuko_config_t *cfg);
-leuko_category_config_t *leuko_config_get_category_config(leuko_config_t *cfg, const char *name);
-leuko_category_config_t *leuko_config_add_category(leuko_config_t *cfg, const char *name);
+leuko_config_general_t *leuko_config_get_general_config(leuko_config_t *cfg);
+leuko_config_category_t *leuko_config_get_category_config(leuko_config_t *cfg, const char *name);
+leuko_config_category_view_t *leuko_config_get_view_category(leuko_config_t *cfg, const char *name);
 
+/* Helper: access a rule base by category and rule name (e.g., categories.Layout.rules.TrailingWhitespace) */
+leuko_config_rule_base_t *leuko_config_get_rule(leuko_config_t *cfg, const char *category, const char *rule_name);
+leuko_config_rule_view_t *leuko_config_get_view_rule(leuko_config_t *cfg, const char *category, const char *rule_name);
+void leuko_config_set_view_rule(leuko_config_t *cfg, const char *category, const char *rule_name, leuko_config_rule_view_t *rconf);
 void leuko_config_initialize(leuko_config_t *cfg);
 void leuko_config_free(leuko_config_t *cfg);
-leuko_rule_config_t *leuko_rule_config_get_by_index(leuko_config_t *cfg, size_t idx);
 size_t leuko_config_count(void);
 
 #endif /* LEUKOCYTE_CONFIGS_CONFIG_H */

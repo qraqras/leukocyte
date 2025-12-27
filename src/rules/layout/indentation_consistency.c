@@ -29,7 +29,13 @@ bool check_def(pm_node_t *node, const rule_context_t *ctx)
         return true; // No body to check
     }
 
-    const leuko_rule_config_t *indentation_consistency_cfg = cfg->layout_indentation_consistency->specific_config;
+    const leuko_config_category_t *cc = leuko_config_get_category_config((leuko_config_t *)cfg, "Layout");
+    if (!cc)
+        return true;
+    const leuko_config_rule_view_t *indentation_consistency_cfg = leuko_config_get_view_rule((leuko_config_t *)cfg, "Layout", "IndentationConsistency");
+    if (!indentation_consistency_cfg)
+        return true;
+    const layout_indentation_consistency_config_t *sc = (const layout_indentation_consistency_config_t *)indentation_consistency_cfg->specific_config;
 
     if (PM_NODE_TYPE_P(body, PM_STATEMENTS_NODE))
     {

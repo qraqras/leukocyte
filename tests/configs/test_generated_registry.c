@@ -5,11 +5,11 @@
 
 int main(void)
 {
-    const leuko_rule_category_registry_t *cats = leuko_get_rule_categories();
+    const leuko_registry_category_t *cats = leuko_get_rule_categories();
     size_t n = leuko_get_rule_category_count();
     assert(n >= 1);
     /* find Layout category */
-    const leuko_rule_category_registry_t *c = NULL;
+    const leuko_registry_category_t *c = NULL;
     for (size_t i = 0; i < n; i++)
     {
         if (cats[i].name && strcmp(cats[i].name, "Layout") == 0)

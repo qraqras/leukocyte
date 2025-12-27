@@ -8,27 +8,30 @@
 typedef struct rule_s rule_t;
 
 /* Registry structures used by materialize */
-typedef struct leuko_rule_registry_entry_s
+typedef struct leuko_registry_rule_entry_s
 {
     const char *name;      /* rule name, e.g. "IndentationConsistency" */
     const char *full_name; /* full name: "Category/Rule" (auto-generated at init) */
     rule_t *rule;          /* pointer to rule instance (opaque) */
     const leuko_rule_config_handlers_t *handlers;
-} leuko_rule_registry_entry_t;
+} leuko_registry_rule_entry_t;
 
-typedef struct leuko_rule_category_registry_s
+typedef struct leuko_registry_catogory_s
 {
     const char *name; /* "Layout" */
-    const leuko_rule_registry_entry_t *entries;
+    const leuko_registry_rule_entry_t *entries;
     size_t count;
-} leuko_rule_category_registry_t;
+} leuko_registry_category_t;
 
 /* Accessors (implemented in rule_registry.c) */
-const leuko_rule_category_registry_t *leuko_get_rule_categories(void);
+const leuko_registry_category_t *leuko_get_rule_categories(void);
 size_t leuko_get_rule_category_count(void);
 
 /* Find a rule's global index by category and name. Returns SIZE_MAX if not found */
 size_t leuko_rule_find_index(const char *category, const char *name);
+
+/* Find a category registry object by name. Returns NULL if not found. */
+const leuko_registry_category_t *leuko_rule_find_category(const char *name, size_t *out_index);
 
 /* Category names */
 /* clang-format off */

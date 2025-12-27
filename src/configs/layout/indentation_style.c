@@ -4,14 +4,14 @@
 #include "configs/layout/indentation_style.h"
 #include "sources/node.h"
 
-leuko_rule_config_t *layout_indentation_style_initialize(void)
+leuko_config_rule_view_t *layout_indentation_style_initialize(void)
 {
     layout_indentation_style_config_t *specific = calloc(1, sizeof(*specific));
     if (!specific)
         return NULL;
     specific->style = LAYOUT_INDENTATION_STYLE_SPACES;
 
-    leuko_rule_config_t *cfg = leuko_rule_config_initialize();
+    leuko_config_rule_view_t *cfg = leuko_rule_config_initialize();
     if (!cfg)
     {
         free(specific);
@@ -22,7 +22,7 @@ leuko_rule_config_t *layout_indentation_style_initialize(void)
     return cfg;
 }
 
-bool layout_indentation_style_apply_merged(leuko_rule_config_t *config, leuko_node_t *node, char **err)
+bool layout_indentation_style_apply_merged(leuko_config_rule_view_t *config, leuko_node_t *node, char **err)
 {
     if (err)
         *err = NULL;

@@ -40,7 +40,6 @@ leuko_node_t *leuko_node_deep_copy(const leuko_node_t *node);
 void leuko_node_free(leuko_node_t *node);
 leuko_node_t *leuko_node_get_rule_mapping(leuko_node_t *root, const char *full_name);
 const char *leuko_node_get_rule_mapping_scalar(const leuko_node_t *root, const char *full_name, const char *key);
-void leuko_node_normalize_rule_keys(leuko_node_t *root);
 
 /* Visit mapping children: call visitor(key, val, ctx) for each mapping entry.
  * If visitor returns false, stop iteration early. */

@@ -10,7 +10,7 @@
  * @brief Initialize the layout_indentation_consistency rule configuration.
  * @return Pointer to the initialized leuko_rule_config_t structure
  */
-leuko_rule_config_t *layout_indentation_consistency_initialize(void)
+leuko_config_rule_view_t *layout_indentation_consistency_initialize(void)
 {
     /* Specific configuration */
     layout_indentation_consistency_config_t *specific_cfg = calloc(1, sizeof(*specific_cfg));
@@ -21,7 +21,7 @@ leuko_rule_config_t *layout_indentation_consistency_initialize(void)
     specific_cfg->enforced_style = LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_NORMAL;
 
     /* Rule configuration */
-    leuko_rule_config_t *cfg = leuko_rule_config_initialize();
+    leuko_config_rule_view_t *cfg = leuko_rule_config_initialize();
     if (!cfg)
     {
         free(specific_cfg);
@@ -33,7 +33,7 @@ leuko_rule_config_t *layout_indentation_consistency_initialize(void)
 }
 
 /* New merged-node apply */
-bool layout_indentation_consistency_apply_merged(leuko_rule_config_t *config, leuko_node_t *node, char **err)
+bool layout_indentation_consistency_apply_merged(leuko_config_rule_view_t *config, leuko_node_t *node, char **err)
 {
     if (err)
         *err = NULL;

@@ -156,11 +156,6 @@ const char *leuko_node_get_rule_mapping_scalar(const leuko_node_t *root, const c
     return NULL; /* keep stub */
 }
 
-void leuko_node_normalize_rule_keys(leuko_node_t *root)
-{
-    (void)root; /* no-op for now */
-}
-
 void leuko_node_visit_mapping(const leuko_node_t *node, void *ctx, bool (*visitor)(const char *key, leuko_node_t *val, void *ctx))
 {
     if (!node || node->type != LEUKO_NODE_OBJECT || !visitor)

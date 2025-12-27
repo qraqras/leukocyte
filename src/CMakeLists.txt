@@ -125,6 +125,7 @@ endif()
 # If Prism was built via ExternalProject, expose include dir and ensure dependency
 if(DEFINED LEUKO_PRISM_INCLUDE_DIR)
     target_include_directories(leuko_lib PRIVATE ${LEUKO_PRISM_INCLUDE_DIR})
+    include_directories(${LEUKO_PRISM_INCLUDE_DIR})
 endif()
 if(TARGET prism_project)
     add_dependencies(leuko_lib prism_project)

@@ -98,10 +98,34 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/tests/configs/test_materialize.c)
   add_test(NAME test_materialize COMMAND test_materialize)
 endif()
 
+# category set/get test
+if(EXISTS ${CMAKE_SOURCE_DIR}/tests/configs/test_category_set_get.c)
+  add_executable(test_category_set_get configs/test_category_set_get.c)
+  target_include_directories(test_category_set_get PRIVATE ${CMAKE_SOURCE_DIR}/include)
+  target_link_libraries(test_category_set_get PRIVATE leuko_lib pthread)
+  add_test(NAME test_category_set_get COMMAND test_category_set_get)
+endif()
+
 # rule apply_merged tests
 if(EXISTS ${CMAKE_SOURCE_DIR}/tests/configs/test_rule_apply_merged.c)
   add_executable(test_rule_apply_merged configs/test_rule_apply_merged.c)
   target_include_directories(test_rule_apply_merged PRIVATE ${CMAKE_SOURCE_DIR}/include)
   target_link_libraries(test_rule_apply_merged PRIVATE leuko_lib pthread)
   add_test(NAME test_rule_apply_merged COMMAND test_rule_apply_merged)
+endif()
+
+# access by path test (categories.<category>.<rule>)
+if(EXISTS ${CMAKE_SOURCE_DIR}/tests/configs/test_access_by_path.c)
+  add_executable(test_access_by_path configs/test_access_by_path.c)
+  target_include_directories(test_access_by_path PRIVATE ${CMAKE_SOURCE_DIR}/include)
+  target_link_libraries(test_access_by_path PRIVATE leuko_lib pthread)
+  add_test(NAME test_access_by_path COMMAND test_access_by_path)
+endif()
+
+# parity test: ensure categories pointer equals lookup
+if(EXISTS ${CMAKE_SOURCE_DIR}/tests/configs/test_categories_view_parity.c)
+  add_executable(test_categories_view_parity configs/test_categories_view_parity.c)
+  target_include_directories(test_categories_view_parity PRIVATE ${CMAKE_SOURCE_DIR}/include)
+  target_link_libraries(test_categories_view_parity PRIVATE leuko_lib pthread)
+  add_test(NAME test_categories_view_parity COMMAND test_categories_view_parity)
 endif()
