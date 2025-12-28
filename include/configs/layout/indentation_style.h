@@ -20,8 +20,9 @@ typedef struct layout_indentation_style_config_s
     indentation_style_t style; /* default: spaces */
 } layout_indentation_style_config_t;
 
-leuko_config_rule_view_t *layout_indentation_style_initialize(void);
+void *layout_indentation_style_initialize(void);
 /* New API: merged-node apply */
-bool layout_indentation_style_apply_merged(leuko_config_rule_view_t *config, leuko_node_t *node, char **err);
+bool layout_indentation_style_apply_merged(void *config, leuko_node_t *node, char **err);
+void layout_indentation_style_reset(void *view);
 
 #endif /* LEUKOCYTE_CONFIGS_LAYOUT_INDENTATION_STYLE_H */

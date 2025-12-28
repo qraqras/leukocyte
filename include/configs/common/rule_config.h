@@ -40,9 +40,7 @@ typedef struct leuko_config_rule_view_s
     leuko_config_rule_base_t base;
 } leuko_config_rule_view_t;
 
-//* Forward-declare merged node type to avoid heavy includes */
 typedef struct leuko_node_s leuko_node_t;
-/* Forward-declare top-level config to avoid header cycles */
 typedef struct leuko_config_s leuko_config_t;
 
 /**
@@ -50,26 +48,22 @@ typedef struct leuko_config_s leuko_config_t;
  */
 typedef struct leuko_rule_config_handlers_s
 {
-    leuko_config_rule_view_t *(*initialize)(void);
-    bool (*apply)(leuko_config_rule_view_t *config, leuko_node_t *node, char **err);
+    /* initialize returns a typed heap view pointer (void*), rule will cast as-needed */
+    void *(*initialize)(void);
+    /* apply/reset accept void* typed view */
+    bool (*apply)(void *view, leuko_node_t *node, char **err);
+    void (*reset)(void *view);
 } leuko_rule_config_handlers_t;
 
-leuko_config_rule_view_t *leuko_rule_config_initialize(void);
-void leuko_rule_config_free(leuko_config_rule_view_t *cfg);
-/* Reset an embedded rule struct without freeing the struct itself */
-void leuko_rule_config_reset(leuko_config_rule_view_t *cfg);
-
-/* Base helpers: operate on embedded base structs */
+void *leuko_rule_config_initialize(void);
+void leuko_rule_config_free(void *cfg);
+void leuko_rule_config_reset(void *cfg);
 void leuko_rule_config_base_reset(leuko_config_rule_base_t *base);
-/* Reset a full view (base + specific) */
-void leuko_rule_config_view_reset(leuko_config_rule_view_t *view);
-/* Move heap-allocated rule (initializer result) into embedded view and free source */
-void leuko_rule_config_move_to_view(leuko_config_rule_view_t *src, leuko_config_rule_view_t *dst);
+void leuko_rule_config_view_reset(void *view);
+void leuko_rule_config_move_to_view(void *src, void *dst);
 
-/* Forward-declare registry entry to avoid header cycles */
 struct leuko_registry_rule_entry_s;
 
-/* Apply a rule node into the provided rule config and invoke rule-specific handler */
-bool leuko_rule_config_apply(leuko_config_rule_view_t *rconf, const struct leuko_registry_rule_entry_s *ent, leuko_node_t *rule_node, char **err);
+bool leuko_rule_config_apply(void *rconf, const struct leuko_registry_rule_entry_s *ent, leuko_node_t *rule_node, char **err);
 
 #endif /* LEUKOCYTE_CONFIGS_RULE_CONFIG_H */

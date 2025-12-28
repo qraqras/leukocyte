@@ -12,8 +12,9 @@ typedef struct layout_line_length_config_s
     int32_t max; /* default: 80 */
 } layout_line_length_config_t;
 
-leuko_config_rule_view_t *layout_line_length_initialize(void);
+void *layout_line_length_initialize(void);
 /* New API: merged-node apply */
-bool layout_line_length_apply_merged(leuko_config_rule_view_t *config, leuko_node_t *node, char **err);
+bool layout_line_length_apply_merged(void *config, leuko_node_t *node, char **err);
+void layout_line_length_reset(void *view);
 
 #endif /* LEUKOCYTE_CONFIGS_LAYOUT_LINE_LENGTH_H */

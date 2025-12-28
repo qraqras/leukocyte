@@ -39,17 +39,17 @@ int main(void)
     const leuko_config_t *ef = leuko_compiled_config_rules(cfg);
     assert(ef);
 
-    leuko_config_rule_view_t *rconf_w = leuko_compiled_config_view_rule(cfg, "Layout", "IndentationWidth");
+    void *rconf_w = leuko_compiled_config_view_rule(cfg, "Layout", "IndentationWidth");
     assert(rconf_w);
     layout_indentation_width_config_t *sc_w = &((leuko_config_rule_view_indentation_width_t *)rconf_w)->specific;
     assert(sc_w->width == 4);
 
-    leuko_config_rule_view_t *rconf_s = leuko_compiled_config_view_rule(cfg, "Layout", "IndentationStyle");
+    void *rconf_s = leuko_compiled_config_view_rule(cfg, "Layout", "IndentationStyle");
     assert(rconf_s);
     layout_indentation_style_config_t *sc_s = &((leuko_config_rule_view_indentation_style_t *)rconf_s)->specific;
     assert(sc_s->style == LAYOUT_INDENTATION_STYLE_TABS);
 
-    leuko_config_rule_view_t *rconf_l = leuko_compiled_config_view_rule(cfg, "Layout", "LineLength");
+    void *rconf_l = leuko_compiled_config_view_rule(cfg, "Layout", "LineLength");
     assert(rconf_l);
     layout_line_length_config_t *sc_l = &((leuko_config_rule_view_line_length_t *)rconf_l)->specific;
     assert(sc_l->max == 100);

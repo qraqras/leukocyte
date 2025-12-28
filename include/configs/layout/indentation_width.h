@@ -13,7 +13,8 @@ typedef struct layout_indentation_width_config_s
     int32_t width; /* default: 2 */
 } layout_indentation_width_config_t;
 
-leuko_config_rule_view_t *layout_indentation_width_initialize(void);
-bool layout_indentation_width_apply_merged(leuko_config_rule_view_t *config, leuko_node_t *node, char **err);
+void *layout_indentation_width_initialize(void);
+bool layout_indentation_width_apply_merged(void *config, leuko_node_t *node, char **err);
+void layout_indentation_width_reset(void *view);
 
 #endif /* LEUKOCYTE_CONFIGS_LAYOUT_INDENTATION_WIDTH_H */

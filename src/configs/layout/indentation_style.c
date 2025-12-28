@@ -5,7 +5,7 @@
 #include "configs/layout/indentation_style.h"
 #include "sources/node.h"
 
-leuko_config_rule_view_t *layout_indentation_style_initialize(void)
+void *layout_indentation_style_initialize(void)
 {
     leuko_config_rule_view_indentation_style_t *cfg = calloc(1, sizeof(*cfg));
     if (!cfg)
@@ -15,17 +15,24 @@ leuko_config_rule_view_t *layout_indentation_style_initialize(void)
     cfg->base.severity = LEUKO_SEVERITY_CONVENTION;
 
     cfg->specific.style = LAYOUT_INDENTATION_STYLE_SPACES;
-    return (leuko_config_rule_view_t *)cfg;
+    return (void *)cfg;
 }
 
-bool layout_indentation_style_apply_merged(leuko_config_rule_view_t *config, leuko_node_t *node, char **err)
+void layout_indentation_style_reset(void *view)
+{
+    if (!view)
+        return;
+    free(view);
+}
+
+bool layout_indentation_style_apply_merged(void *view, leuko_node_t *node, char **err)
 {
     if (err)
         *err = NULL;
-    if (!config || !node)
+    if (!view || !node)
         return false;
 
-    layout_indentation_style_config_t *sc = &((leuko_config_rule_view_indentation_style_t *)config)->specific;
+    layout_indentation_style_config_t *sc = &((leuko_config_rule_view_indentation_style_t *)view)->specific;
     leuko_node_t *val_node = leuko_node_get_mapping_child(node, CONFIG_KEY_OF_LAYOUT_INDENTATION_STYLE);
     if (!val_node || !LEUKO_NODE_IS_SCALAR(val_node->type))
         return true; /* nothing to override */
@@ -52,4 +59,5 @@ bool layout_indentation_style_apply_merged(leuko_config_rule_view_t *config, leu
 struct leuko_rule_config_handlers_s layout_indentation_style_config_ops = {
     .initialize = layout_indentation_style_initialize,
     .apply = layout_indentation_style_apply_merged,
+    .reset = layout_indentation_style_reset,
 };

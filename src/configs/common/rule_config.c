@@ -7,7 +7,7 @@
  * @brief Initialize a leuko_rule_config_t structure with default values.
  * @return Pointer to the initialized leuko_rule_config_t structure
  */
-leuko_config_rule_view_t *leuko_rule_config_initialize(void)
+void *leuko_rule_config_initialize(void)
 {
     leuko_config_rule_view_t *cfg = calloc(1, sizeof(*cfg));
     if (!cfg)
@@ -27,14 +27,14 @@ leuko_config_rule_view_t *leuko_rule_config_initialize(void)
     cfg->base.exclude_re_count = 0;
 
     /* typed-specifics are embedded per-rule; base view no longer holds a generic pointer */
-    return cfg;
+    return (void *)cfg;
 }
 
 /**
  * @brief Free a leuko_rule_config_t structure.
  * @param cfg Pointer to the leuko_rule_config_t structure to free
  */
-void leuko_rule_config_free(leuko_config_rule_view_t *cfg)
+void leuko_rule_config_free(void *cfg)
 {
     if (!cfg)
         return;
@@ -43,12 +43,12 @@ void leuko_rule_config_free(leuko_config_rule_view_t *cfg)
 }
 
 /* Reset an embedded rule struct without freeing the struct itself. */
-void leuko_rule_config_reset(leuko_config_rule_view_t *cfg)
+void leuko_rule_config_reset(void *cfg)
 {
     if (!cfg)
         return;
     /* Reset base fields */
-    leuko_rule_config_base_reset(&cfg->base);
+    leuko_rule_config_base_reset(&((leuko_config_rule_view_t *)cfg)->base);
     /* Reset specific: typed specifics are embedded; call leuko_rule_config_view_reset for typed resets if needed */
     /* No generic pointer to free here */
 }
@@ -94,16 +94,16 @@ void leuko_rule_config_base_reset(leuko_config_rule_base_t *base)
 }
 
 /* Reset a full view (base + specific) */
-void leuko_rule_config_view_reset(leuko_config_rule_view_t *view)
+void leuko_rule_config_view_reset(void *view)
 {
     if (!view)
         return;
-    leuko_rule_config_base_reset(&view->base);
+    leuko_rule_config_base_reset(&((leuko_config_rule_view_t *)view)->base);
     /* No generic specific pointer to free; typed specifics remain embedded and should be reset by rule-specific logic if needed. */
 }
 
 /* Move heap-allocated rule config into embedded view and free the source */
-void leuko_rule_config_move_to_view(leuko_config_rule_view_t *src, leuko_config_rule_view_t *dst)
+void leuko_rule_config_move_to_view(void *src, void *dst)
 {
     if (!src || !dst)
         return;
@@ -111,30 +111,30 @@ void leuko_rule_config_move_to_view(leuko_config_rule_view_t *src, leuko_config_
     leuko_rule_config_view_reset(dst);
 
     /* Move scalar fields into dst->base */
-    dst->base.enabled = src->base.enabled;
-    dst->base.severity = src->base.severity;
+    ((leuko_config_rule_view_t *)dst)->base.enabled = ((leuko_config_rule_view_t *)src)->base.enabled;
+    ((leuko_config_rule_view_t *)dst)->base.severity = ((leuko_config_rule_view_t *)src)->base.severity;
 
-    dst->base.include = src->base.include;
-    dst->base.include_count = src->base.include_count;
-    dst->base.include_re = src->base.include_re;
-    dst->base.include_re_count = src->base.include_re_count;
+    ((leuko_config_rule_view_t *)dst)->base.include = ((leuko_config_rule_view_t *)src)->base.include;
+    ((leuko_config_rule_view_t *)dst)->base.include_count = ((leuko_config_rule_view_t *)src)->base.include_count;
+    ((leuko_config_rule_view_t *)dst)->base.include_re = ((leuko_config_rule_view_t *)src)->base.include_re;
+    ((leuko_config_rule_view_t *)dst)->base.include_re_count = ((leuko_config_rule_view_t *)src)->base.include_re_count;
 
-    dst->base.exclude = src->base.exclude;
-    dst->base.exclude_count = src->base.exclude_count;
-    dst->base.exclude_re = src->base.exclude_re;
-    dst->base.exclude_re_count = src->base.exclude_re_count;
+    ((leuko_config_rule_view_t *)dst)->base.exclude = ((leuko_config_rule_view_t *)src)->base.exclude;
+    ((leuko_config_rule_view_t *)dst)->base.exclude_count = ((leuko_config_rule_view_t *)src)->base.exclude_count;
+    ((leuko_config_rule_view_t *)dst)->base.exclude_re = ((leuko_config_rule_view_t *)src)->base.exclude_re;
+    ((leuko_config_rule_view_t *)dst)->base.exclude_re_count = ((leuko_config_rule_view_t *)src)->base.exclude_re_count;
 
     /* Note: typed-specifics are handled by typed move logic (e.g., leuko_config_set_view_rule). */
 
     /* Null out source base pointers so freeing it won't free moved memory */
-    src->base.include = NULL;
-    src->base.include_count = 0;
-    src->base.include_re = NULL;
-    src->base.include_re_count = 0;
-    src->base.exclude = NULL;
-    src->base.exclude_count = 0;
-    src->base.exclude_re = NULL;
-    src->base.exclude_re_count = 0;
+    ((leuko_config_rule_view_t *)src)->base.include = NULL;
+    ((leuko_config_rule_view_t *)src)->base.include_count = 0;
+    ((leuko_config_rule_view_t *)src)->base.include_re = NULL;
+    ((leuko_config_rule_view_t *)src)->base.include_re_count = 0;
+    ((leuko_config_rule_view_t *)src)->base.exclude = NULL;
+    ((leuko_config_rule_view_t *)src)->base.exclude_count = 0;
+    ((leuko_config_rule_view_t *)src)->base.exclude_re = NULL;
+    ((leuko_config_rule_view_t *)src)->base.exclude_re_count = 0;
 
     /* Free source object (typed heap view) */
     leuko_rule_config_free(src);
@@ -145,7 +145,7 @@ void leuko_rule_config_move_to_view(leuko_config_rule_view_t *src, leuko_config_
 #include "common/rule_registry.h"
 #include "utils/glob_to_regex.h"
 
-bool leuko_rule_config_apply(leuko_config_rule_view_t *rconf, const struct leuko_registry_rule_entry_s *ent, leuko_node_t *rule_node, char **err)
+bool leuko_rule_config_apply(void *rconf, const struct leuko_registry_rule_entry_s *ent, leuko_node_t *rule_node, char **err)
 {
     if (!rconf || !ent)
     {
@@ -160,45 +160,45 @@ bool leuko_rule_config_apply(leuko_config_rule_view_t *rconf, const struct leuko
         size_t n = leuko_node_array_count(inc);
         if (n > 0)
         {
-            rconf->base.include = calloc(n, sizeof(char *));
-            rconf->base.include_count = n;
+            ((leuko_config_rule_view_t *)rconf)->base.include = calloc(n, sizeof(char *));
+            ((leuko_config_rule_view_t *)rconf)->base.include_count = n;
             for (size_t i = 0; i < n; i++)
-                rconf->base.include[i] = strdup(leuko_node_array_scalar_at(inc, i) ?: "");
+                ((leuko_config_rule_view_t *)rconf)->base.include[i] = strdup(leuko_node_array_scalar_at(inc, i) ?: "");
 
-            rconf->base.include_re = calloc(n, sizeof(regex_t));
+            ((leuko_config_rule_view_t *)rconf)->base.include_re = calloc(n, sizeof(regex_t));
             size_t compiled = 0;
             for (size_t i = 0; i < n; i++)
             {
-                char *re_s = leuko_glob_to_regex(rconf->base.include[i]);
+                char *re_s = leuko_glob_to_regex(((leuko_config_rule_view_t *)rconf)->base.include[i]);
                 if (!re_s)
                     continue;
-                if (regcomp(&rconf->base.include_re[compiled], re_s, REG_EXTENDED | REG_NOSUB) == 0)
+                if (regcomp(&((leuko_config_rule_view_t *)rconf)->base.include_re[compiled], re_s, REG_EXTENDED | REG_NOSUB) == 0)
                     compiled++;
                 free(re_s);
             }
-            rconf->base.include_re_count = compiled;
+            ((leuko_config_rule_view_t *)rconf)->base.include_re_count = compiled;
         }
         leuko_node_t *exc = leuko_node_get_mapping_child(rule_node, LEUKO_CONFIG_KEY_EXCLUDE);
         n = leuko_node_array_count(exc);
         if (n > 0)
         {
-            rconf->base.exclude = calloc(n, sizeof(char *));
-            rconf->base.exclude_count = n;
+            ((leuko_config_rule_view_t *)rconf)->base.exclude = calloc(n, sizeof(char *));
+            ((leuko_config_rule_view_t *)rconf)->base.exclude_count = n;
             for (size_t i = 0; i < n; i++)
-                rconf->base.exclude[i] = strdup(leuko_node_array_scalar_at(exc, i) ?: "");
+                ((leuko_config_rule_view_t *)rconf)->base.exclude[i] = strdup(leuko_node_array_scalar_at(exc, i) ?: "");
 
-            rconf->base.exclude_re = calloc(n, sizeof(regex_t));
+            ((leuko_config_rule_view_t *)rconf)->base.exclude_re = calloc(n, sizeof(regex_t));
             size_t compiled = 0;
             for (size_t i = 0; i < n; i++)
             {
-                char *re_s = leuko_glob_to_regex(rconf->base.exclude[i]);
+                char *re_s = leuko_glob_to_regex(((leuko_config_rule_view_t *)rconf)->base.exclude[i]);
                 if (!re_s)
                     continue;
-                if (regcomp(&rconf->base.exclude_re[compiled], re_s, REG_EXTENDED | REG_NOSUB) == 0)
+                if (regcomp(&((leuko_config_rule_view_t *)rconf)->base.exclude_re[compiled], re_s, REG_EXTENDED | REG_NOSUB) == 0)
                     compiled++;
                 free(re_s);
             }
-            rconf->base.exclude_re_count = compiled;
+            ((leuko_config_rule_view_t *)rconf)->base.exclude_re_count = compiled;
         }
     }
 

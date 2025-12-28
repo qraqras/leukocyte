@@ -11,7 +11,7 @@
 typedef struct leuko_config_s leuko_config_t;
 leuko_config_t *leuko_config_new(void);
 void leuko_config_free(leuko_config_t *cfg);
-void leuko_config_set_view_rule(leuko_config_t *cfg, const char *category, const char *rule_name, leuko_config_rule_view_t *rconf);
+void leuko_config_set_view_rule(leuko_config_t *cfg, const char *category, const char *rule_name, void *rconf);
 leuko_config_rule_base_t *leuko_config_get_rule(leuko_config_t *cfg, const char *category, const char *rule_name);
 
 int main(void)
@@ -20,17 +20,17 @@ int main(void)
     if (!cfg)
         return 1;
 
-    leuko_config_rule_view_t *r1 = leuko_rule_config_initialize();
+    void *r1 = leuko_rule_config_initialize();
     assert(r1 != NULL);
-    r1->base.severity = LEUKO_SEVERITY_ERROR; /* mark with non-default to detect transfer */
+    ((leuko_config_rule_view_t *)r1)->base.severity = LEUKO_SEVERITY_ERROR; /* mark with non-default to detect transfer */
     leuko_config_set_view_rule(cfg, "Layout", "IndentationConsistency", r1);
     leuko_config_rule_base_t *gr1 = leuko_config_get_rule(cfg, "Layout", "IndentationConsistency");
     assert(gr1 != NULL);
     assert(gr1->severity == LEUKO_SEVERITY_ERROR);
 
-    leuko_config_rule_view_t *r2 = leuko_rule_config_initialize();
+    void *r2 = leuko_rule_config_initialize();
     assert(r2 != NULL);
-    r2->base.severity = LEUKO_SEVERITY_WARNING;
+    ((leuko_config_rule_view_t *)r2)->base.severity = LEUKO_SEVERITY_WARNING;
     leuko_config_set_view_rule(cfg, "Layout", "IndentationWidth", r2);
     leuko_config_rule_base_t *gr2 = leuko_config_get_rule(cfg, "Layout", "IndentationWidth");
     assert(gr2 != NULL);

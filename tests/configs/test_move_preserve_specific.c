@@ -11,7 +11,7 @@
 int main(void)
 {
     /* Create source heap-initialized rule */
-    leuko_config_rule_view_t *src = layout_indentation_width_initialize();
+    void *src = layout_indentation_width_initialize();
     assert(src);
     layout_indentation_width_config_t *orig = &((leuko_config_rule_view_indentation_width_t *)src)->specific;
     assert(orig);
@@ -29,7 +29,7 @@ int main(void)
     leuko_config_set_view_rule(cfg, "Layout", "IndentationWidth", src);
 
     /* read back embedded view */
-    leuko_config_rule_view_t *rview = leuko_config_get_view_rule(cfg, "Layout", "IndentationWidth");
+    void *rview = leuko_config_get_view_rule(cfg, "Layout", "IndentationWidth");
     assert(rview);
     layout_indentation_width_config_t *dst = &((leuko_config_rule_view_indentation_width_t *)rview)->specific;
     assert(dst);

@@ -120,7 +120,7 @@ leuko_config_rule_base_t *leuko_config_get_rule(leuko_config_t *cfg, const char 
 }
 
 /* Return a pointer to the view-type for a rule config (typed-specifics are embedded). */
-leuko_config_rule_view_t *leuko_config_get_view_rule(leuko_config_t *cfg, const char *category, const char *rule_name)
+void *leuko_config_get_view_rule(leuko_config_t *cfg, const char *category, const char *rule_name)
 {
     if (!cfg || !category || !rule_name)
         return NULL;
@@ -130,7 +130,7 @@ leuko_config_rule_view_t *leuko_config_get_view_rule(leuko_config_t *cfg, const 
 #undef X
 #define X(field, cat_name, sname, rule_ptr, ops_ptr, specific_t) \
         if (strcmp(rule_name, sname) == 0) \
-            return (leuko_config_rule_view_t *)&cfg->categories.layout.rules.field;
+            return (void *)&cfg->categories.layout.rules.field;
         LEUKO_RULES_LAYOUT
 #undef X
     }
@@ -138,7 +138,7 @@ leuko_config_rule_view_t *leuko_config_get_view_rule(leuko_config_t *cfg, const 
 }
 
 /* Set the static view pointer for convenience access; generated names map to view fields. */
-void leuko_config_set_view_rule(leuko_config_t *cfg, const char *category, const char *rule_name, leuko_config_rule_view_t *rconf)
+void leuko_config_set_view_rule(leuko_config_t *cfg, const char *category, const char *rule_name, void *rconf)
 {
     if (!cfg || !category || !rule_name || !rconf)
         return;
@@ -153,7 +153,7 @@ void leuko_config_set_view_rule(leuko_config_t *cfg, const char *category, const
             { \
                 /* dst is typed view */ \
                 leuko_config_rule_view_##field##_t *dst = &cfg->categories.layout.rules.field; \
-                leuko_config_rule_view_t *src = rconf; \
+                leuko_config_rule_view_t *src = rconf; /* src is a typed heap view returned by initialize */ \
                 dst->base = src->base; \
                 /* copy specific struct value from typed heap view into embedded typed specific */ \
                 { \
@@ -166,7 +166,8 @@ void leuko_config_set_view_rule(leuko_config_t *cfg, const char *category, const
                 /* Null out source base pointers so freeing it doesn't free moved memory */ \
                 src->base.include = NULL; src->base.include_count = 0; src->base.include_re = NULL; src->base.include_re_count = 0; \
                 src->base.exclude = NULL; src->base.exclude_count = 0; src->base.exclude_re = NULL; src->base.exclude_re_count = 0; \
-                leuko_rule_config_free(src); \
+                /* Use rule-specific reset if provided, otherwise fall back to generic free */ \
+                if ((ops_ptr) && (ops_ptr)->reset) (ops_ptr)->reset(src); else leuko_rule_config_free(src); \
                 return; \
             } \
         }

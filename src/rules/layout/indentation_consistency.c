@@ -33,10 +33,10 @@ bool check_def(pm_node_t *node, const rule_context_t *ctx)
     if (!cc)
         return true;
     const typeof(((leuko_config_rule_view_indentation_consistency_t *)0)->specific) *sc = NULL;
-    const leuko_config_rule_view_t *v = leuko_config_get_view_rule((leuko_config_t *)cfg, "Layout", "IndentationConsistency");
+    void *v = leuko_config_get_view_rule((leuko_config_t *)cfg, "Layout", "IndentationConsistency");
     if (!v)
         return true;
-    /* Cast to typed view (PoC) */
+    /* Cast to typed view */
     const leuko_config_rule_view_indentation_consistency_t *indentation_consistency_cfg = (const leuko_config_rule_view_indentation_consistency_t *)v;
     sc = &indentation_consistency_cfg->specific;
 

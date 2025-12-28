@@ -11,7 +11,7 @@
  * @brief Initialize the layout_indentation_consistency rule configuration.
  * @return Pointer to the initialized leuko_rule_config_t structure
  */
-leuko_config_rule_view_t *layout_indentation_consistency_initialize(void)
+void *layout_indentation_consistency_initialize(void)
 {
     leuko_config_rule_view_indentation_consistency_t *cfg = calloc(1, sizeof(*cfg));
     if (!cfg)
@@ -21,17 +21,24 @@ leuko_config_rule_view_t *layout_indentation_consistency_initialize(void)
     cfg->base.severity = LEUKO_SEVERITY_CONVENTION;
 
     cfg->specific.enforced_style = LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE_NORMAL;
-    return (leuko_config_rule_view_t *)cfg;
+    return (void *)cfg;
+}
+
+void layout_indentation_consistency_reset(void *view)
+{
+    if (!view)
+        return;
+    free(view);
 }
 
 /* New merged-node apply */
-bool layout_indentation_consistency_apply_merged(leuko_config_rule_view_t *config, leuko_node_t *node, char **err)
+bool layout_indentation_consistency_apply_merged(void *view, leuko_node_t *node, char **err)
 {
     if (err)
         *err = NULL;
-    if (!config || !node)
+    if (!view || !node)
         return false;
-    layout_indentation_consistency_config_t *sc = &((leuko_config_rule_view_indentation_consistency_t *)config)->specific;
+    layout_indentation_consistency_config_t *sc = &((leuko_config_rule_view_indentation_consistency_t *)view)->specific;
     leuko_node_t *v = leuko_node_get_mapping_child(node, CONFIG_KEY_OF_LAYOUT_INDENTATION_CONSISTENCY_ENFORCED_STYLE);
     const char *val = v && LEUKO_NODE_IS_SCALAR(v->type) ? v->scalar : NULL;
     if (!val)
@@ -51,4 +58,5 @@ bool layout_indentation_consistency_apply_merged(leuko_config_rule_view_t *confi
 struct leuko_rule_config_handlers_s layout_indentation_consistency_config_ops = {
     .initialize = layout_indentation_consistency_initialize,
     .apply = layout_indentation_consistency_apply_merged,
+    .reset = layout_indentation_consistency_reset,
 };

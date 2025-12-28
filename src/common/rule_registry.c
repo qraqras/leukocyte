@@ -48,7 +48,7 @@ static const leuko_registry_category_t leuko_rule_categories[] = {
 };
 
 /* Forward-declare a stub handler for rules without handlers */
-static bool leuko_rule_apply_stub(leuko_config_rule_view_t *config, leuko_node_t *node, char **err)
+static bool leuko_rule_apply_stub(void *config, leuko_node_t *node, char **err)
 {
     (void)config;
     (void)node;
@@ -59,6 +59,7 @@ static bool leuko_rule_apply_stub(leuko_config_rule_view_t *config, leuko_node_t
 const leuko_rule_config_handlers_t leuko_rule_handlers_stub = {
     .initialize = NULL,
     .apply = leuko_rule_apply_stub,
+    .reset = NULL,
 };
 
 const leuko_registry_category_t *leuko_get_rule_categories(void)

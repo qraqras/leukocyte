@@ -38,7 +38,9 @@ typedef struct leuko_config_category_base_s
 LEUKO_RULES_LAYOUT
 #undef X
 
-/* Now declare the rules fields using those typed view structs */
+/**
+ * @brief Category configuration view rules structure.
+ */
 typedef struct leuko_config_category_view_rules_s
 {
 #undef X
@@ -52,9 +54,11 @@ typedef struct leuko_config_category_view_rules_s
  */
 typedef struct leuko_config_category_view_s
 {
-    leuko_config_category_view_rules_t rules;
     leuko_config_category_base_t base;
+    leuko_config_category_view_rules_t rules;
 } leuko_config_category_view_t;
+
+
 
 /**
  * @brief Configuration structure holding all categories' views.
@@ -66,6 +70,62 @@ typedef struct leuko_config_categories_view_s
     LEUKO_RULES_CATEGORIES
 #undef CATEGORY
 } leuko_config_categories_view_t;
+
+/* ------------------------------------------------------------------------- */
+/* Typed accessors for rule views (no cast required)
+ * These inline helpers return pointers to the generated typed rule views so
+ * callers can access `.specific` fields without manual casts.
+ *
+ * Note: to avoid incomplete-type issues this API accepts a pointer to the
+ * `leuko_config_categories_view_t` (i.e. `&cfg->categories`).
+ */
+static inline leuko_config_rule_view_indentation_consistency_t *
+leuko_config_categories_view_rule_indentation_consistency(leuko_config_categories_view_t *cats)
+{
+    return &cats->layout.rules.indentation_consistency;
+}
+
+static inline const leuko_config_rule_view_indentation_consistency_t *
+leuko_config_categories_view_rule_indentation_consistency_const(const leuko_config_categories_view_t *cats)
+{
+    return &cats->layout.rules.indentation_consistency;
+}
+
+static inline leuko_config_rule_view_indentation_width_t *
+leuko_config_categories_view_rule_indentation_width(leuko_config_categories_view_t *cats)
+{
+    return &cats->layout.rules.indentation_width;
+}
+
+static inline const leuko_config_rule_view_indentation_width_t *
+leuko_config_categories_view_rule_indentation_width_const(const leuko_config_categories_view_t *cats)
+{
+    return &cats->layout.rules.indentation_width;
+}
+
+static inline leuko_config_rule_view_indentation_style_t *
+leuko_config_categories_view_rule_indentation_style(leuko_config_categories_view_t *cats)
+{
+    return &cats->layout.rules.indentation_style;
+}
+
+static inline const leuko_config_rule_view_indentation_style_t *
+leuko_config_categories_view_rule_indentation_style_const(const leuko_config_categories_view_t *cats)
+{
+    return &cats->layout.rules.indentation_style;
+}
+
+static inline leuko_config_rule_view_line_length_t *
+leuko_config_categories_view_rule_line_length(leuko_config_categories_view_t *cats)
+{
+    return &cats->layout.rules.line_length;
+}
+
+static inline const leuko_config_rule_view_line_length_t *
+leuko_config_categories_view_rule_line_length_const(const leuko_config_categories_view_t *cats)
+{
+    return &cats->layout.rules.line_length;
+}
 
 typedef struct leuko_config_s leuko_config_t;
 typedef struct leuko_node_s leuko_node_t;

@@ -303,17 +303,17 @@ const leuko_node_t *leuko_compiled_config_merged_node(const leuko_compiled_confi
 }
 
 /* Return the rule pointer referenced by the generated static view (if any) */
-leuko_config_rule_view_t *leuko_compiled_config_view_rule(const leuko_compiled_config_t *cfg, const char *category, const char *rule_name)
+void *leuko_compiled_config_view_rule(const leuko_compiled_config_t *cfg, const char *category, const char *rule_name)
 {
     if (!cfg || !cfg->effective_config || !category || !rule_name)
         return NULL;
     leuko_config_t *ec = (leuko_config_t *)cfg->effective_config;
     if (strcmp(category, "Layout") == 0)
     {
-        if (strcmp(rule_name, "IndentationConsistency") == 0) { fprintf(stderr, "[view_rule] IndentationConsistency -> %p\n", (void*)&ec->categories.layout.rules.indentation_consistency); return &ec->categories.layout.rules.indentation_consistency; }
-        if (strcmp(rule_name, "IndentationWidth") == 0) { fprintf(stderr, "[view_rule] IndentationWidth -> %p specific=%p\n", (void*)&ec->categories.layout.rules.indentation_width, (void*)&ec->categories.layout.rules.indentation_width.specific); return &ec->categories.layout.rules.indentation_width; }
-        if (strcmp(rule_name, "IndentationStyle") == 0) { fprintf(stderr, "[view_rule] IndentationStyle -> %p specific=%p\n", (void*)&ec->categories.layout.rules.indentation_style, (void*)&ec->categories.layout.rules.indentation_style.specific); return &ec->categories.layout.rules.indentation_style; }
-        if (strcmp(rule_name, "LineLength") == 0) { fprintf(stderr, "[view_rule] LineLength -> %p specific=%p\n", (void*)&ec->categories.layout.rules.line_length, (void*)&ec->categories.layout.rules.line_length.specific); return &ec->categories.layout.rules.line_length; }
+        if (strcmp(rule_name, "IndentationConsistency") == 0) { fprintf(stderr, "[view_rule] IndentationConsistency -> %p\n", (void*)&ec->categories.layout.rules.indentation_consistency); return (void *)&ec->categories.layout.rules.indentation_consistency; }
+        if (strcmp(rule_name, "IndentationWidth") == 0) { fprintf(stderr, "[view_rule] IndentationWidth -> %p specific=%p\n", (void*)&ec->categories.layout.rules.indentation_width, (void*)&ec->categories.layout.rules.indentation_width.specific); return (void *)&ec->categories.layout.rules.indentation_width; }
+        if (strcmp(rule_name, "IndentationStyle") == 0) { fprintf(stderr, "[view_rule] IndentationStyle -> %p specific=%p\n", (void*)&ec->categories.layout.rules.indentation_style, (void*)&ec->categories.layout.rules.indentation_style.specific); return (void *)&ec->categories.layout.rules.indentation_style; }
+        if (strcmp(rule_name, "LineLength") == 0) { fprintf(stderr, "[view_rule] LineLength -> %p specific=%p\n", (void*)&ec->categories.layout.rules.line_length, (void*)&ec->categories.layout.rules.line_length.specific); return (void *)&ec->categories.layout.rules.line_length; }
     }
     return NULL;
 }
