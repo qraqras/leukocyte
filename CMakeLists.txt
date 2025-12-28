@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(leukocyte C)
 
+option(LEUKO_ENABLE_SCHEMA_EXPERIMENT "Enable experimental schema-driven JSON loader" OFF)
+
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
@@ -21,6 +23,11 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DNDEBUG")
 option(ENABLE_ASAN "Enable Address Sanitizer for leukocyte target" OFF)
 # Option to enable gprof profiling (adds -pg to compile and link flags)
 option(ENABLE_GPROF "Enable gprof profiling for leukocyte target" OFF)
+
+# Optionally build experimental schema-driven loader
+if(LEUKO_ENABLE_SCHEMA_EXPERIMENT)
+    add_subdirectory(src/configs/schema)
+endif()
 
 # Defer the rest of the build into the `src/` subdirectory for clarity
 add_subdirectory(src)
