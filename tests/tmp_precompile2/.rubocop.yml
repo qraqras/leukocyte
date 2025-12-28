@@ -1,8 +1,0 @@
-Layout:
-  Exclude:
-    - "lib/**/*"
-Layout/IndentationConsistency:
-  Include:
-    - "**/*.rb"
-  Exclude:
-    - "vendor/**/*"

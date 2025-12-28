@@ -42,7 +42,6 @@ size_t leuko_processed_source_col_of_pos(const leuko_processed_source_t *ps, con
 bool leuko_processed_source_begins_its_line(const leuko_processed_source_t *ps, const uint8_t *pos);
 static inline size_t leuko_pos_to_offset(const leuko_processed_source_t *ps, const uint8_t *pos) { return (size_t)(pos - ps->source_start); }
 static inline const uint8_t *leuko_offset_to_pos(const leuko_processed_source_t *ps, size_t offset) { return ps->source_start + offset; }
-
 void leuko_processed_source_pos_info(leuko_processed_source_t *ps, const uint8_t *pos, leuko_processed_source_pos_info_t *out);
 void leuko_processed_source_free(leuko_processed_source_t *ps);
 

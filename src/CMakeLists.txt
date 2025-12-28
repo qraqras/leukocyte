@@ -20,6 +20,15 @@ file(GLOB_RECURSE LEUKO_SOURCES_REL "${CMAKE_SOURCE_DIR}/src/*.c")
 # Exclude main.c from library sources (it is used for the executable)
 list(REMOVE_ITEM LEUKO_SOURCES_REL "${CMAKE_SOURCE_DIR}/src/main.c")
 
+# Remove sources that depend on deleted/removed headers so the project can
+# build in a restructured/reduced state (non-destructive; we do not restore
+# deleted files here).
+foreach(_s IN LISTS LEUKO_SOURCES_REL)
+    if(_s MATCHES "/src/configs/" OR _s MATCHES "/src/rules/" OR _s MATCHES "/src/sources/" OR _s MATCHES "/src/cli/parser.c")
+        list(REMOVE_ITEM LEUKO_SOURCES_REL "${_s}")
+    endif()
+endforeach()
+
 # If no sources found, fall back to a small stub to keep builds working
 if(LEUKO_SOURCES_REL)
     message(STATUS "Collected leuko sources: ${LEUKO_SOURCES_REL}")
@@ -35,14 +44,20 @@ endif()
 # compatibility so consumers can still link against `leuko_prism_helpers`.
 add_library(leuko_prism_helpers INTERFACE)
 
-# Main executable (if present)
+# Main executable (if present and required CLI sources are available)
+# Main executable (if present and parser.c is compiled into sources)
 if(EXISTS ${CMAKE_SOURCE_DIR}/src/main.c)
-    add_executable(leuko ${CMAKE_SOURCE_DIR}/src/main.c)
-    # Link order chosen to match previous setup
-    if(TARGET prism_static)
+    list(FIND LEUKO_SOURCES_REL "${CMAKE_SOURCE_DIR}/src/cli/parser.c" _parser_idx)
+    if(_parser_idx GREATER -1)
+        add_executable(leuko ${CMAKE_SOURCE_DIR}/src/main.c)
+        # Link order chosen to match previous setup
+        if(TARGET prism_static)
             target_link_libraries(leuko PRIVATE prism_static leuko_lib pthread)
+        else()
+            target_link_libraries(leuko PRIVATE leuko_lib pthread)
+        endif()
     else()
-        target_link_libraries(leuko PRIVATE leuko_lib pthread)
+        message(STATUS "Skipping building 'leuko' executable: parser.c not included in sources")
     endif()
 endif()
 
