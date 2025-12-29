@@ -30,10 +30,11 @@
 
 ## 設定ファイルについての仕様
 このプロジェクトは現時点でRuboCopの`.rubocop.yml`を直接解釈することはしません(将来的にはC99での直接解釈を目指します)。
-なぜなら、`.rubocop.yml`の仕様が複雑で対応するには時間が掛かりすぎるからです。
-そのため、現時点では.rubocop.ymlの解釈にRuboCop本体を使用し、RuboCop本体が解決した結果を独自のJSON形式に変換することにします。
-Leukocyte実行前にあらかじめ`leuko --sync`を実行して、`.rubocop.yml`から`.leukocyte.resolved.json`を生成することを想定しています。
-`.leukocyte.resolved.json`は`.rubocop.yml`と同じ階層に配置されます。
+なぜなら、`.rubocop.yml`の仕様が複雑で対応するには時間がかかり過ぎるからです。
+そのため、現時点では.rubocop.ymlの解釈にRuboCop本体を使用し、RuboCop本体が解決した結果を独自のJSON形式に変換してから読み込むことにします。
+あらかじめ`leuko --init`を実行して、`.leukocyte`ディレクトリを作成します。
+`.leukocyte`ディレクトリが存在するディレクトリはLeukocyteのプロジェクトルートです。
+また、RuboCopと設定を同期させるために`leuko --sync`を実行して、各ディレクトリの`.rubocop.yml`に対応する`.leukocyte.resolved.json`を`.leukocyte`ディレクトリに生成します。
 
 ## プロジェクトの全体像
 ### プロジェクト概要
