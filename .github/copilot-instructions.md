@@ -6,7 +6,7 @@
 - [MUST]RuboCopとの互換性を最優先してください
 - [MUST]このプロジェクトは未リリースなので後方互換は考慮しなくていいです
 - [MUST]`vendor/`のコードは修正しないでください
-- [SHOULD]RuboCopとの比較ベンチマークはキャッシュOFFかつLayout/IndentationConsistencyのみで実行してください
+- [SHOULD]RuboCopとの比較ベンチマークはキャッシュOFFかつlayout/indentation_consistencyのみで実行してください
 
 ## コーディング規約
 - [MUST]プロジェクトの接頭辞として`leuko_`を使用すること(内部関数/変数も含む)

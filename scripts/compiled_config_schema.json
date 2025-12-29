@@ -4,116 +4,217 @@
     "type": "object",
     "required": [
         "schema_version",
-        "all",
+        "general",
         "categories"
     ],
-    "properties": {
-        "schema_version": {
-            "type": "string"
+    "definitions": {
+        "prop_enabled": {
+            "type": "boolean"
         },
-        "sources": {
+        "prop_severity": {
+            "type": "string",
+            "enum": [
+                "info",
+                "refactor",
+                "convention",
+                "warning",
+                "error",
+                "fatal"
+            ]
+        },
+        "prop_include": {
             "type": "array",
             "items": {
-                "type": "object",
-                "required": [
-                    "path",
-                    "mtime"
-                ],
-                "properties": {
-                    "path": {
-                        "type": "string"
-                    },
-                    "mtime": {
-                        "type": "integer"
-                    }
-                },
-                "additionalProperties": false
+                "type": "string"
             }
         },
-        "raw_config": {
-            "type": "object"
+        "prop_exclude": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
         },
-        "all": {
-            "type": "object",
-            "required": [
-                "include",
-                "exclude"
-            ],
-            "properties": {
-                "include": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
+        "additionalProperties": false
+    },
+    "general_common": {
+        "type": "object",
+        "properties": {
+            "enabled": {
+                "allOf": [
+                    {
+                        "$ref": "#/definitions/prop_enabled"
+                    },
+                    {
+                        "default": true
                     }
+                ]
+            },
+            "severity": {
+                "allOf": [
+                    {
+                        "$ref": "#/definitions/prop_severity"
+                    },
+                    {
+                        "default": "convention"
+                    }
+                ]
+            },
+            "include": {
+                "allOf": [
+                    {
+                        "$ref": "#/definitions/prop_include"
+                    },
+                    {
+                        "default": []
+                    }
+                ]
+            },
+            "exclude": {
+                "allOf": [
+                    {
+                        "$ref": "#/definitions/prop_exclude"
+                    },
+                    {
+                        "default": []
+                    }
+                ]
+            }
+        },
+        "additionalProperties": false
+    },
+    "category_common": {
+        "type": "object",
+        "required": [
+            "rules"
+        ],
+        "properties": {
+            "enabled": {
+                "allOf": [
+                    {
+                        "$ref": "#/definitions/prop_enabled"
+                    },
+                    {
+                        "default": true
+                    }
+                ]
+            },
+            "severity": {
+                "allOf": [
+                    {
+                        "$ref": "#/definitions/prop_severity"
+                    },
+                    {
+                        "default": "convention"
+                    }
+                ]
+            },
+            "include": {
+                "allOf": [
+                    {
+                        "$ref": "#/definitions/prop_include"
+                    },
+                    {
+                        "default": []
+                    }
+                ]
+            },
+            "exclude": {
+                "allOf": [
+                    {
+                        "$ref": "#/definitions/prop_exclude"
+                    },
+                    {
+                        "default": []
+                    }
+                ]
+            }
+        },
+        "additionalProperties": false
+    },
+    "rule_common": {
+        "type": "object",
+        "required": [
+            "enabled"
+        ],
+        "properties": {
+            "enabled": {
+                "allOf": [
+                    {
+                        "$ref": "#/definitions/prop_enabled"
+                    },
+                    {
+                        "default": true
+                    }
+                ]
+            },
+            "severity": {
+                "allOf": [
+                    {
+                        "$ref": "#/definitions/prop_severity"
+                    },
+                    {
+                        "default": "convention"
+                    }
+                ]
+            },
+            "include": {
+                "allOf": [
+                    {
+                        "$ref": "#/definitions/prop_include"
+                    },
+                    {
+                        "default": []
+                    }
+                ]
+            },
+            "exclude": {
+                "allOf": [
+                    {
+                        "$ref": "#/definitions/prop_exclude"
+                    },
+                    {
+                        "default": []
+                    }
+                ]
+            }
+        },
+        "additionalProperties": true
+    },
+    "properties": {
+        "schema_version": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d+\\.\\d+$",
+            "examples": [
+                "1.0.0",
+                "1.2.3"
+            ]
+        },
+        "general": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "$ref": "#/definitions/rule_common/properties/enabled"
+                },
+                "severity": {
+                    "$ref": "#/definitions/rule_common/properties/severity"
+                },
+                "include": {
+                    "$ref": "#/definitions/rule_common/properties/include"
                 },
                 "exclude": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                    "$ref": "#/definitions/rule_common/properties/exclude"
                 }
             },
             "additionalProperties": false
         },
         "categories": {
             "type": "object",
-            "additionalProperties": {
-                "type": "object",
-                "properties": {
-                    "include": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "exclude": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "rules": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "object",
-                            "properties": {
-                                "enabled": {
-                                    "type": "boolean"
-                                },
-                                "include": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "string"
-                                    }
-                                },
-                                "exclude": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "string"
-                                    }
-                                }
-                            },
-                            "additionalProperties": true
-                        }
-                    }
-                },
-                "additionalProperties": false
-            }
-        },
-        "annotations": {
-            "type": "object",
             "properties": {
-                "inferred_types": {
-                    "type": "object"
-                },
-                "pattern_candidates": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                "layout": {
+                    "$ref": "category_schemas/layout.json"
                 }
             },
-            "additionalProperties": true
+            "additionalProperties": false
         }
     },
     "additionalProperties": false
