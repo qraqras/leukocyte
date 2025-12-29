@@ -1,6 +1,5 @@
 #include "cli/exit_code.h"
 #include "cli/parser.h"
-#include "cli/sync.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
