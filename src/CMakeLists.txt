@@ -24,7 +24,7 @@ list(REMOVE_ITEM LEUKO_SOURCES_REL "${CMAKE_SOURCE_DIR}/src/main.c")
 # build in a restructured/reduced state (non-destructive; we do not restore
 # deleted files here).
 foreach(_s IN LISTS LEUKO_SOURCES_REL)
-    if(_s MATCHES "/src/configs/" OR _s MATCHES "/src/rules/" OR _s MATCHES "/src/sources/" OR _s MATCHES "/src/cli/parser.c")
+    if(_s MATCHES "/src/configs/" OR _s MATCHES "/src/rules/" OR _s MATCHES "/src/sources/")
         list(REMOVE_ITEM LEUKO_SOURCES_REL "${_s}")
     endif()
 endforeach()

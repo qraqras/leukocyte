@@ -2,12 +2,10 @@
 #include <string.h>
 #include <getopt.h>
 #include <stdio.h>
-#include "common/rule_registry.h"
 #include "cli/parser.h"
 #include "cli/formatter.h"
+#include "common/registry.h"
 #include "version.h"
-#include "rules/common/rule.h"
-#include "utils/string_array.h"
 
 /**
  * @brief  Print help message to stdout.
@@ -24,8 +22,9 @@ static void print_help(void)
     printf("  -f, --format <format>       Specify output format (text, json)\n");
     printf("  -h, --help                  Show this help message\n");
     printf("  -v, --version               Show version information\n");
-    printf("      --parallel              Enable automatic parallel execution (set jobs to CPU count)\n");
     printf("      --only <rule1,rule2>    Only include specific rules\n");
+    printf("      --parallel              Enable automatic parallel execution (set jobs to CPU count)\n");
+    printf("      --sync                  Regenerate .leukocyte.resolved.json by searching for .rubocop.yml in the current directory or its parents\n");
 }
 
 /**
@@ -86,6 +85,7 @@ leuko_parse_result_t leuko_cli_options_parse(int argc, char *argv[], leuko_cli_o
         {"only"            , required_argument, 0, 0  },
         {"version"         , no_argument      , 0, 'v'},
         {"parallel"        , no_argument      , 0, 0  },
+        {"sync"            , no_argument      , 0, 0  },
         {0, 0, 0, 0}
         /* clang-format on */
     };
@@ -174,6 +174,10 @@ leuko_parse_result_t leuko_cli_options_parse(int argc, char *argv[], leuko_cli_o
             if (strcmp(long_options[option_index].name, "parallel") == 0)
             {
                 cli_opts->parallel = true;
+            }
+            if (strcmp(long_options[option_index].name, "sync") == 0)
+            {
+                cli_opts->sync = true;
             }
             break;
         case '?':

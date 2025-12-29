@@ -1,8 +1,3 @@
-/* gen_rule_struct.c - very small PoC generator that reads a rule schema JSON and emits
- * a C header and source for the rule (struct, defaults, from_json/free using cJSON).
- * Build with: gcc -std=c99 -Ivendor/cjson -o gen_rule_struct tools/gen_rule_struct.c vendor/cjson/cJSON.c
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

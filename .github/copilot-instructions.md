@@ -28,6 +28,13 @@
 | Offense     | Diagnostic |
 | AutoCorrect | QuickFix   |
 
+## 設定ファイルについての仕様
+このプロジェクトは現時点でRuboCopの`.rubocop.yml`を直接解釈することはしません(将来的にはC99での直接解釈を目指します)。
+なぜなら、`.rubocop.yml`の仕様が複雑で対応するには時間が掛かりすぎるからです。
+そのため、現時点では.rubocop.ymlの解釈にRuboCop本体を使用し、RuboCop本体が解決した結果を独自のJSON形式に変換することにします。
+Leukocyte実行前にあらかじめ`leuko --sync`を実行して、`.rubocop.yml`から`.leukocyte.resolved.json`を生成することを想定しています。
+`.leukocyte.resolved.json`は`.rubocop.yml`と同じ階層に配置されます。
+
 ## プロジェクトの全体像
 ### プロジェクト概要
 このプロジェクトの概要は以下の通りです:
