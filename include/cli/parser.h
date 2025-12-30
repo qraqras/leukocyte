@@ -40,6 +40,7 @@ typedef struct leuko_cli_options_s
     size_t except_count;                   /* number of except rules */
     leuko_quick_fix_mode_t quick_fix_mode; /* quick fix mode */
     bool parallel;                         /* run analysis in parallel */
+    bool init;                             /* initialize .leukocyte */
     bool sync;                             /* sync config */
 } leuko_cli_options_t;
 

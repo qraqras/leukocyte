@@ -61,3 +61,8 @@ dkms.conf
 # Build directory
 build/
 build_asan/
+
+# Leukocyte generated artifacts
+.leukocyte/configs/
+.leukocyte/index.json
+.leukocyte/*.tmp

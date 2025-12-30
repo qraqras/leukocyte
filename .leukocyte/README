@@ -1,0 +1,9 @@
+# .leukocyte
+
+This directory stores generated Leukocyte artifacts (resolved RuboCop configs in JSON form).
+
+To generate configs, run:
+
+  leuko --sync
+
+By default the repository's .gitignore should exclude generated files under .leukocyte/configs/.
