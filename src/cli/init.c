@@ -1,11 +1,10 @@
-/* src/cli/init.c */
-#include "cli/init.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include "cli/init.h"
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096

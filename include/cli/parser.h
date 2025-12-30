@@ -16,32 +16,32 @@ typedef enum leuko_parse_result_e
 } leuko_parse_result_t;
 
 /**
- * @brief Quick fix mode enum.
+ * @brief Fix mode enumeration.
  */
-typedef enum leuko_quick_fix_mode_e
+typedef enum leuko_fix_mode_e
 {
-    LEUKO_QUICK_FIX_MODE_NONE,   /* fix none */
-    LEUKO_QUICK_FIX_MODE_SAFE,   /* fix safe */
-    LEUKO_QUICK_FIX_MODE_UNSAFE, /* fix all */
-} leuko_quick_fix_mode_t;
+    LEUKO_FIX_MODE_NONE,   /* fix none */
+    LEUKO_FIX_MODE_SAFE,   /* fix safe */
+    LEUKO_FIX_MODE_UNSAFE, /* fix all */
+} leuko_fix_mode_t;
 
 /**
  * @brief Command line options structure.
  */
 typedef struct leuko_cli_options_s
 {
-    char **paths;                          /* paths to analyze */
-    size_t paths_count;                    /* number of paths */
-    char *config_path;                     /* path to configuration file */
-    leuko_cli_formatter_t formatter;       /* formatter to use */
-    char **only;                           /* only rules to apply */
-    size_t only_count;                     /* number of only rules */
-    char **except;                         /* rules to exclude */
-    size_t except_count;                   /* number of except rules */
-    leuko_quick_fix_mode_t quick_fix_mode; /* quick fix mode */
-    bool parallel;                         /* run analysis in parallel */
-    bool init;                             /* initialize .leukocyte */
-    bool sync;                             /* sync config */
+    char **paths;                    /* paths to analyze */
+    size_t paths_count;              /* number of paths */
+    char *config_path;               /* path to configuration file */
+    leuko_cli_formatter_t formatter; /* formatter to use */
+    char **only;                     /* only rules to apply */
+    size_t only_count;               /* number of only rules */
+    char **except;                   /* rules to exclude */
+    size_t except_count;             /* number of except rules */
+    leuko_fix_mode_t fix_mode;       /* fix mode */
+    bool parallel;                   /* run analysis in parallel */
+    bool init;                       /* initialize .leukocyte */
+    bool sync;                       /* sync config */
 } leuko_cli_options_t;
 
 leuko_parse_result_t leuko_cli_options_parse(int argc, char *argv[], leuko_cli_options_t *opts);

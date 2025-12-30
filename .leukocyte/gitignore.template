@@ -1,5 +1,0 @@
-# Ignore generated Leukocyte artifacts
-leuko*.lock
-.leukocyte/configs/
-.leukocyte/index.json
-.leukocyte/*.tmp

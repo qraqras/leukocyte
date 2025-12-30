@@ -55,7 +55,7 @@ static bool leuko_cli_options_initialize(leuko_cli_options_t *cli_opts)
     cli_opts->only_count = 0;
     cli_opts->except = NULL;
     cli_opts->except_count = 0;
-    cli_opts->quick_fix_mode = LEUKO_QUICK_FIX_MODE_NONE;
+    cli_opts->fix_mode = LEUKO_FIX_MODE_NONE;
     cli_opts->parallel = false;
     return true;
 }
@@ -103,14 +103,14 @@ leuko_parse_result_t leuko_cli_options_parse(int argc, char *argv[], leuko_cli_o
         switch (c)
         {
         case 'a':
-            cli_opts->quick_fix_mode = LEUKO_QUICK_FIX_MODE_SAFE;
+            cli_opts->fix_mode = LEUKO_FIX_MODE_SAFE;
             break;
         case 'A':
-            cli_opts->quick_fix_mode = LEUKO_QUICK_FIX_MODE_UNSAFE;
+            cli_opts->fix_mode = LEUKO_FIX_MODE_UNSAFE;
             break;
         case 'x':
             /* Treat `-x` as equivalent to `-a --only Layout` */
-            cli_opts->quick_fix_mode = LEUKO_QUICK_FIX_MODE_SAFE;
+            cli_opts->fix_mode = LEUKO_FIX_MODE_SAFE;
             if (!leuko_str_arr_push(&cli_opts->only, &cli_opts->only_count, LEUKO_RULE_CATEGORY_NAME_LAYOUT))
             {
                 return LEUKO_CLI_OPTIONS_PARSE_ERROR;

@@ -1,6 +1,7 @@
 #include "cli/exit_code.h"
 #include "cli/parser.h"
 #include "cli/init.h"
+#include "cli/sync.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -41,29 +42,8 @@ int main(int argc, char *argv[])
     /* Handle sync subcommand */
     if (cli_opts.sync)
     {
-        /* Delegate to Ruby script that finds configs and generates JSON outputs */
-        const char *script = "scripts/sync_configs.rb";
-        char cwd_buf[PATH_MAX];
-        if (!getcwd(cwd_buf, sizeof(cwd_buf)))
-        {
-            perror("getcwd");
-            leuko_cli_options_free(&cli_opts);
-            return LEUKO_EXIT_INVALID;
-        }
-        char outdir[PATH_MAX];
-        char indexp[PATH_MAX];
-        snprintf(outdir, sizeof(outdir), "%s/.leukocyte/configs", cwd_buf);
-        snprintf(indexp, sizeof(indexp), "%s/.leukocyte/index.json", cwd_buf);
-
-        char cmd[4096];
-        int n = snprintf(cmd, sizeof(cmd), "ruby \"%s\" --dir \"%s\" --outdir \"%s\" --index \"%s\"", script, cwd_buf, outdir, indexp);
-        if (n < 0 || (size_t)n >= sizeof(cmd))
-        {
-            fprintf(stderr, "Command construction failed\n");
-            leuko_cli_options_free(&cli_opts);
-            return LEUKO_EXIT_INVALID;
-        }
-        int rc = system(cmd);
+        /* Use dedicated sync command implementation */
+        int rc = leuko_cli_sync(NULL, NULL, NULL, NULL);
         leuko_cli_options_free(&cli_opts);
         return rc;
     }
