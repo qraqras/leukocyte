@@ -48,6 +48,8 @@ int main(int argc, char *argv[])
         return rc;
     }
 
+    /* */
+
     leuko_cli_options_free(&cli_opts);
     return LEUKO_EXIT_OK;
 }
