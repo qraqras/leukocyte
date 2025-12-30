@@ -1,0 +1,8 @@
+inherit_from:
+  - .rubocop3.yml
+
+Layout/IndentationConsistency:
+  Enabled: true
+  Exclude:
+    - 'zzzz/**/*.rb'
+  EnforcedStyle: indented_internal_methods

@@ -1,0 +1,6 @@
+
+# Bench config: enable Layout/IndentationConsistency for the benchmark
+Layout/IndentationConsistency:
+  Enabled: true
+AllCops:
+  NewCops: enable

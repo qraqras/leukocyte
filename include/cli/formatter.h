@@ -1,0 +1,51 @@
+#ifndef INCLUDE_CLI_FORMATTER_H
+#define INCLUDE_CLI_FORMATTER_H
+
+#include <stdbool.h>
+#include <stdint.h>
+
+/* clang-format off */
+#define LEUKO_CLI_FORMATTER_NAME_PROGRESS        "progress"
+#define LEUKO_CLI_FORMATTER_NAME_AUTO_GEN        "autogenconf"
+#define LEUKO_CLI_FORMATTER_NAME_CLANG_STYLE     "clang"
+#define LEUKO_CLI_FORMATTER_NAME_FUUBAR_STYLE    "fuubar"
+#define LEUKO_CLI_FORMATTER_NAME_PACMAN_STYLE    "pacman"
+#define LEUKO_CLI_FORMATTER_NAME_EMACS_STYLE     "emacs"
+#define LEUKO_CLI_FORMATTER_NAME_SIMPLE          "simple"
+#define LEUKO_CLI_FORMATTER_NAME_QUIET           "quiet"
+#define LEUKO_CLI_FORMATTER_NAME_FILE_LIST       "files"
+#define LEUKO_CLI_FORMATTER_NAME_JSON            "json"
+#define LEUKO_CLI_FORMATTER_NAME_JUNIT_STYLE     "junit"
+#define LEUKO_CLI_FORMATTER_NAME_OFFENCE_COUNT   "offenses"
+#define LEUKO_CLI_FORMATTER_NAME_WORST_OFFENDERS "worst"
+#define LEUKO_CLI_FORMATTER_NAME_HTML            "html"
+#define LEUKO_CLI_FORMATTER_NAME_MARKDOWN        "markdown"
+#define LEUKO_CLI_FORMATTER_NAME_TAP             "tap"
+#define LEUKO_CLI_FORMATTER_NAME_GITHUB_ACTIONS  "github"
+/* clang-format on */
+
+/* CLI output formatter enum. */
+typedef enum leuko_cli_formatter_e
+{
+    LEUKO_CLI_FORMATTER_PROGRESS,
+    LEUKO_CLI_FORMATTER_AUTO_GEN,
+    LEUKO_CLI_FORMATTER_CLANG_STYLE,
+    LEUKO_CLI_FORMATTER_FUUBAR_STYLE,
+    LEUKO_CLI_FORMATTER_PACMAN_STYLE,
+    LEUKO_CLI_FORMATTER_EMACS_STYLE,
+    LEUKO_CLI_FORMATTER_SIMPLE,
+    LEUKO_CLI_FORMATTER_QUIET,
+    LEUKO_CLI_FORMATTER_FILE_LIST,
+    LEUKO_CLI_FORMATTER_JSON,
+    LEUKO_CLI_FORMATTER_JUNIT_STYLE,
+    LEUKO_CLI_FORMATTER_OFFENCE_COUNT,
+    LEUKO_CLI_FORMATTER_WORST_OFFENDERS,
+    LEUKO_CLI_FORMATTER_HTML,
+    LEUKO_CLI_FORMATTER_MARKDOWN,
+    LEUKO_CLI_FORMATTER_TAP,
+    LEUKO_CLI_FORMATTER_GITHUB_ACTIONS,
+} leuko_cli_formatter_t;
+
+bool leuko_cli_formatter_from_string(const char *str, leuko_cli_formatter_t *out);
+
+#endif /* INCLUDE_CLI_FORMATTER_H */
